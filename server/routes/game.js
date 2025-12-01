@@ -43,77 +43,12 @@ function secureRandomInt(min, max) {
     }
 }
 
-// @route   POST api/game/spin
-// @desc    Place bets and spin the wheel
-// @access  Private
-router.post('/spin', auth, async (req, res) => {
-    try {
-        const { bets } = req.body;
-
-        // Input Validation
-        if (!Array.isArray(bets) || bets.length === 0) {
-            return res.status(400).json({ message: "No bets placed." });
-        }
-
-        let totalBetAmount = 0;
-        for (const bet of bets) {
-            if (typeof bet.amount !== "number" || bet.amount <= 0) {
-                return res.status(400).json({ message: "Invalid bet amount." });
-            }
-            if (!["number", "color"].includes(bet.type)) {
-                return res.status(400).json({ message: "Invalid bet type." });
-            }
-            totalBetAmount += bet.amount;
-        }
-
-        // Generate Result
-        const resultIndex = secureRandomInt(0, 15);
-        const resultSegment = SEGMENTS[resultIndex];
-
-        // Calculate Winnings
-        let totalWinnings = 0;
-        for (const bet of bets) {
-            if (bet.type === "number" && bet.value === resultSegment.number) {
-                totalWinnings += bet.amount * 14;
-            } else if (bet.type === "color" && bet.value === resultSegment.color) {
-                totalWinnings += bet.amount * 2;
-            }
-        }
-
-        const netChange = totalWinnings - totalBetAmount;
-
-        // Atomic Balance Update
-        // We check if balance >= totalBetAmount implicitly by checking if the update succeeds?
-        // Actually, we can use a query condition to ensure sufficient balance.
-
-        const user = await User.findOneAndUpdate(
-            { _id: req.user.id, balance: { $gte: totalBetAmount } },
-            { $inc: { balance: netChange } },
-            { new: true }
-        );
-
-        if (!user) {
-            // Either user not found or insufficient balance
-            // Let's check which one
-            const checkUser = await User.findById(req.user.id);
-            if (!checkUser) {
-                return res.status(404).json({ message: "User not found." });
-            }
-            return res.status(400).json({ message: "Insufficient balance." });
-        }
-
-        res.json({
-            result: resultSegment,
-            winnings: totalWinnings,
-            balance: user.balance,
-            previousBalance: user.balance - netChange, // Approximation
-            totalBetAmount
-        });
-
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
+// @route   GET api/game/history
+// @desc    Get recent game history
+// @access  Public
+router.get('/history', async (req, res) => {
+    // TODO: Fetch from DB if we persist history there
+    res.json({ message: "History available via Socket.io" });
 });
 
 module.exports = router;

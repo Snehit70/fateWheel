@@ -10,25 +10,24 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async init() {
             if (this.token) {
-                // Ideally verify token with backend here
-                // For now, we assume it's valid or handle 401 in api interceptor
                 this.isInitialized = true;
+                api.defaults.headers.common['x-auth-token'] = this.token;
             } else {
                 this.isInitialized = true;
             }
         },
-        async login(email, password) {
+        async login(username, password) {
             try {
-                const res = await api.post('/auth/login', { email, password });
-                this.setAuth(res.data);
+                const response = await api.post('/auth/login', { username, password });
+                this.setAuth(response.data);
             } catch (err) {
                 throw err.response?.data?.message || 'Login failed';
             }
         },
-        async register(email, password) {
+        async register(username, password) {
             try {
-                const res = await api.post('/auth/register', { email, password });
-                this.setAuth(res.data);
+                const response = await api.post('/auth/register', { username, password });
+                this.setAuth(response.data);
             } catch (err) {
                 throw err.response?.data?.message || 'Registration failed';
             }
@@ -37,11 +36,13 @@ export const useAuthStore = defineStore('auth', {
             this.token = data.token;
             this.user = data.user;
             localStorage.setItem('token', data.token);
+            api.defaults.headers.common['x-auth-token'] = data.token;
         },
         logout() {
             this.token = null;
             this.user = null;
             localStorage.removeItem('token');
+            delete api.defaults.headers.common['x-auth-token'];
         },
         updateBalance(newBalance) {
             if (this.user) {

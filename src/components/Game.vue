@@ -1,199 +1,80 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white font-sans">
-    <div class="mb-4 text-2xl font-bold text-yellow-400">
-      Balance: ${{ authStore.user?.balance || 0 }}
-    </div>
-
-    <div class="relative mb-8">
-      <!-- Pointer -->
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[20px] border-t-yellow-500"></div>
-
-      <!-- Wheel -->
-      <div 
-        class="w-80 h-80 rounded-full border-4 border-gray-700 shadow-xl relative overflow-hidden transition-transform cubic-bezier(0.1, 0.8, 0.1, 1)"
-        :style="{ transform: `rotate(${rotation}deg)`, transitionDuration: `${transitionDuration}ms` }"
-      >
-        <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
-          <g v-for="(segment, i) in SEGMENTS" :key="i">
-            <path 
-              :d="getSegmentPath(i)" 
-              :fill="segment.color" 
-              stroke="#374151" 
-              stroke-width="0.5"
-            />
-            <text
-              :x="getTextX(i)"
-              :y="getTextY(i)"
-              fill="white"
-              font-size="5"
-              text-anchor="middle"
-              dominant-baseline="middle"
-              :transform="getTextTransform(i)"
-            >
-              {{ segment.number }}
-            </text>
-          </g>
-        </svg>
-      </div>
-    </div>
-
-    <!-- Betting Controls -->
-    <div class="flex flex-col gap-4 items-center w-full max-w-md px-4">
-      <!-- Chip Selection -->
-      <div class="flex gap-2 mb-2">
-        <button 
-          v-for="chip in CHIPS" 
-          :key="chip.value"
-          @click="selectedChip = chip.value"
-          :class="[
-            'w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all',
-            selectedChip === chip.value ? 'scale-110 ring-2 ring-yellow-400' : 'opacity-80',
-            chip.colorClass
-          ]"
-        >
-          {{ chip.value }}
-        </button>
-      </div>
-
-      <!-- Betting Board -->
-      <div class="w-full bg-gray-800 p-4 rounded-xl shadow-lg">
-        <div class="grid grid-cols-7 gap-2 mb-4">
-            <!-- Zero -->
-            <button 
-                @click="placeBet('number', 0)"
-                class="col-span-7 bg-green-600 hover:bg-green-500 h-10 rounded flex items-center justify-center font-bold relative"
-            >
-                0
-                <span v-if="getBetAmount('number', 0)" class="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {{ getBetAmount('number', 0) }}
-                </span>
-            </button>
-            
-            <!-- Numbers 1-14 -->
-            <button 
-                v-for="num in 14" 
-                :key="num"
-                @click="placeBet('number', num)"
-                :class="[
-                    'h-10 rounded flex items-center justify-center font-bold relative',
-                    getColor(num) === 'red' ? 'bg-red-600 hover:bg-red-500' : 'bg-gray-900 hover:bg-gray-700'
-                ]"
-            >
-                {{ num }}
-                <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {{ getBetAmount('number', num) }}
-                </span>
-            </button>
+  <div class="flex flex-col items-center w-full max-w-6xl mx-auto">
+    
+    <!-- Game Area -->
+    <!-- Game Area -->
+    <div class="w-full relative flex flex-col gap-6">
+        
+        <!-- Top Section: Wheel (60%) and History (40%) -->
+        <div class="flex flex-col lg:flex-row gap-6 items-start">
+            <div class="w-full lg:w-[60%] bg-[#1a1a1a]/50 rounded-2xl border border-[#2a2a2a] p-4 relative min-h-[350px] flex items-center justify-center">
+                <RouletteWheel 
+                    :rotation="rotation" 
+                    :transition-duration="transitionDuration"
+                    :status="status"
+                    :time-left="timeLeft"
+                    :last-result="lastResult"
+                />
+            </div>
+            <div class="w-full lg:w-[40%] bg-[#1a1a1a]/50 rounded-2xl border border-[#2a2a2a] p-4 h-full min-h-[350px]">
+                <h3 class="text-gray-400 font-bold uppercase tracking-widest text-sm mb-4">Last 100 Rounds</h3>
+                <HistoryBar :history="spinHistory" />
+            </div>
         </div>
-
-        <div class="flex gap-4">
-            <button 
-                @click="placeBet('color', 'red')"
-                class="flex-1 bg-red-600 hover:bg-red-500 h-12 rounded font-bold relative"
-            >
-                RED (x2)
-                <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {{ getBetAmount('color', 'red') }}
-                </span>
-            </button>
-            <button 
-                @click="placeBet('color', 'black')"
-                class="flex-1 bg-gray-900 hover:bg-gray-700 h-12 rounded font-bold relative"
-            >
-                BLACK (x2)
-                <span v-if="getBetAmount('color', 'black')" class="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {{ getBetAmount('color', 'black') }}
-                </span>
-            </button>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex gap-4 w-full">
-        <button 
-            @click="clearBets"
-            class="flex-1 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-bold"
-            :disabled="isSpinning"
-        >
-            Clear Bets
-        </button>
-        <button 
-            @click="spin"
-            class="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black py-3 rounded-lg font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="isSpinning || bets.length === 0"
-        >
-            {{ isSpinning ? 'Spinning...' : 'SPIN' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- History -->
-    <div class="mt-8 w-full max-w-md px-4">
-      <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <div 
-          v-for="(res, idx) in spinHistory" 
-          :key="idx"
-          :class="[
-            'w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold border-2',
-            res.color === 'red' ? 'bg-red-600 border-red-400' : res.color === 'black' ? 'bg-gray-900 border-gray-600' : 'bg-green-600 border-green-400'
-          ]"
-        >
-          {{ res.number }}
-        </div>
-        <div v-if="spinHistory.length === 0" class="text-xs text-gray-500 italic px-2">No history</div>
-      </div>
+        
+        <BettingControls 
+            :balance="authStore.user?.balance || 0"
+            :is-logged-in="!!authStore.user"
+            :is-spinning="isSpinning"
+            :total-bet="totalBetAmount"
+            v-model:amount="currentBetAmount"
+            @clear-input="currentBetAmount = 0"
+            @clear-bets="clearBets"
+            @spin="spin"
+        />
+        
+        <BettingBoard 
+            :bets="bets"
+            :last-result="lastResult"
+            @place-bet="handlePlaceBet"
+        />
+        
+        <!-- ActiveBets removed as it will be integrated into BettingBoard -->
     </div>
 
     <!-- Result Modal -->
-    <div v-if="lastResult" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50" @click="lastResult = null">
-        <div class="bg-gray-800 p-8 rounded-2xl text-center shadow-2xl border border-gray-600 transform scale-110" @click.stop>
-            <h2 class="text-3xl font-bold mb-4">Result</h2>
-            <div :class="[
-                'w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-6 border-4',
-                lastResult.color === 'red' ? 'bg-red-600 border-red-400' : lastResult.color === 'black' ? 'bg-gray-900 border-gray-600' : 'bg-green-600 border-green-400'
-            ]">
-                {{ lastResult.number }}
-            </div>
-            <p class="text-xl mb-2">
-                You won: <span class="text-yellow-400 font-bold">${{ winnings }}</span>
-            </p>
-            <button @click="lastResult = null" class="mt-4 bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold">
-                Close
-            </button>
-        </div>
-    </div>
+    <!-- Result Modal Removed -->
 
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "../stores/auth";
 import api from "../services/api";
-import { useRouter } from "vue-router";
+import socket from "../services/socket";
+import RouletteWheel from "./RouletteWheel.vue";
+import HistoryBar from "./HistoryBar.vue";
+import BettingControls from "./BettingControls.vue";
+import BettingBoard from "./BettingBoard.vue";
+import ActiveBets from "./ActiveBets.vue";
 
 const authStore = useAuthStore();
-const router = useRouter();
 
+// State
 const bets = ref([]);
 const isSpinning = ref(false);
 const rotation = ref(0);
 const lastResult = ref(null);
 const winnings = ref(0);
 const spinHistory = ref([]);
-
-const selectedChip = ref(10);
-const transitionDuration = ref(4000);
+const currentBetAmount = ref(0);
+const transitionDuration = ref(0);
+const status = ref('');
+const timeLeft = ref(0);
 let spinInterval = null;
 
-const CHIPS = [
-  { value: 1, colorClass: "bg-gray-400 border-white text-gray-900" },
-  { value: 5, colorClass: "bg-red-600 border-white text-white" },
-  { value: 10, colorClass: "bg-blue-600 border-white text-white" },
-  { value: 25, colorClass: "bg-green-600 border-white text-white" },
-  { value: 100, colorClass: "bg-black border-white text-white" },
-];
-
+const SEGMENT_ANGLE = 360 / 15;
 const SEGMENTS = [
   { number: 0, color: "green" },
   { number: 1, color: "red" },
@@ -212,47 +93,55 @@ const SEGMENTS = [
   { number: 14, color: "black" },
 ];
 
-const SEGMENT_ANGLE = 360 / 15;
+// Computed
+const totalBetAmount = computed(() => bets.value.reduce((sum, b) => sum + b.amount, 0));
 
-// SVG Helpers
-const getSegmentPath = (i) => {
-  const startAngle = i * SEGMENT_ANGLE;
-  const endAngle = (i + 1) * SEGMENT_ANGLE;
-  const x1 = 50 + 50 * Math.cos((Math.PI * startAngle) / 180);
-  const y1 = 50 + 50 * Math.sin((Math.PI * startAngle) / 180);
-  const x2 = 50 + 50 * Math.cos((Math.PI * endAngle) / 180);
-  const y2 = 50 + 50 * Math.sin((Math.PI * endAngle) / 180);
-  return `M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`;
+// Methods
+const getColorClass = (color) => {
+    switch(color) {
+        case 'red': return 'bg-[#e50914] border-[#ff1f2b] text-white';
+        case 'black': return 'bg-[#252525] border-[#444] text-gray-300';
+        case 'green': return 'bg-[#00c74d] border-[#00e057] text-white';
+        default: return 'bg-gray-800';
+    }
 };
 
-const getTextX = (i) => 50 + 40 * Math.cos((Math.PI * (i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2)) / 180);
-const getTextY = (i) => 50 + 40 * Math.sin((Math.PI * (i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2)) / 180);
-const getTextTransform = (i) => `rotate(${90 + i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2}, ${getTextX(i)}, ${getTextY(i)})`;
-
-const getColor = (num) => {
-    if (num === 0) return 'green';
-    if ([1, 2, 3, 4, 5, 6, 7].includes(num)) return 'red';
-    return 'black';
-};
-
-// Betting Logic
-const placeBet = (type, value) => {
+const handlePlaceBet = (type, value) => {
     if (isSpinning.value) return;
+    if (currentBetAmount.value <= 0) {
+        // alert("Please enter a bet amount");
+        return;
+    }
     
-    // Check balance locally (server will verify too)
-    const currentTotal = bets.value.reduce((sum, b) => sum + b.amount, 0);
-    if ((authStore.user?.balance || 0) < currentTotal + selectedChip.value) {
+    const balance = authStore.user?.balance || 0;
+    if (balance < totalBetAmount.value + currentBetAmount.value) {
         alert("Insufficient balance!");
         return;
     }
 
-    bets.value.push({ type, value, amount: selectedChip.value });
-};
+    // Add to existing bet if matches
+    const existing = bets.value.find(b => b.type === type && b.value === value);
+    if (existing) {
+        existing.amount += currentBetAmount.value;
+    } else {
+        bets.value.push({ 
+            type, 
+            value, 
+            amount: currentBetAmount.value,
+            username: authStore.user?.username 
+        });
+    }
 
-const getBetAmount = (type, value) => {
-    return bets.value
-        .filter(b => b.type === type && b.value === value)
-        .reduce((sum, b) => sum + b.amount, 0);
+    // Send bet to server
+    socket.emit('placeBet', { type, value, amount: currentBetAmount.value }, (response) => {
+        if (response.error) {
+            alert(response.error);
+            // Revert local bet if failed?
+            // For now, we rely on server state update to sync bets
+        } else {
+            // Success
+        }
+    });
 };
 
 const clearBets = () => {
@@ -260,99 +149,157 @@ const clearBets = () => {
     bets.value = [];
 };
 
-// Spin Logic
 const spin = async () => {
-  if (isSpinning.value || bets.value.length === 0) return;
-  
+  // Manual spin removed. Controlled by server.
+};
+
+onMounted(() => {
+    socket.connect();
+
+    socket.on('gameState', (data) => {
+        bets.value = data.bets;
+        spinHistory.value = data.history;
+        
+        if (data.state === 'WAITING') {
+            status.value = 'ROLLING IN';
+            isSpinning.value = false;
+            lastResult.value = null;
+            winnings.value = 0;
+            
+            // Smooth Timer Logic
+            // Calculate expected end time based on server report
+            const newEndTime = Date.now() + (data.timeLeft * 1000);
+            
+            // Only update our local end time if it's significantly different (drift > 200ms)
+            // or if we don't have one yet.
+            if (!endTime || Math.abs(newEndTime - endTime) > 200) {
+                endTime = newEndTime;
+            }
+            
+            // Start local ticker if not running
+            if (!spinInterval) {
+                spinInterval = setInterval(() => {
+                    const remaining = Math.max(0, (endTime - Date.now()) / 1000);
+                    timeLeft.value = remaining;
+                    if (remaining <= 0) {
+                        // Timer finished
+                    }
+                }, 16); // ~60fps
+            }
+            
+        } else if (data.state === 'SPINNING') {
+            status.value = 'ROLLING...';
+            isSpinning.value = true;
+            if (spinInterval) {
+                clearInterval(spinInterval);
+                spinInterval = null;
+            }
+        } else if (data.state === 'RESULT') {
+            status.value = 'RESULT';
+            isSpinning.value = false;
+            if (spinInterval) {
+                clearInterval(spinInterval);
+                spinInterval = null;
+            }
+        }
+    });
+
+    socket.on('spinResult', (data) => {
+        handleSpin(data.result, data.duration);
+    });
+});
+
+// State for timer
+let endTime = 0;
+
+onUnmounted(() => {
+    socket.disconnect();
+});
+
+const handleSpin = async (result, duration) => {
   isSpinning.value = true;
   lastResult.value = null;
   winnings.value = 0;
   
   // Start continuous spinning
   transitionDuration.value = 0;
-  const startTime = Date.now();
   
   const animateSpin = () => {
-    rotation.value += 15; // Speed of continuous spin
+    rotation.value += 15; 
     spinInterval = requestAnimationFrame(animateSpin);
   };
   animateSpin();
 
-  try {
-    // Call API
-    const { data } = await api.post('/game/spin', { bets: bets.value });
-    
-    const { result, winnings: totalWinnings, balance } = data;
-    
-    // Update balance immediately or wait?
-    // Let's update balance after animation to keep it consistent
-    // But we need to update it in store eventually
-    // For now, let's store the new balance to update later
+  // Calculate rotation to land on the result
+  const resultIndex = SEGMENTS.findIndex(s => s.number === result.number);
+  
+  // Wait a bit for visual effect (server gives us duration)
+  // We should start deceleration such that we land exactly when duration ends?
+  // Or just use the duration for the transition.
+  
+  // Let's stop continuous spin immediately and start the target transition
+  if (spinInterval) cancelAnimationFrame(spinInterval);
+  
+  // Force reflow
+  await new Promise(r => requestAnimationFrame(r));
 
-    // Calculate rotation to land on the result
-    const resultIndex = SEGMENTS.findIndex(s => s.number === result.number);
-    
-    // Stop continuous spin
-    if (spinInterval) cancelAnimationFrame(spinInterval);
-    
-    // Ensure we've spun for at least a little bit (visual consistency)
-    const elapsedTime = Date.now() - startTime;
-    const minSpinTime = 1000; // Minimum 1 second of "fast" spinning
-    if (elapsedTime < minSpinTime) {
-       await new Promise(r => setTimeout(r, minSpinTime - elapsedTime));
-    }
+  transitionDuration.value = duration; 
+  
+  const randomOffset = 0.5 + (Math.random() * 0.8 - 0.4); 
+  const targetAngle = (resultIndex + randomOffset) * SEGMENT_ANGLE;
+  
+  const currentRot = rotation.value;
+  const extraSpins = 5 * 360; 
+  
+  const targetRotationMod = (90 - targetAngle);
+  const currentMod = currentRot % 360;
+  
+  let diff = targetRotationMod - currentMod;
+  while (diff < 0) diff += 360;
+  
+  const finalRotation = currentRot + extraSpins + diff;
 
-    // Enable transition for deceleration
-    transitionDuration.value = 4000;
-    
-    // Force reflow to ensure transition applies
-    await new Promise(r => requestAnimationFrame(r));
+  rotation.value = finalRotation;
 
-    // Calculate final target
-    const randomOffset = 0.5 + (Math.random() * 0.8 - 0.4); 
-    const targetAngle = (resultIndex + randomOffset) * SEGMENT_ANGLE;
-    
-    const currentRot = rotation.value;
-    const extraSpins = 3 * 360;
-    
-    const targetRotationMod = (360 - targetAngle);
-    const currentMod = currentRot % 360;
-    
-    let diff = targetRotationMod - currentMod;
-    if (diff < 0) diff += 360;
-    
-    const finalRotation = currentRot + extraSpins + diff;
-
-    rotation.value = finalRotation;
-
-    // Wait for animation
-    setTimeout(() => {
+  setTimeout(() => {
       lastResult.value = result;
-      spinHistory.value.unshift(result);
-      if (spinHistory.value.length > 10) spinHistory.value.pop();
-
+      // Winnings are calculated by server and updated in balance via authStore refresh or socket event
+      // We can calculate locally for display
+      const myBets = bets.value.filter(b => b.userId === authStore.user?.id);
+      let totalWinnings = 0;
+      for (const bet of myBets) {
+          if (bet.type === "number" && bet.value === result.number) {
+              totalWinnings += bet.amount * 14;
+          } else if (bet.type === "color" && bet.value === result.color) {
+              totalWinnings += bet.amount * 2;
+          } else if (bet.type === "type") {
+              if (bet.value === "even" && result.number !== 0 && result.number % 2 === 0) {
+                  totalWinnings += bet.amount * 2;
+              } else if (bet.value === "odd" && result.number !== 0 && result.number % 2 !== 0) {
+                  totalWinnings += bet.amount * 2;
+              }
+          }
+      }
       winnings.value = totalWinnings;
-      authStore.updateBalance(balance); // Update store balance
       
-      bets.value = [];
-      isSpinning.value = false;
-    }, 4000);
-
-  } catch (error) {
-    console.error("Spin error:", error);
-    if (spinInterval) cancelAnimationFrame(spinInterval);
-    alert(error.message);
-    isSpinning.value = false;
-  }
+      // Update balance from store (should be updated by server side socket event or we fetch it)
+      // Ideally server sends 'balanceUpdate' event
+      if (authStore.user) {
+          // Optimistic update or fetch
+          authStore.user.balance += totalWinnings;
+      }
+  }, duration);
 };
 </script>
 
 <style scoped>
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
+.pop-enter-active,
+.pop-leave-active {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
 }
 </style>

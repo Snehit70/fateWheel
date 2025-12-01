@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const GameLoop = require('./game/GameLoop');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const server = http.createServer(app);
@@ -32,9 +34,46 @@ app.get('/', (req, res) => {
     res.send('Roulette Server is running');
 });
 
-// Socket.io
+// Initialize Game Loop
+const gameLoop = new GameLoop(io);
+
+// Socket.io Middleware for Auth (Optional for connection, required for betting)
+io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            socket.user = decoded.user;
+        } catch (err) {
+            // Invalid token, but we allow connection for spectating
+        }
+    }
+    next();
+});
+
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    console.log('A user connected:', socket.id, socket.user ? `(User: ${socket.user.id})` : '(Guest)');
+
+    // Send initial state
+    socket.emit('gameState', {
+        state: gameLoop.state,
+        timeLeft: gameLoop.timeLeft,
+        bets: gameLoop.bets,
+        history: gameLoop.history,
+        result: gameLoop.result
+    });
+
+    socket.on('placeBet', async (betData, callback) => {
+        if (!socket.user) {
+            return callback({ error: "Please login to bet" });
+        }
+        try {
+            const newBalance = await gameLoop.placeBet(socket.user, betData);
+            callback({ success: true, newBalance });
+        } catch (err) {
+            callback({ error: err.message });
+        }
+    });
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);

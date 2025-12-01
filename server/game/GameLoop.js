@@ -1,0 +1,184 @@
+const crypto = require('crypto');
+const User = require('../models/User');
+
+const STATES = {
+    WAITING: 'WAITING',
+    SPINNING: 'SPINNING',
+    RESULT: 'RESULT'
+};
+
+const SEGMENTS = [
+    { number: 0, color: "green" },
+    { number: 1, color: "red" },
+    { number: 8, color: "black" },
+    { number: 2, color: "red" },
+    { number: 9, color: "black" },
+    { number: 3, color: "red" },
+    { number: 10, color: "black" },
+    { number: 4, color: "red" },
+    { number: 11, color: "black" },
+    { number: 5, color: "red" },
+    { number: 12, color: "black" },
+    { number: 6, color: "red" },
+    { number: 13, color: "black" },
+    { number: 7, color: "red" },
+    { number: 14, color: "black" },
+];
+
+class GameLoop {
+    constructor(io) {
+        this.io = io;
+        this.state = STATES.WAITING;
+        this.bets = []; // { userId, username, type, value, amount }
+        this.history = [];
+        this.timeLeft = 20; // Seconds (Waiting time)
+        this.result = null;
+
+        this.startLoop();
+    }
+
+    startLoop() {
+        setInterval(() => {
+            this.tick();
+        }, 1000);
+    }
+
+    tick() {
+        if (this.state === STATES.WAITING) {
+            this.timeLeft--;
+            if (this.timeLeft <= 0) {
+                this.spin();
+            }
+        } else if (this.state === STATES.RESULT) {
+            this.timeLeft--;
+            if (this.timeLeft <= 0) {
+                this.reset();
+            }
+        }
+
+        // Broadcast state every second (or on change)
+        this.broadcastState();
+    }
+
+    broadcastState() {
+        this.io.emit('gameState', {
+            state: this.state,
+            timeLeft: this.timeLeft,
+            bets: this.bets,
+            history: this.history,
+            result: this.result
+        });
+    }
+
+    secureRandomInt(min, max) {
+        const range = max - min;
+        const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+        const maxBytes = Math.pow(256, bytesNeeded);
+        const keep = maxBytes - (maxBytes % range);
+
+        while (true) {
+            const buffer = crypto.randomBytes(bytesNeeded);
+            let value = 0;
+            for (let i = 0; i < bytesNeeded; i++) {
+                value = (value << 8) + buffer[i];
+            }
+            if (value < keep) {
+                return min + (value % range);
+            }
+        }
+    }
+
+    spin() {
+        this.state = STATES.SPINNING;
+        this.timeLeft = 5; // Spin duration (animation time)
+
+        // Generate Result
+        const resultIndex = this.secureRandomInt(0, 15);
+        this.result = SEGMENTS[resultIndex];
+
+        // Broadcast immediately so clients start animation
+        this.io.emit('spinResult', {
+            result: this.result,
+            duration: this.timeLeft * 1000
+        });
+
+        // Wait for spin to finish then process results
+        setTimeout(() => {
+            this.processResults();
+        }, this.timeLeft * 1000);
+    }
+
+    async processResults() {
+        this.state = STATES.RESULT;
+        this.timeLeft = 5; // Show result for 5 seconds
+
+        this.history.unshift(this.result);
+        if (this.history.length > 10) this.history.pop();
+
+        // Payout Winners
+        for (const bet of this.bets) {
+            let winnings = 0;
+            if (bet.type === "number" && bet.value === this.result.number) {
+                winnings = bet.amount * 14;
+            } else if (bet.type === "color" && bet.value === this.result.color) {
+                winnings = bet.amount * 2;
+            } else if (bet.type === "type") {
+                if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
+                    winnings = bet.amount * 2;
+                } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
+                    winnings = bet.amount * 2;
+                }
+            }
+
+            if (winnings > 0) {
+                try {
+                    await User.findByIdAndUpdate(bet.userId, { $inc: { balance: winnings } });
+                    // Notify individual user of win?
+                } catch (err) {
+                    console.error("Payout error:", err);
+                }
+            }
+        }
+
+        this.broadcastState();
+    }
+
+    reset() {
+        this.state = STATES.WAITING;
+        this.timeLeft = 20;
+        this.bets = [];
+        this.result = null;
+        this.broadcastState();
+    }
+
+    async placeBet(user, betData) {
+        if (this.state !== STATES.WAITING) {
+            throw new Error("Betting is closed");
+        }
+
+        const { type, value, amount } = betData;
+
+        // Validate Balance
+        const dbUser = await User.findById(user.id);
+        if (!dbUser || dbUser.balance < amount) {
+            throw new Error("Insufficient balance");
+        }
+
+        // Deduct Balance Immediately
+        await User.findByIdAndUpdate(user.id, { $inc: { balance: -amount } });
+
+        const bet = {
+            userId: user.id,
+            username: user.email.split('@')[0], // Simple username
+            type,
+            value,
+            amount
+        };
+
+        this.bets.push(bet);
+        this.broadcastState(); // Update everyone with new bet
+        return dbUser.balance - amount;
+    }
+}
+
+module.exports = GameLoop;

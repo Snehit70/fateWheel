@@ -18,12 +18,12 @@
 
       <form @submit.prevent="handleSubmit" class="flex flex-col gap-5">
         <div class="flex flex-col gap-2">
-          <label class="text-xs uppercase tracking-wider text-gray-500 font-bold ml-1">Email</label>
+          <label class="text-xs uppercase tracking-wider text-gray-500 font-bold ml-1">Username</label>
           <input
-            type="email"
-            v-model="email"
+            type="text"
+            v-model="username"
             class="input-field"
-            placeholder="name@example.com"
+            placeholder="Username"
             required
           />
         </div>
@@ -76,7 +76,7 @@ import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
-const email = ref('');
+const username = ref('');
 const password = ref('');
 const isRegistering = ref(false);
 const error = ref('');
@@ -95,12 +95,12 @@ const handleSubmit = async () => {
 
   try {
     if (isRegistering.value) {
-      await authStore.register(email.value, password.value);
+      await authStore.register(username.value, password.value);
     } else {
-      await authStore.login(email.value, password.value);
+      await authStore.login(username.value, password.value);
     }
 
-    router.push('/game');
+    router.push('/');
   } catch (err) {
     console.error(err);
     error.value = err;

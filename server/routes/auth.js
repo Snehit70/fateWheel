@@ -7,10 +7,10 @@ const User = require('../models/User');
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, password } = req.body;
 
         // Check if user exists
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ username });
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -20,8 +20,9 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Create user
+        // Create user
         user = new User({
-            email,
+            username,
             password: hashedPassword
         });
 
@@ -40,7 +41,7 @@ router.post('/register', async (req, res) => {
             { expiresIn: '1h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, email: user.email, balance: user.balance } });
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance } });
             }
         );
     } catch (err) {
@@ -52,10 +53,10 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, password } = req.body;
 
         // Check if user exists
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ username });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
@@ -79,7 +80,7 @@ router.post('/login', async (req, res) => {
             { expiresIn: '1h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, email: user.email, balance: user.balance } });
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance } });
             }
         );
     } catch (err) {
