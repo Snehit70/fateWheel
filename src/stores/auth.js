@@ -1,38 +1,52 @@
 import { defineStore } from 'pinia';
-import { auth, db } from '../firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import api from '../services/api';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
-        userData: null,
+        token: localStorage.getItem('token') || null,
         isInitialized: false,
     }),
     actions: {
-        init() {
-            return new Promise((resolve) => {
-                onAuthStateChanged(auth, async (user) => {
-                    this.user = user;
-                    if (user) {
-                        // Subscribe to user document for balance updates
-                        const unsub = onSnapshot(doc(db, 'users', user.email), (doc) => {
-                            if (doc.exists()) {
-                                this.userData = doc.data();
-                            }
-                        });
-                    } else {
-                        this.userData = null;
-                    }
-                    this.isInitialized = true;
-                    resolve();
-                });
-            });
+        async init() {
+            if (this.token) {
+                // Ideally verify token with backend here
+                // For now, we assume it's valid or handle 401 in api interceptor
+                this.isInitialized = true;
+            } else {
+                this.isInitialized = true;
+            }
         },
-        async logout() {
-            await signOut(auth);
+        async login(email, password) {
+            try {
+                const res = await api.post('/auth/login', { email, password });
+                this.setAuth(res.data);
+            } catch (err) {
+                throw err.response?.data?.message || 'Login failed';
+            }
+        },
+        async register(email, password) {
+            try {
+                const res = await api.post('/auth/register', { email, password });
+                this.setAuth(res.data);
+            } catch (err) {
+                throw err.response?.data?.message || 'Registration failed';
+            }
+        },
+        setAuth(data) {
+            this.token = data.token;
+            this.user = data.user;
+            localStorage.setItem('token', data.token);
+        },
+        logout() {
+            this.token = null;
             this.user = null;
-            this.userData = null;
+            localStorage.removeItem('token');
+        },
+        updateBalance(newBalance) {
+            if (this.user) {
+                this.user.balance = newBalance;
+            }
         }
     }
 });

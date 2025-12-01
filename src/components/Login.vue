@@ -73,9 +73,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
 const email = ref('');
@@ -84,6 +82,7 @@ const isRegistering = ref(false);
 const error = ref('');
 const isLoading = ref(false);
 const router = useRouter();
+const authStore = useAuthStore();
 
 const toggleMode = () => {
   isRegistering.value = !isRegistering.value;
@@ -95,35 +94,16 @@ const handleSubmit = async () => {
   error.value = '';
 
   try {
-    // Check approval status first
-    const userRef = doc(db, 'users', email.value);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-      throw new Error('Access not requested. Please request access first.');
-    }
-
-    const userData = userSnap.data();
-    if (userData.status !== 'APPROVED') {
-      throw new Error('Account is pending approval.');
-    }
-
     if (isRegistering.value) {
-      await createUserWithEmailAndPassword(auth, email.value, password.value);
+      await authStore.register(email.value, password.value);
     } else {
-      await signInWithEmailAndPassword(auth, email.value, password.value);
+      await authStore.login(email.value, password.value);
     }
 
     router.push('/game');
   } catch (err) {
     console.error(err);
-    if (err.code === 'auth/email-already-in-use') {
-      error.value = 'Email already in use. Please login.';
-    } else if (err.code === 'auth/invalid-credential') {
-      error.value = 'Invalid email or password.';
-    } else {
-      error.value = err.message;
-    }
+    error.value = err;
   } finally {
     isLoading.value = false;
   }

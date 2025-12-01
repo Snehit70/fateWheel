@@ -5,7 +5,7 @@ import Game from '../components/Game.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
-    { path: '/', component: RequestAccess },
+    { path: '/', redirect: '/login' },
     { path: '/login', component: Login },
     { path: '/game', component: Game, meta: { requiresAuth: true } },
 ];

@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white font-sans">
     <div class="mb-4 text-2xl font-bold text-yellow-400">
-      Balance: ${{ authStore.userData?.balance || 0 }}
+      Balance: ${{ authStore.user?.balance || 0 }}
     </div>
 
     <div class="relative mb-8">
@@ -169,8 +169,7 @@
 <script setup>
 import { ref } from "vue";
 import { useAuthStore } from "../stores/auth";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../firebase";
+import api from "../services/api";
 import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
@@ -242,7 +241,7 @@ const placeBet = (type, value) => {
     
     // Check balance locally (server will verify too)
     const currentTotal = bets.value.reduce((sum, b) => sum + b.amount, 0);
-    if ((authStore.userData?.balance || 0) < currentTotal + selectedChip.value) {
+    if ((authStore.user?.balance || 0) < currentTotal + selectedChip.value) {
         alert("Insufficient balance!");
         return;
     }
@@ -280,11 +279,15 @@ const spin = async () => {
   animateSpin();
 
   try {
-    // Call Cloud Function
-    const spinWheel = httpsCallable(functions, 'spinWheel');
-    const { data } = await spinWheel({ bets: bets.value });
+    // Call API
+    const { data } = await api.post('/game/spin', { bets: bets.value });
     
-    const { result, winnings: totalWinnings } = data;
+    const { result, winnings: totalWinnings, balance } = data;
+    
+    // Update balance immediately or wait?
+    // Let's update balance after animation to keep it consistent
+    // But we need to update it in store eventually
+    // For now, let's store the new balance to update later
 
     // Calculate rotation to land on the result
     const resultIndex = SEGMENTS.findIndex(s => s.number === result.number);
@@ -329,6 +332,7 @@ const spin = async () => {
       if (spinHistory.value.length > 10) spinHistory.value.pop();
 
       winnings.value = totalWinnings;
+      authStore.updateBalance(balance); // Update store balance
       
       bets.value = [];
       isSpinning.value = false;
