@@ -4,9 +4,10 @@
     <!-- Game Area -->
     <div class="w-full relative flex flex-col gap-6">
         
-        <!-- Top Section: Wheel (60%) and History (40%) -->
-        <div class="flex flex-col lg:flex-row gap-6 items-start">
-            <div class="w-full lg:w-[60%] bg-secondary/50 rounded-2xl border border-glass-border p-4 relative min-h-[350px] flex items-center justify-center">
+        <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
+        <div class="flex flex-col lg:flex-row gap-6 items-stretch">
+            <!-- Left: Wheel -->
+            <div class="w-full lg:w-[60%] bg-secondary/50 rounded-2xl border border-glass-border p-4 relative min-h-[450px] flex items-center justify-center">
                 <RouletteWheel 
                     :rotation="rotation" 
                     :transition-duration="transitionDuration"
@@ -15,23 +16,32 @@
                     :last-result="lastResult"
                 />
             </div>
-            <div class="w-full lg:w-[40%] bg-secondary/50 rounded-2xl border border-glass-border p-4 h-full min-h-[350px]">
-                <h3 class="text-gray-400 font-bold uppercase tracking-widest text-sm mb-4">Last 100 Rounds</h3>
-                <HistoryBar :history="spinHistory" />
+
+            <!-- Right: History & Betting Controls -->
+            <div class="w-full lg:w-[40%] flex flex-col gap-6">
+                <!-- History Section -->
+                <div class="bg-secondary/50 rounded-2xl border border-glass-border p-4 flex-1 min-h-[200px]">
+                    <h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-3">Last 20 Rounds</h3>
+                    <HistoryBar :history="spinHistory" />
+                </div>
+
+                <!-- Betting Controls Section -->
+                <div class="bg-secondary/50 rounded-2xl border border-glass-border p-4">
+                     <BettingControls 
+                        :balance="authStore.user?.balance || 0"
+                        :is-logged-in="!!authStore.user"
+                        :is-spinning="isSpinning"
+                        :total-bet="totalBetAmount"
+                        v-model:amount="currentBetAmount"
+                        @clear-input="currentBetAmount = 0"
+                        @clear-bets="clearBets"
+                        @spin="spin"
+                    />
+                </div>
             </div>
         </div>
         
-        <BettingControls 
-            :balance="authStore.user?.balance || 0"
-            :is-logged-in="!!authStore.user"
-            :is-spinning="isSpinning"
-            :total-bet="totalBetAmount"
-            v-model:amount="currentBetAmount"
-            @clear-input="currentBetAmount = 0"
-            @clear-bets="clearBets"
-            @spin="spin"
-        />
-        
+        <!-- Bottom Section: Betting Board -->
         <BettingBoard 
             :bets="bets"
             :last-result="lastResult"

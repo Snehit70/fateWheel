@@ -1,45 +1,34 @@
 <template>
-  <div class="w-full max-w-4xl mx-auto mb-6">
-    <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">History</span>
-    </div>
-    <div class="glass-panel p-3 flex items-center justify-between overflow-hidden relative">
-        <!-- Gradient Fade for overflow -->
-        <div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#151515] to-transparent z-10"></div>
-        
-        <div class="flex gap-2 overflow-x-auto scrollbar-hide w-full">
-            <transition-group name="list" tag="div" class="flex gap-2">
-                <div 
-                    v-for="(res, idx) in history" 
-                    :key="res.id || idx"
-                    :class="[
-                        'w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold border border-opacity-20 transition-all duration-300',
-                        getColorClass(res.color)
-                    ]"
-                >
-                    {{ res.number }}
-                </div>
-            </transition-group>
-            
-            <!-- Empty State Placeholders -->
-            <template v-if="history.length < 10">
-                <div 
-                    v-for="i in (10 - history.length)" 
-                    :key="`empty-${i}`"
-                    class="w-10 h-10 rounded-lg bg-[#252525] border border-[#333] opacity-50 flex-shrink-0"
-                ></div>
-            </template>
-        </div>
+  <div class="w-full h-full">
+    <div class="flex flex-wrap gap-2 content-start h-full overflow-y-auto scrollbar-hide">
+        <transition-group name="list">
+            <div 
+                v-for="(res, idx) in limitedHistory" 
+                :key="res.id || idx"
+                :class="[
+                    'w-8 h-8 rounded-md flex-shrink-0 flex items-center justify-center text-xs font-bold border border-opacity-20 transition-all duration-300',
+                    getColorClass(res.color)
+                ]"
+            >
+                {{ res.number }}
+            </div>
+        </transition-group>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
     history: {
         type: Array,
         default: () => []
     }
+});
+
+const limitedHistory = computed(() => {
+    return props.history.slice(0, 20);
 });
 
 const getColorClass = (color) => {
