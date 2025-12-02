@@ -1,5 +1,30 @@
-# Vue 3 + Vite
+# Roulette Game
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A full-stack Roulette application built with Vue.js (Frontend) and Node.js/Express (Backend).
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Quick Start
+
+1.  **Start the Application**:
+    ```bash
+    ./run.sh
+    ```
+    This will:
+    -   Check/Start MongoDB
+    -   Start the Backend (Port 3000)
+    -   Start the Frontend (Port 5173)
+    -   Show a status report with URLs
+
+2.  **Stop the Application**:
+    ```bash
+    ./stop.sh
+    ```
+
+## Features
+-   Real-time betting and game loop
+-   User authentication
+-   Admin panel for user management
+-   Secure random number generation
+
+## Requirements
+-   Node.js & npm
+-   Podman (for MongoDB)
