@@ -6,6 +6,7 @@ export const useAuthStore = defineStore('auth', {
         user: null,
         token: localStorage.getItem('token') || null,
         isInitialized: false,
+        isLoginModalOpen: false,
     }),
     actions: {
         async init() {
@@ -48,6 +49,12 @@ export const useAuthStore = defineStore('auth', {
             if (this.user) {
                 this.user.balance = newBalance;
             }
+        },
+        openLoginModal() {
+            this.isLoginModalOpen = true;
+        },
+        closeLoginModal() {
+            this.isLoginModalOpen = false;
         }
     }
 });

@@ -28,6 +28,7 @@ mongoose.connect(MONGODB_URI)
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/game', require('./routes/game'));
 
 app.get('/', (req, res) => {

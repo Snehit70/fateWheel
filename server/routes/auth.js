@@ -20,7 +20,6 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Create user
-        // Create user
         user = new User({
             username,
             password: hashedPassword
@@ -41,7 +40,7 @@ router.post('/register', async (req, res) => {
             { expiresIn: '1h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance } });
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role } });
             }
         );
     } catch (err) {
@@ -80,7 +79,7 @@ router.post('/login', async (req, res) => {
             { expiresIn: '1h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance } });
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role } });
             }
         );
     } catch (err) {

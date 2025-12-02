@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/auth';
 const routes = [
     { path: '/', component: Game },
     { path: '/login', component: Login },
+    { path: '/admin', component: () => import('../components/AdminPanel.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
 ];
 
 const router = createRouter({
@@ -23,6 +24,8 @@ router.beforeEach(async (to, from, next) => {
 
     if (to.meta.requiresAuth && !authStore.user) {
         next('/login');
+    } else if (to.meta.requiresAdmin && authStore.user?.role !== 'admin') {
+        next('/');
     } else {
         next();
     }

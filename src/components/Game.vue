@@ -251,7 +251,7 @@ const handleSpin = async (result, duration) => {
   const currentRot = rotation.value;
   const extraSpins = 5 * 360; 
   
-  const targetRotationMod = (90 - targetAngle);
+  const targetRotationMod = (180 - targetAngle);
   const currentMod = currentRot % 360;
   
   let diff = targetRotationMod - currentMod;

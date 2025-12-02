@@ -11,7 +11,7 @@
             <span class="text-lg tracking-wider">RED</span>
             <span class="text-xs opacity-70 bg-black/20 px-2 py-1 rounded">x2</span>
             
-            <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200">
+            <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200 animate-pop">
                 {{ getBetAmount('color', 'red') }}
             </span>
         </button>
@@ -61,7 +61,7 @@
             <span class="text-lg tracking-wider">ZERO</span>
             <span class="text-xs opacity-70 bg-black/20 px-2 py-1 rounded">x14</span>
             
-            <span v-if="getBetAmount('number', 0)" class="absolute -top-2 -right-2 bg-white text-green-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200">
+            <span v-if="getBetAmount('number', 0)" class="absolute -top-2 -right-2 bg-white text-green-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200 animate-pop">
                 {{ getBetAmount('number', 0) }}
             </span>
         </button>
@@ -112,7 +112,7 @@
             <span class="text-lg tracking-wider">BLACK</span>
             <span class="text-xs opacity-70 bg-white/10 px-2 py-1 rounded">x2</span>
             
-            <span v-if="getBetAmount('color', 'black')" class="absolute -top-2 -right-2 bg-white text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200">
+            <span v-if="getBetAmount('color', 'black')" class="absolute -top-2 -right-2 bg-white text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200 animate-pop">
                 {{ getBetAmount('color', 'black') }}
             </span>
         </button>
@@ -126,7 +126,7 @@
                 class="h-10 bg-[#252525] hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-gray-500 flex items-center justify-center"
             >
                 {{ num }}
-                <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-white text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-lg z-10">
+                <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-white text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-lg z-10 animate-pop">
                     {{ getBetAmount('number', num) }}
                 </span>
             </button>
@@ -203,5 +203,15 @@ defineEmits(['place-bet']);
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 2px;
+}
+
+@keyframes pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pop {
+    animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 </style>

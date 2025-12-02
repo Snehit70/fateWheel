@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0 // Initial balance
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
     createdAt: {
         type: Date,
         default: Date.now

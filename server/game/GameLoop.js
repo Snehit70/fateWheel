@@ -158,6 +158,10 @@ class GameLoop {
 
         const { type, value, amount } = betData;
 
+        if (!amount || isNaN(amount) || amount <= 0) {
+            throw new Error("Invalid bet amount");
+        }
+
         // Validate Balance
         const dbUser = await User.findById(user.id);
         if (!dbUser || dbUser.balance < amount) {
@@ -169,7 +173,7 @@ class GameLoop {
 
         const bet = {
             userId: user.id,
-            username: user.email.split('@')[0], // Simple username
+            username: dbUser.username,
             type,
             value,
             amount

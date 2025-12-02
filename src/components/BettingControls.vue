@@ -32,7 +32,7 @@
         <div class="flex gap-2 w-full md:w-auto">
             <button 
                 v-if="!isLoggedIn"
-                @click="$router.push('/login')"
+                @click="authStore.openLoginModal()"
                 class="flex-1 md:flex-none px-8 py-3 bg-[#2a2a2a] hover:bg-[#333] text-white font-bold rounded-lg uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
             >
                 <i class="fas fa-key"></i> Log In
@@ -49,6 +49,7 @@
                 <button 
                     @click="$emit('spin')"
                     class="flex-1 md:flex-none px-8 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg uppercase tracking-wider transition-colors shadow-[0_0_15px_rgba(255,215,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="{ 'animate-pulse': !isSpinning && totalBet > 0 }"
                     :disabled="isSpinning || totalBet === 0"
                 >
                     {{ isSpinning ? 'Rolling...' : 'Place Bet' }}
@@ -62,6 +63,9 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { useAuthStore } from '../stores/auth';
+
+const authStore = useAuthStore();
 
 const props = defineProps({
     balance: {

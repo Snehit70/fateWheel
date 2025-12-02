@@ -31,6 +31,15 @@
             </button>
         </div>
 
+        <!-- Admin Link -->
+        <router-link 
+            v-if="authStore.user?.role === 'admin'"
+            to="/admin"
+            class="mr-4 text-red-500 font-bold uppercase text-xs tracking-wider border border-red-500/30 px-3 py-1 rounded hover:bg-red-500/10 transition-colors"
+        >
+            Admin Panel
+        </router-link>
+
         <!-- User Profile -->
         <div class="flex items-center space-x-3 cursor-pointer hover:bg-[#1a1a1a] p-2 rounded-lg transition-colors">
             <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-xs font-bold text-white">
@@ -58,7 +67,7 @@
       </template>
 
       <template v-else>
-        <button @click="router.push('/login')" class="btn-primary flex items-center space-x-2">
+        <button @click="authStore.openLoginModal()" class="btn-primary flex items-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd" />
             </svg>
@@ -78,6 +87,6 @@ const router = useRouter();
 
 const handleLogout = () => {
     authStore.logout();
-    router.push('/login');
+    // router.push('/login'); // No need to redirect
 };
 </script>
