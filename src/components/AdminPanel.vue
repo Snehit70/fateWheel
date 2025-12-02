@@ -55,10 +55,10 @@
                 <td class="p-4 font-mono text-green-500">₹{{ user.balance.toFixed(2) }}</td>
                 <td class="p-4 text-gray-400 text-sm">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
                 <td class="p-4 flex gap-2">
-                  <button @click="openEditBalance(user)" class="text-blue-400 hover:text-blue-300 text-sm font-bold">
+                  <button @click="openEditBalance(user)" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 hover:text-blue-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-blue-600/30">
                     Edit Balance
                   </button>
-                  <button @click="confirmDelete(user)" class="text-red-400 hover:text-red-300 text-sm font-bold">
+                  <button @click="confirmDelete(user)" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-red-600/30">
                     Delete
                   </button>
                 </td>
