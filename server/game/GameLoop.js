@@ -183,6 +183,31 @@ class GameLoop {
         this.broadcastState(); // Update everyone with new bet
         return dbUser.balance - amount;
     }
+
+    async clearBets(user) {
+        if (this.state !== STATES.WAITING) {
+            throw new Error("Cannot clear bets now");
+        }
+
+        // Find user's bets
+        const userBets = this.bets.filter(b => b.userId === user.id);
+        if (userBets.length === 0) return;
+
+        // Calculate total refund
+        const totalRefund = userBets.reduce((sum, b) => sum + b.amount, 0);
+
+        // Refund to DB
+        await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
+
+        // Remove bets from memory
+        this.bets = this.bets.filter(b => b.userId !== user.id);
+
+        this.broadcastState();
+
+        // Return new balance
+        const dbUser = await User.findById(user.id);
+        return dbUser.balance;
+    }
 }
 
 module.exports = GameLoop;

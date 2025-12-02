@@ -45,15 +45,21 @@ export function useBetting(bets, isSpinning) {
 
     const clearBets = () => {
         if (isSpinning.value) return;
-        // This only clears local bets array, but server is source of truth.
-        // Ideally we should emit a 'clearBets' event to server if supported, 
-        // or just wait for server to reset. 
-        // For now, let's assume this is a client-side clear request that might need server handling
-        // But based on original code, it just cleared bets.value. 
-        // If bets are synced from server, clearing locally might be overwritten.
-        // Let's assume for now we just want to clear the input or something? 
-        // original code: bets.value = [];
-        bets.value = [];
+
+        // Optimistic clear
+        bets.value = bets.value.filter(b => b.userId !== authStore.user?.id);
+
+        socket.emit('clearBets', (response) => {
+            if (response.error) {
+                console.error(response.error);
+                // If error, maybe we should fetch state again? 
+                // But usually socket broadcast will fix it.
+            } else if (response.newBalance !== undefined) {
+                if (authStore.user) {
+                    authStore.user.balance = response.newBalance;
+                }
+            }
+        });
     };
 
     return {

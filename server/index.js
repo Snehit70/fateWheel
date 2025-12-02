@@ -76,6 +76,18 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('clearBets', async (callback) => {
+        if (!socket.user) {
+            return callback({ error: "Please login" });
+        }
+        try {
+            const newBalance = await gameLoop.clearBets(socket.user);
+            callback({ success: true, newBalance });
+        } catch (err) {
+            callback({ error: err.message });
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
     });
