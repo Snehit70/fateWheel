@@ -36,8 +36,6 @@ class GameLoop {
         this.timeLeft = 20; // Seconds (Waiting time)
         this.result = null;
 
-        this.result = null;
-
         this.init();
         this.startLoop();
     }
@@ -128,7 +126,7 @@ class GameLoop {
         this.timeLeft = 5; // Show result for 5 seconds
 
         this.history.unshift(this.result);
-        if (this.history.length > 10) this.history.pop();
+        if (this.history.length > 20) this.history.pop();
 
         // Payout Winners
         for (const bet of this.bets) {

@@ -12,7 +12,8 @@ class SocketService {
         const storedToken = localStorage.getItem('token');
         const authToken = token || storedToken;
 
-        this.socket = io('http://localhost:3000', {
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+        this.socket = io(socketUrl, {
             auth: {
                 token: authToken
             }

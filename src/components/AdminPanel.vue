@@ -5,17 +5,23 @@
         <h1 class="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
       </div>
 
+
+
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a]">
           <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Users</h3>
           <div class="text-3xl font-mono font-bold">{{ totalUsersCount }}</div>
         </div>
-        <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a]">
+        <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a] relative">
           <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Balance</h3>
-          <div class="text-3xl font-mono font-bold text-green-500">₹{{ totalSystemBalance.toFixed(2) }}</div>
+          <div class="flex items-center justify-between">
+            <div class="text-3xl font-mono font-bold text-green-500">₹{{ totalSystemBalance.toFixed(2) }}</div>
+            <button @click="openLogs" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-gray-600">
+              History
+            </button>
+          </div>
         </div>
-
       </div>
 
       <!-- Users Table -->
@@ -129,6 +135,38 @@ const searchQuery = ref('');
 const editingUser = ref(null);
 const deletingUser = ref(null);
 const newBalance = ref(0);
+
+// Logs State
+const showLogs = ref(false);
+const logs = ref([]);
+const logsLoading = ref(false);
+
+const fetchLogs = async () => {
+    logsLoading.value = true;
+    try {
+        const res = await api.get('/admin/logs');
+        logs.value = res.data;
+    } catch (err) {
+        console.error("Failed to fetch logs:", err);
+    } finally {
+        logsLoading.value = false;
+    }
+};
+
+const openLogs = () => {
+    showLogs.value = true;
+    fetchLogs();
+};
+
+const getActionClass = (action) => {
+    switch(action) {
+        case 'approve_user': return 'text-green-500 font-bold uppercase text-xs';
+        case 'reject_user': return 'text-red-500 font-bold uppercase text-xs';
+        case 'delete_user': return 'text-red-600 font-bold uppercase text-xs bg-red-900/20 px-2 py-1 rounded';
+        case 'update_balance': return 'text-blue-400 font-bold uppercase text-xs';
+        default: return 'text-gray-400 uppercase text-xs';
+    }
+};
 
 const fetchUsers = async () => {
   try {

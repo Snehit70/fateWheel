@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth';
 
 export function useGameLogic() {
     const authStore = useAuthStore();
-    
+
     // State
     const bets = ref([]);
     const isSpinning = ref(false);
@@ -15,7 +15,7 @@ export function useGameLogic() {
     const status = ref('');
     const timeLeft = ref(0);
     const transitionDuration = ref(0);
-    
+
     let spinInterval = null;
     let endTime = 0;
 
@@ -42,71 +42,50 @@ export function useGameLogic() {
         isSpinning.value = true;
         lastResult.value = null;
         winnings.value = 0;
-        
+
         // Start continuous spinning
         transitionDuration.value = 0;
-        
+
         const animateSpin = () => {
-            rotation.value += 15; 
+            rotation.value += 15;
             spinInterval = requestAnimationFrame(animateSpin);
         };
         animateSpin();
 
         // Calculate rotation to land on the result
         const resultIndex = SEGMENTS.findIndex(s => s.number === result.number);
-        
+
         // Let's stop continuous spin immediately and start the target transition
         if (spinInterval) cancelAnimationFrame(spinInterval);
-        
+
         // Force reflow
         await new Promise(r => requestAnimationFrame(r));
 
-        transitionDuration.value = duration; 
-        
-        const randomOffset = 0.5 + (Math.random() * 0.8 - 0.4); 
+        transitionDuration.value = duration;
+
+        const randomOffset = 0.5 + (Math.random() * 0.8 - 0.4);
         const targetAngle = (resultIndex + randomOffset) * SEGMENT_ANGLE;
-        
+
         const currentRot = rotation.value;
-        const extraSpins = 5 * 360; 
-        
+        const extraSpins = 5 * 360;
+
         const targetRotationMod = (180 - targetAngle);
         const currentMod = currentRot % 360;
-        
+
         let diff = targetRotationMod - currentMod;
         while (diff < 0) diff += 360;
-        
+
         const finalRotation = currentRot + extraSpins + diff;
 
         rotation.value = finalRotation;
 
         setTimeout(() => {
             lastResult.value = result;
-            calculateWinnings(result);
+            // calculateWinnings(result); // Removed: Server handles balance updates
         }, duration);
     };
 
-    const calculateWinnings = (result) => {
-        const myBets = bets.value.filter(b => b.userId === authStore.user?.id);
-        let totalWinnings = 0;
-        for (const bet of myBets) {
-            if (bet.type === "number" && bet.value === result.number) {
-                totalWinnings += bet.amount * 14;
-            } else if (bet.type === "color" && bet.value === result.color) {
-                totalWinnings += bet.amount * 2;
-            } else if (bet.type === "type") {
-                if (bet.value === "even" && result.number !== 0 && result.number % 2 === 0) {
-                    totalWinnings += bet.amount * 2;
-                } else if (bet.value === "odd" && result.number !== 0 && result.number % 2 !== 0) {
-                    totalWinnings += bet.amount * 2;
-                }
-            }
-        }
-        winnings.value = totalWinnings;
-        
-        if (authStore.user && totalWinnings > 0) {
-            authStore.user.balance += totalWinnings;
-        }
-    };
+
 
     onMounted(() => {
         socket.connect();
@@ -114,19 +93,19 @@ export function useGameLogic() {
         socket.on('gameState', (data) => {
             bets.value = data.bets;
             spinHistory.value = data.history;
-            
+
             if (data.state === 'WAITING') {
                 status.value = 'ROLLING IN';
                 isSpinning.value = false;
                 lastResult.value = null;
                 winnings.value = 0;
-                
+
                 const newEndTime = Date.now() + (data.timeLeft * 1000);
-                
+
                 if (!endTime || Math.abs(newEndTime - endTime) > 200) {
                     endTime = newEndTime;
                 }
-                
+
                 if (!spinInterval) {
                     spinInterval = setInterval(() => {
                         const remaining = Math.max(0, (endTime - Date.now()) / 1000);
@@ -136,7 +115,7 @@ export function useGameLogic() {
                         }
                     }, 16);
                 }
-                
+
             } else if (data.state === 'SPINNING') {
                 status.value = 'ROLLING...';
                 isSpinning.value = true;

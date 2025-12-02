@@ -29,40 +29,71 @@
               <tr v-else-if="history.length === 0">
                 <td colspan="7" class="px-6 py-8 text-center text-gray-500">No bets found. Start playing!</td>
               </tr>
-              <tr v-for="bet in history" :key="bet._id" class="hover:bg-[#202020] transition-colors">
+              <tr v-for="item in history" :key="item._id" class="hover:bg-[#202020] transition-colors">
                 <td class="px-6 py-4 text-gray-400 text-sm whitespace-nowrap">
-                  {{ formatDate(bet.createdAt) }}
+                  {{ formatDate(item.createdAt) }}
                 </td>
+                
+                <!-- Type & Value -->
                 <td class="px-6 py-4 text-sm font-medium capitalize">
-                  {{ bet.type }}
+                  <span v-if="isTransaction(item)" :class="getTransactionTypeClass(item.type)">
+                    {{ item.type }}
+                  </span>
+                  <span v-else>
+                    {{ item.type }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 text-sm">
-                  <span :class="getValueClass(bet)">
-                    {{ formatValue(bet) }}
+                  <span v-if="isTransaction(item)" class="text-gray-400 italic">
+                    {{ item.description || '-' }}
+                  </span>
+                  <span v-else :class="getValueClass(item)">
+                    {{ formatValue(item) }}
                   </span>
                 </td>
+
+                <!-- Amount -->
                 <td class="px-6 py-4 text-sm font-mono">
-                  ₹{{ bet.amount }}
-                </td>
-                <td class="px-6 py-4">
-                  <span :class="[
-                    'px-2 py-1 rounded text-xs font-bold uppercase tracking-wide',
-                    bet.result === 'win' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'
-                  ]">
-                    {{ bet.result }}
+                  <span :class="isTransaction(item) && item.type === 'deposit' ? 'text-green-500 font-bold' : 'text-white'">
+                    ₹{{ item.amount }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-sm font-mono font-bold" :class="bet.payout > 0 ? 'text-green-500' : 'text-gray-500'">
-                  {{ bet.payout > 0 ? '+' : '' }}₹{{ bet.payout }}
-                </td>
+
+                <!-- Result -->
                 <td class="px-6 py-4">
-                    <div v-if="bet.gameResult" class="flex items-center space-x-2">
+                  <span v-if="!isTransaction(item)" :class="[
+                    'px-2 py-1 rounded text-xs font-bold uppercase tracking-wide',
+                    item.result === 'win' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'
+                  ]">
+                    {{ item.result }}
+                  </span>
+                  <span v-else class="text-gray-600 text-xs uppercase font-bold">
+                    Completed
+                  </span>
+                </td>
+
+                <!-- Payout / Balance After -->
+                <td class="px-6 py-4 text-sm font-mono font-bold">
+                  <span v-if="isTransaction(item)" class="text-gray-400">
+                    Bal: ₹{{ item.balanceAfter }}
+                  </span>
+                  <span v-else :class="item.payout > 0 ? 'text-green-500' : 'text-gray-500'">
+                    {{ item.payout > 0 ? '+' : '' }}₹{{ item.payout }}
+                  </span>
+                </td>
+
+                <!-- Winning Number -->
+                <td class="px-6 py-4">
+                    <div v-if="!isTransaction(item) && item.gameResult" class="flex items-center space-x-2">
                         <span :class="[
                             'w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold text-white',
-                            getGameResultColor(bet.gameResult.color)
+                            getGameResultColor(item.gameResult.color)
                         ]">
-                            {{ bet.gameResult.number }}
+                            {{ item.gameResult.number }}
                         </span>
+                    </div>
+                    <div v-else-if="isTransaction(item)" class="text-gray-600 text-xs">
+                        -
                     </div>
                 </td>
               </tr>
@@ -126,6 +157,16 @@ const getGameResultColor = (color) => {
         case 'green': return 'bg-green-500';
         default: return 'bg-gray-500';
     }
+};
+
+const isTransaction = (item) => {
+    return ['deposit', 'withdraw', 'adjustment'].includes(item.type);
+};
+
+const getTransactionTypeClass = (type) => {
+    if (type === 'deposit') return 'text-green-500 font-bold';
+    if (type === 'withdraw') return 'text-red-500 font-bold';
+    return 'text-blue-500';
 };
 
 onMounted(() => {
