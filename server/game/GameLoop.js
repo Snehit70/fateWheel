@@ -198,7 +198,7 @@ class GameLoop {
     }
 
     async placeBet(user, betData) {
-        if (this.state !== STATES.WAITING) {
+        if (this.state !== STATES.WAITING || this.timeLeft <= 1) {
             throw new Error("Betting is closed");
         }
 

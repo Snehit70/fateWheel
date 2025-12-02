@@ -38,7 +38,14 @@ export function useBetting(bets, isSpinning) {
         socket.emit('placeBet', { type, value, amount: currentBetAmount.value }, (response) => {
             if (response.error) {
                 alert(response.error);
-                // Revert logic could go here, but we rely on server state sync for now
+                // Revert optimistic update
+                const index = bets.value.findIndex(b => b.type === type && b.value === value);
+                if (index !== -1) {
+                    bets.value[index].amount -= currentBetAmount.value;
+                    if (bets.value[index].amount <= 0) {
+                        bets.value.splice(index, 1);
+                    }
+                }
             }
         });
     };
