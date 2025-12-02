@@ -11,8 +11,16 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async init() {
             if (this.token) {
-                this.isInitialized = true;
                 api.defaults.headers.common['x-auth-token'] = this.token;
+                try {
+                    const response = await api.get('/auth/me');
+                    this.user = response.data;
+                    this.isInitialized = true;
+                } catch (err) {
+                    console.error("Failed to fetch user:", err);
+                    this.logout();
+                    this.isInitialized = true;
+                }
             } else {
                 this.isInitialized = true;
             }

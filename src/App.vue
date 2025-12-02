@@ -25,6 +25,14 @@
 <script setup>
 import TopBar from './components/TopBar.vue';
 import LoginModal from './components/LoginModal.vue';
+import { onMounted } from 'vue';
+import { useAuthStore } from './stores/auth';
+
+const authStore = useAuthStore();
+
+onMounted(() => {
+    authStore.init();
+});
 </script>
 
 <style>

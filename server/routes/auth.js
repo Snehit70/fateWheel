@@ -88,11 +88,15 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Get User (Protected Route Middleware needed later)
-router.get('/me', async (req, res) => {
-    // TODO: Implement auth middleware to verify token
-    // For now, just a placeholder
-    res.status(501).json({ message: "Not implemented yet" });
+// Get User
+router.get('/me', require('../middleware/auth'), async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
 });
 
 module.exports = router;
