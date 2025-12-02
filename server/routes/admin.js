@@ -28,6 +28,10 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
             { balance: balance },
             { new: true }
         ).select('-password');
+
+        // Emit balance update to user
+        req.io.to(`user:${user._id}`).emit('balanceUpdate', { balance: user.balance });
+
         res.json(user);
     } catch (err) {
         console.error(err.message);
@@ -42,6 +46,24 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
         res.json({ msg: 'User removed' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT api/admin/users/:id/status
+// @desc    Update user status
+// @access  Admin
+router.put('/users/:id/status', auth, admin, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { status: status },
+            { new: true }
+        ).select('-password');
+        res.json(user);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

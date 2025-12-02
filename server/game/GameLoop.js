@@ -148,7 +148,9 @@ class GameLoop {
             if (winnings > 0) {
                 try {
                     await User.findByIdAndUpdate(bet.userId, { $inc: { balance: winnings } });
-                    // Notify individual user of win?
+                    // Notify individual user of win
+                    const updatedUser = await User.findById(bet.userId);
+                    this.io.to(`user:${bet.userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
                 } catch (err) {
                     console.error("Payout error:", err);
                 }

@@ -5,20 +5,24 @@ require('dotenv').config();
 
 const createAdmin = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/roulette');
         console.log('Connected to MongoDB');
 
         const adminUsername = 'admin';
         const adminPassword = 'adminpassword123'; // Hardcoded for user request
 
         let admin = await User.findOne({ username: adminUsername });
-        if (admin) {
-            console.log('Admin already exists');
-            process.exit(0);
-        }
-
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(adminPassword, salt);
+
+        if (admin) {
+            console.log('Admin already exists, updating password...');
+            admin.password = hashedPassword;
+            admin.status = 'approved'; // Ensure admin is approved
+            await admin.save();
+            console.log('Admin password updated');
+            process.exit(0);
+        }
 
         admin = new User({
             username: adminUsername,

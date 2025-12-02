@@ -36,6 +36,7 @@
               <tr class="bg-[#0f0f13] text-gray-400 text-xs uppercase tracking-wider">
                 <th class="p-4">Username</th>
                 <th class="p-4">Role</th>
+                <th class="p-4">Status</th>
                 <th class="p-4">Balance</th>
                 <th class="p-4">Joined</th>
                 <th class="p-4">Actions</th>
@@ -49,9 +50,25 @@
                     {{ user.role }}
                   </span>
                 </td>
+                <td class="p-4">
+                  <span :class="['px-2 py-1 rounded text-xs font-bold uppercase', 
+                    user.status === 'approved' ? 'bg-green-900/30 text-green-500' : 
+                    user.status === 'rejected' ? 'bg-red-900/30 text-red-500' : 
+                    'bg-yellow-900/30 text-yellow-500']">
+                    {{ user.status || 'approved' }}
+                  </span>
+                </td>
                 <td class="p-4 font-mono text-green-500">₹{{ user.balance.toFixed(2) }}</td>
                 <td class="p-4 text-gray-400 text-sm">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
                 <td class="p-4 flex gap-2">
+                  <template v-if="user.status === 'pending'">
+                    <button @click="updateStatus(user, 'approved')" class="bg-green-600/20 hover:bg-green-600/40 text-green-400 hover:text-green-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-green-600/30">
+                      Approve
+                    </button>
+                    <button @click="updateStatus(user, 'rejected')" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-red-600/30">
+                      Reject
+                    </button>
+                  </template>
                   <button @click="openEditBalance(user)" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 hover:text-blue-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-blue-600/30">
                     Edit Balance
                   </button>
@@ -164,6 +181,21 @@ const saveBalance = async () => {
   } catch (err) {
     console.error(err);
     alert('Failed to update balance');
+  }
+};
+
+const updateStatus = async (user, status) => {
+  try {
+    const res = await api.put(`/admin/users/${user._id}/status`, { status });
+    
+    // Update local state
+    const index = users.value.findIndex(u => u._id === user._id);
+    if (index !== -1) {
+      users.value[index] = res.data;
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Failed to update status');
   }
 };
 

@@ -28,7 +28,7 @@ const props = defineProps({
 });
 
 const limitedHistory = computed(() => {
-    return props.history.slice(0, 20);
+    return props.history.slice(0, 15);
 });
 
 const getColorClass = (color) => {

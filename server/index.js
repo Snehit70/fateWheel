@@ -20,6 +20,12 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Attach IO to request for routes
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/roulette';
 mongoose.connect(MONGODB_URI)
@@ -54,6 +60,12 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id, socket.user ? `(User: ${socket.user.id})` : '(Guest)');
+
+    // Join user room if authenticated
+    if (socket.user) {
+        socket.join(`user:${socket.user.id}`);
+        console.log(`Socket ${socket.id} joined room user:${socket.user.id}`);
+    }
 
     // Send initial state
     socket.emit('gameState', {

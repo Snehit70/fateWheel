@@ -36,10 +36,10 @@ export const useAuthStore = defineStore('auth', {
         },
         async register(username, password) {
             try {
-                const response = await api.post('/auth/register', { username, password });
-                this.setAuth(response.data);
+                const res = await api.post('/auth/register', { username, password });
+                return res.data;
             } catch (err) {
-                throw err.response?.data?.message || 'Registration failed';
+                throw err;
             }
         },
         setAuth(data) {
@@ -48,6 +48,13 @@ export const useAuthStore = defineStore('auth', {
             localStorage.setItem('token', data.token);
             api.defaults.headers.common['x-auth-token'] = data.token;
             socket.setToken(data.token);
+
+            // Listen for balance updates
+            socket.on('balanceUpdate', (payload) => {
+                if (this.user) {
+                    this.user.balance = payload.balance;
+                }
+            });
         },
         logout() {
             this.token = null;

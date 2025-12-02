@@ -27,22 +27,7 @@ router.post('/register', async (req, res) => {
 
         await user.save();
 
-        // Create token
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role } });
-            }
-        );
+        res.json({ message: 'Registration successful. Please wait for admin approval.' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -64,6 +49,14 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Check status
+        if (user.status === 'pending') {
+            return res.status(403).json({ message: 'Account pending approval' });
+        }
+        if (user.status === 'rejected') {
+            return res.status(403).json({ message: 'Account rejected' });
         }
 
         // Create token

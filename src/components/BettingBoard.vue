@@ -2,7 +2,10 @@
   <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
     
     <!-- Red Section -->
-    <div class="flex flex-col gap-4 bg-secondary/30 p-4 rounded-xl border border-glass-border">
+    <div 
+        class="flex flex-col gap-4 p-4 rounded-xl border transition-all duration-500"
+        :class="getSectionClass('red')"
+    >
         <!-- Header Row -->
         <div class="flex gap-2 h-14">
             <button 
@@ -19,10 +22,11 @@
                     v-for="num in [1, 2, 3, 4, 5, 6, 7]" 
                     :key="num"
                     @click="$emit('place-bet', 'number', num)"
-                    class="bg-secondary hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-primary flex items-center justify-center text-sm"
+                    class="h-full rounded flex flex-col items-center justify-center border transition-all duration-500"
+                    :class="getNumberClass(num)"
                 >
-                    {{ num }}
-                    <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-white text-black text-[8px] font-bold rounded-full w-3 h-3 flex items-center justify-center shadow-lg z-10">
+                    <span class="text-xs font-bold">{{ num }}</span>
+                    <span v-if="getBetAmount('number', num) > 0" class="text-[10px] text-yellow-500">
                         {{ getBetAmount('number', num) }}
                     </span>
                 </button>
@@ -56,7 +60,10 @@
     </div>
 
     <!-- Green Section -->
-    <div class="flex flex-col gap-4 bg-secondary/30 p-4 rounded-xl border border-glass-border">
+    <div 
+        class="flex flex-col gap-4 p-4 rounded-xl border transition-all duration-500"
+        :class="getSectionClass('green')"
+    >
         <!-- Header Row -->
         <div class="grid grid-cols-3 gap-2 h-14">
             <button 
@@ -67,10 +74,11 @@
             </button>
             <button 
                 @click="$emit('place-bet', 'number', 0)"
-                class="bg-green-600 hover:bg-green-500 rounded-lg font-bold text-white transition-colors relative group flex items-center justify-center border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
+                class="h-full rounded flex flex-col items-center justify-center border transition-all duration-500"
+                :class="getNumberClass(0)"
             >
-                ZERO
-                 <span v-if="getBetAmount('number', 0)" class="absolute -top-2 -right-2 bg-white text-green-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pop">
+                <span class="text-xs font-bold">0</span>
+                <span v-if="getBetAmount('number', 0) > 0" class="text-[10px] text-yellow-500">
                     {{ getBetAmount('number', 0) }}
                 </span>
             </button>
@@ -109,7 +117,10 @@
     </div>
 
     <!-- Black Section -->
-    <div class="flex flex-col gap-4 bg-secondary/30 p-4 rounded-xl border border-glass-border">
+    <div 
+        class="flex flex-col gap-4 p-4 rounded-xl border transition-all duration-500"
+        :class="getSectionClass('black')"
+    >
         <!-- Header Row -->
         <div class="flex gap-2 h-14">
             <button 
@@ -126,10 +137,11 @@
                     v-for="num in [8, 9, 10, 11, 12, 13, 14]" 
                     :key="num"
                     @click="$emit('place-bet', 'number', num)"
-                    class="bg-secondary hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-gray-500 flex items-center justify-center text-sm"
+                    class="h-full rounded flex flex-col items-center justify-center border transition-all duration-500"
+                    :class="getNumberClass(num)"
                 >
-                    {{ num }}
-                    <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-white text-black text-[8px] font-bold rounded-full w-3 h-3 flex items-center justify-center shadow-lg z-10">
+                    <span class="text-xs font-bold">{{ num }}</span>
+                    <span v-if="getBetAmount('number', num) > 0" class="text-[10px] text-yellow-500">
                         {{ getBetAmount('number', num) }}
                     </span>
                 </button>
@@ -166,6 +178,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 
 const props = defineProps({
@@ -179,12 +192,13 @@ const props = defineProps({
     }
 });
 
+const emit = defineEmits(['place-bet']);
+
 const authStore = useAuthStore();
 
 const getBetAmount = (type, value) => {
-    return props.bets
-        .filter(b => b.type === type && b.value === value)
-        .reduce((sum, b) => sum + b.amount, 0);
+    const bet = props.bets.find(b => b.type === type && b.value === value);
+    return bet ? bet.amount : 0;
 };
 
 const getBetsForColor = (color) => {
@@ -212,7 +226,29 @@ const getUserBetForColor = (color) => {
         .reduce((sum, b) => sum + b.amount, 0);
 };
 
-defineEmits(['place-bet']);
+// Helper to determine section styling based on result
+const getSectionClass = (color) => {
+    if (!props.lastResult) return 'bg-secondary/30 border-glass-border opacity-100';
+    
+    if (props.lastResult.color === color) {
+        // Winner
+        return `bg-${color}-500/20 border-${color}-500/50 shadow-[0_0_30px_rgba(var(--color-${color}),0.2)] scale-[1.02] z-10 opacity-100`;
+    } else {
+        // Loser
+        return 'bg-secondary/10 border-transparent opacity-30 blur-[1px] grayscale';
+    }
+};
+
+// Helper for number buttons
+const getNumberClass = (num) => {
+    if (!props.lastResult) return 'bg-[#1a1a1a] hover:bg-[#2a2a2a] border-white/5';
+    
+    if (props.lastResult.number === num) {
+        return 'bg-yellow-500 text-black border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.5)] scale-110 z-20';
+    } else {
+        return 'bg-[#0f0f13] border-transparent opacity-30';
+    }
+};
 </script>
 
 <style scoped>

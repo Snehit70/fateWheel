@@ -7,7 +7,10 @@
         <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
         <div class="flex flex-col lg:flex-row gap-6 items-stretch">
             <!-- Left: Wheel -->
-            <div class="w-full lg:w-[60%] bg-secondary/50 rounded-2xl border border-glass-border p-4 relative min-h-[450px] flex items-center justify-center">
+            <div 
+                class="w-full lg:w-[60%] bg-secondary/50 rounded-2xl border border-glass-border p-4 relative min-h-[450px] flex items-center justify-center transition-all duration-500"
+                :class="{ 'ring-2 ring-yellow-500/20 shadow-[0_0_50px_rgba(255,215,0,0.1)]': isSpinning }"
+            >
                 <RouletteWheel 
                     :rotation="rotation" 
                     :transition-duration="transitionDuration"
@@ -18,10 +21,13 @@
             </div>
 
             <!-- Right: History & Betting Controls -->
-            <div class="w-full lg:w-[40%] flex flex-col gap-6">
+            <div 
+                class="w-full lg:w-[40%] flex flex-col gap-6 transition-all duration-500"
+                :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
+            >
                 <!-- History Section -->
                 <div class="bg-secondary/50 rounded-2xl border border-glass-border p-4 flex-1 min-h-[200px]">
-                    <h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-3">Last 20 Rounds</h3>
+                    <h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-3">History</h3>
                     <HistoryBar :history="spinHistory" />
                 </div>
 
@@ -42,11 +48,16 @@
         </div>
         
         <!-- Bottom Section: Betting Board -->
-        <BettingBoard 
-            :bets="bets"
-            :last-result="lastResult"
-            @place-bet="handlePlaceBet"
-        />
+        <div 
+            class="transition-all duration-500"
+            :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
+        >
+            <BettingBoard 
+                :bets="bets"
+                :last-result="lastResult"
+                @place-bet="handlePlaceBet"
+            />
+        </div>
     </div>
 
     <!-- Result Modal -->

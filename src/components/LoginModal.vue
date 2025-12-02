@@ -46,10 +46,16 @@
 
           <button 
             type="submit" 
-            class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-lg uppercase tracking-wider transition-all transform active:scale-95 shadow-[0_0_15px_rgba(255,215,0,0.3)]"
-            :disabled="loading"
+            class="w-full font-bold py-3 rounded-lg uppercase tracking-wider transition-all transform active:scale-95 shadow-[0_0_15px_rgba(255,215,0,0.3)]"
+            :class="[
+              isSuccess 
+                ? 'bg-green-500 hover:bg-green-400 text-white' 
+                : 'bg-yellow-500 hover:bg-yellow-400 text-black'
+            ]"
+            :disabled="loading || isSuccess"
           >
             <span v-if="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Processing...</span>
+            <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> Sent</span>
             <span v-else>{{ isLogin ? 'Sign In' : 'Sign Up' }}</span>
           </button>
         </form>
@@ -83,6 +89,7 @@ const username = ref('');
 const password = ref('');
 const error = ref('');
 const loading = ref(false);
+const isSuccess = ref(false);
 
 const close = () => {
   authStore.closeLoginModal();
@@ -108,18 +115,25 @@ const handleSubmit = async () => {
   try {
     if (isLogin.value) {
       await authStore.login(username.value, password.value);
+      // Check if admin and redirect
+      if (authStore.user?.role === 'admin') {
+        router.push('/admin');
+      }
+      close();
     } else {
-      await authStore.register(username.value, password.value);
+      const res = await authStore.register(username.value, password.value);
+      // Registration successful, show success state on button
+      isSuccess.value = true;
+      
+      // Wait 2 seconds then switch to login
+      setTimeout(() => {
+        isSuccess.value = false;
+        toggleMode(); // Switch to login
+      }, 2000);
     }
-    
-    // Check if admin and redirect
-    if (authStore.user?.role === 'admin') {
-      router.push('/admin');
-    }
-    
-    close();
   } catch (err) {
-    error.value = err;
+    error.value = err.response?.data?.message || err.message || 'An error occurred';
+    isSuccess.value = false;
   } finally {
     loading.value = false;
   }
