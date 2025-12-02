@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const User = require('../models/User');
+const Bet = require('../models/Bet');
 const crypto = require('crypto');
 
 const SEGMENTS = [
@@ -44,11 +45,18 @@ function secureRandomInt(min, max) {
 }
 
 // @route   GET api/game/history
-// @desc    Get recent game history
-// @access  Public
-router.get('/history', async (req, res) => {
-    // TODO: Fetch from DB if we persist history there
-    res.json({ message: "History available via Socket.io" });
+// @desc    Get recent game history for the logged-in user
+// @access  Private
+router.get('/history', auth, async (req, res) => {
+    try {
+        const bets = await Bet.find({ user: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(50);
+        res.json(bets);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
 });
 
 module.exports = router;

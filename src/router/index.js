@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Game from '../components/Game.vue';
+import History from '../components/History.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
     { path: '/', component: Game },
+    { path: '/history', component: History, meta: { requiresAuth: true } },
     { path: '/admin', component: () => import('../components/AdminPanel.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
 ];
 

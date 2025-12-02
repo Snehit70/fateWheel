@@ -20,6 +20,14 @@
             </button>
         </div>
 
+        <!-- History Button -->
+        <router-link to="/history" class="hidden md:flex items-center space-x-2 px-3 py-2 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg border border-[#2a2a2a] transition-colors text-sm font-bold text-gray-300 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>HISTORY</span>
+        </router-link>
+
         <!-- User Profile -->
         <div class="flex items-center space-x-3 cursor-pointer hover:bg-[#1a1a1a] p-2 rounded-lg transition-colors">
             <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-xs font-bold text-white">

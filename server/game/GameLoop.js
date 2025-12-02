@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const User = require('../models/User');
+const Bet = require('../models/Bet');
 
 const STATES = {
     WAITING: 'WAITING',
@@ -137,6 +138,26 @@ class GameLoop {
                 } catch (err) {
                     console.error("Payout error:", err);
                 }
+            }
+
+            // Save Bet History
+            try {
+                const newBet = new Bet({
+                    user: bet.userId,
+                    username: bet.username,
+                    type: bet.type,
+                    value: bet.value,
+                    amount: bet.amount,
+                    result: winnings > 0 ? 'win' : 'loss',
+                    payout: winnings,
+                    gameResult: {
+                        number: this.result.number,
+                        color: this.result.color
+                    }
+                });
+                await newBet.save();
+            } catch (err) {
+                console.error("Error saving bet history:", err);
             }
         }
 
