@@ -7,8 +7,10 @@ export function useGameLogic() {
     const authStore = useAuthStore();
 
     // State
+    // State
     const bets = ref([]);
     const isSpinning = ref(false);
+    const isAnimating = ref(false);
     const rotation = ref(0);
     const lastResult = ref(null);
     const winnings = ref(0);
@@ -22,6 +24,7 @@ export function useGameLogic() {
 
     const handleSpin = async (result, duration) => {
         isSpinning.value = true;
+        isAnimating.value = true;
         lastResult.value = null;
         winnings.value = 0;
 
@@ -62,7 +65,10 @@ export function useGameLogic() {
         rotation.value = finalRotation;
 
         setTimeout(() => {
+            isAnimating.value = false;
             lastResult.value = result;
+            isSpinning.value = false; // Ensure spinning stops after animation
+            status.value = 'RESULT';
             // calculateWinnings(result); // Removed: Server handles balance updates
         }, duration);
     };
@@ -79,6 +85,7 @@ export function useGameLogic() {
             if (data.state === 'WAITING') {
                 status.value = 'ROLLING IN';
                 isSpinning.value = false;
+                isAnimating.value = false;
                 lastResult.value = null;
                 winnings.value = 0;
 
@@ -106,8 +113,13 @@ export function useGameLogic() {
                     spinInterval = null;
                 }
             } else if (data.state === 'RESULT') {
-                status.value = 'RESULT';
-                isSpinning.value = false;
+                // Only update status if we are not currently animating locally
+                // This prevents the server state from overriding the local animation
+                if (!isAnimating.value) {
+                    status.value = 'RESULT';
+                    isSpinning.value = false;
+                }
+
                 if (spinInterval) {
                     clearInterval(spinInterval);
                     spinInterval = null;

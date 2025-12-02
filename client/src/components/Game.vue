@@ -50,7 +50,7 @@
         <!-- Bottom Section: Betting Board -->
         <div 
             class="transition-all duration-500"
-            :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
+            :class="{ 'opacity-50 blur-[2px] pointer-events-none': isSpinning }"
         >
             <BettingBoard 
                 :bets="bets"

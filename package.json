@@ -12,7 +12,5 @@
     "devDependencies": {
         "concurrently": "^8.2.2"
     },
-    "dependencies": {
-        "mongoose": "^9.0.0"
-    }
+    "dependencies": {}
 }
