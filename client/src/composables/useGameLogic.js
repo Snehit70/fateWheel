@@ -1,6 +1,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import socket from '../services/socket';
 import { useAuthStore } from '../stores/auth';
+import { SEGMENTS, SEGMENT_ANGLE } from '../constants/game';
 
 export function useGameLogic() {
     const authStore = useAuthStore();
@@ -18,25 +19,6 @@ export function useGameLogic() {
 
     let spinInterval = null;
     let endTime = 0;
-
-    const SEGMENT_ANGLE = 360 / 15;
-    const SEGMENTS = [
-        { number: 0, color: "green" },
-        { number: 1, color: "red" },
-        { number: 8, color: "black" },
-        { number: 2, color: "red" },
-        { number: 9, color: "black" },
-        { number: 3, color: "red" },
-        { number: 10, color: "black" },
-        { number: 4, color: "red" },
-        { number: 11, color: "black" },
-        { number: 5, color: "red" },
-        { number: 12, color: "black" },
-        { number: 6, color: "red" },
-        { number: 13, color: "black" },
-        { number: 7, color: "red" },
-        { number: 14, color: "black" },
-    ];
 
     const handleSpin = async (result, duration) => {
         isSpinning.value = true;

@@ -21,7 +21,7 @@
           <path 
             :d="getSegmentPath(i)" 
             :fill="getSegmentColor(segment.color)"
-            stroke="#0f0f13" 
+            stroke="#0a0a0f" 
             stroke-width="0.5"
           />
           <!-- Number -->
@@ -30,11 +30,11 @@
             :y="getTextY(i)"
             fill="url(#textGradient)"
             font-size="5"
-            font-weight="300"
+            font-weight="700"
             text-anchor="middle"
             dominant-baseline="middle"
             :transform="getTextTransform(i)"
-            style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8);"
+            style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: 'Outfit', sans-serif;"
           >
             {{ segment.number }}
           </text>
@@ -43,28 +43,28 @@
     </div>
 
     <!-- Center Display (Positioned in the hollow space of the arc) -->
-    <div class="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center">
+    <div class="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center pointer-events-none">
         
         <!-- Timer State -->
         <div v-if="status.includes('ROLLING IN')" class="text-center">
-            <div class="text-6xl font-mono font-thin bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
+            <div class="text-6xl font-outfit font-bold bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
                 {{ timeLeft.toFixed(2) }}
             </div>
-            <div class="text-gray-400 text-sm font-bold tracking-[0.3em] uppercase">Rolling In</div>
+            <div class="text-text-muted text-sm font-bold tracking-[0.3em] uppercase">Rolling In</div>
         </div>
 
         <!-- Result State -->
         <div v-else-if="lastResult" class="text-center animate-fade-in">
-            <div class="text-gray-400 text-xs font-bold tracking-[0.3em] uppercase mb-4">Winning Number</div>
+            <div class="text-text-muted text-xs font-bold tracking-[0.3em] uppercase mb-4">Winning Number</div>
             <div :class="[
-                'text-7xl font-bold mb-4 drop-shadow-2xl',
-                lastResult.color === 'red' ? 'text-red-500' : lastResult.color === 'green' ? 'text-green-500' : 'text-white'
+                'text-7xl font-outfit font-black mb-4 drop-shadow-2xl',
+                lastResult.color === 'red' ? 'text-primary' : lastResult.color === 'green' ? 'text-success' : 'text-white'
             ]">
                 {{ lastResult.number }}
             </div>
             <div :class="[
-                'text-sm font-bold uppercase tracking-widest px-4 py-1.5 rounded-full inline-block',
-                lastResult.color === 'red' ? 'bg-red-500/20 text-red-500 border border-red-500/30' : lastResult.color === 'green' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-gray-700/50 text-gray-300 border border-gray-600/30'
+                'text-sm font-bold uppercase tracking-widest px-4 py-1.5 rounded-full inline-block border font-outfit',
+                lastResult.color === 'red' ? 'bg-primary/20 text-primary border-primary/30' : lastResult.color === 'green' ? 'bg-success/20 text-success border-success/30' : 'bg-surface-light text-text-muted border-white/10'
             ]">
                 {{ lastResult.color }}
             </div>
@@ -72,26 +72,28 @@
 
         <!-- Rolling State -->
         <div v-else class="text-center pt-8">
-            <div class="text-3xl font-light tracking-[0.3em] text-white uppercase animate-pulse">Rolling</div>
+            <div class="text-3xl font-outfit font-light tracking-[0.3em] text-white uppercase animate-pulse">Rolling</div>
             <div class="flex justify-center mt-4 space-x-2">
-                <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0s"></div>
                 <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
             </div>
         </div>
     </div>
 
     <!-- Pointer -->
     <div class="absolute bottom-[10px] left-1/2 -translate-x-1/2 z-30">
-        <div class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[24px] border-b-yellow-500 filter drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"></div>
+        <div class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[24px] border-b-accent filter drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"></div>
     </div>
 
     <!-- Gradient Overlay to fade the edges of the arc -->
-    <div class="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-[#0f0f13] pointer-events-none z-10 h-20 top-0"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-background pointer-events-none z-10 h-20 top-0"></div>
   </div>
 </template>
 
 <script setup>
+import { SEGMENTS, SEGMENT_ANGLE, getSegmentColor } from '../constants/game';
+
 const props = defineProps({
   rotation: {
     type: Number,
@@ -114,35 +116,6 @@ const props = defineProps({
     default: null
   }
 });
-
-const SEGMENTS = [
-  { number: 0, color: "green" },
-  { number: 1, color: "red" },
-  { number: 8, color: "black" },
-  { number: 2, color: "red" },
-  { number: 9, color: "black" },
-  { number: 3, color: "red" },
-  { number: 10, color: "black" },
-  { number: 4, color: "red" },
-  { number: 11, color: "black" },
-  { number: 5, color: "red" },
-  { number: 12, color: "black" },
-  { number: 6, color: "red" },
-  { number: 13, color: "black" },
-  { number: 7, color: "red" },
-  { number: 14, color: "black" },
-];
-
-const SEGMENT_ANGLE = 360 / 15;
-
-const getSegmentColor = (color) => {
-    switch(color) {
-        case 'red': return 'var(--color-primary)';
-        case 'black': return '#1f1f23'; // Specific roulette black
-        case 'green': return '#00c74d'; // Specific roulette green
-        default: return '#000';
-    }
-};
 
 // Donut Chart Math
 const INNER_RADIUS = 32; // 32%
