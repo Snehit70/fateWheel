@@ -132,7 +132,9 @@ const filteredUsers = computed(() => {
 });
 
 const totalSystemBalance = computed(() => {
-  return users.value.reduce((sum, u) => sum + u.balance, 0);
+  return users.value
+    .filter(u => u.role !== 'admin')
+    .reduce((sum, u) => sum + u.balance, 0);
 });
 
 const totalUsersCount = computed(() => {
