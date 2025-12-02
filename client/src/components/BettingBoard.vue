@@ -10,10 +10,10 @@
         <div class="flex gap-2 h-14">
             <button 
                 @click="$emit('place-bet', 'color', 'red')"
-                class="flex-1 bg-primary hover:bg-primary-hover rounded-lg font-bold text-white transition-colors relative group flex items-center justify-center border-b-4 border-primary-dark active:border-b-0 active:translate-y-1 font-outfit tracking-wider text-lg"
+                class="flex-1 bg-primary hover:bg-primary-hover rounded-lg font-medium text-white transition-colors relative group flex items-center justify-center border-b-4 border-primary-dark active:border-b-0 active:translate-y-1 font-outfit tracking-wider text-lg"
             >
                 RED
-                <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-white text-primary text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-primary">
+                <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-white text-primary text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-primary">
                     {{ getBetAmount('color', 'red') }}
                 </span>
             </button>
@@ -25,8 +25,8 @@
                     class="h-full rounded flex flex-col items-center justify-center border transition-all duration-300 font-outfit"
                     :class="getNumberClass(num)"
                 >
-                    <span class="text-sm font-bold">{{ num }}</span>
-                    <span v-if="getBetAmount('number', num) > 0" class="text-[10px] text-accent font-bold">
+                    <span class="text-sm font-medium">{{ num }}</span>
+                    <span v-if="getBetAmount('number', num) > 0" class="text-[10px] text-accent font-medium">
                         {{ getBetAmount('number', num) }}
                     </span>
                 </button>
@@ -37,15 +37,15 @@
         <div class="grid grid-cols-3 gap-2">
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">Users</span>
-                <span class="text-sm font-bold text-white font-outfit">{{ getBetsForColor('red').length }}</span>
+                <span class="text-sm font-medium text-white font-outfit">{{ getBetsForColor('red').length }}</span>
             </div>
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">Total</span>
-                <span class="text-sm font-bold text-white font-outfit">{{ getTotalBetForColor('red').toFixed(1) }}</span>
+                <span class="text-sm font-medium text-white font-outfit">{{ getTotalBetForColor('red').toFixed(1) }}</span>
             </div>
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">You</span>
-                <span class="text-sm font-bold text-primary font-outfit">{{ getUserBetForColor('red').toFixed(1) }}</span>
+                <span class="text-sm font-medium text-primary font-outfit">{{ getUserBetForColor('red').toFixed(1) }}</span>
             </div>
         </div>
 
@@ -54,7 +54,7 @@
             <div v-for="(bet, i) in getBetsForColor('red')" :key="i" class="bg-surface-light rounded p-2 flex flex-col items-center gap-1 border border-white/5 hover:border-primary/30 transition-colors">
                 <img src="@/assets/default-user.svg" class="w-8 h-8 rounded-full bg-surface p-1 border border-white/10" />
                 <span class="text-[10px] text-text-muted font-bold truncate w-full text-center">{{ bet.username || 'User' }}</span>
-                <span class="text-xs font-bold text-primary font-outfit">{{ bet.amount }}</span>
+                <span class="text-xs font-medium text-primary font-outfit">{{ bet.amount }}</span>
             </div>
         </div>
     </div>
@@ -77,8 +77,8 @@
                 class="h-full rounded flex flex-col items-center justify-center border transition-all duration-300 font-outfit"
                 :class="getNumberClass(0)"
             >
-                <span class="text-sm font-bold">0</span>
-                <span v-if="getBetAmount('number', 0) > 0" class="text-[10px] text-accent font-bold">
+                <span class="text-sm font-medium">0</span>
+                <span v-if="getBetAmount('number', 0) > 0" class="text-[10px] text-accent font-medium">
                     {{ getBetAmount('number', 0) }}
                 </span>
             </button>
@@ -94,15 +94,15 @@
         <div class="grid grid-cols-3 gap-2">
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">Users</span>
-                <span class="text-sm font-bold text-white font-outfit">{{ getBetsForColor('green').length }}</span>
+                <span class="text-sm font-medium text-white font-outfit">{{ getBetsForColor('green').length }}</span>
             </div>
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">Total</span>
-                <span class="text-sm font-bold text-white font-outfit">{{ getTotalBetForColor('green').toFixed(1) }}</span>
+                <span class="text-sm font-medium text-white font-outfit">{{ getTotalBetForColor('green').toFixed(1) }}</span>
             </div>
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">You</span>
-                <span class="text-sm font-bold text-success font-outfit">{{ getUserBetForColor('green').toFixed(1) }}</span>
+                <span class="text-sm font-medium text-success font-outfit">{{ getUserBetForColor('green').toFixed(1) }}</span>
             </div>
         </div>
 
@@ -111,7 +111,7 @@
             <div v-for="(bet, i) in getBetsForColor('green')" :key="i" class="bg-surface-light rounded p-2 flex flex-col items-center gap-1 border border-white/5 hover:border-success/30 transition-colors">
                 <img src="@/assets/default-user.svg" class="w-8 h-8 rounded-full bg-surface p-1 border border-white/10" />
                 <span class="text-[10px] text-text-muted font-bold truncate w-full text-center">{{ bet.username || 'User' }}</span>
-                <span class="text-xs font-bold text-success font-outfit">{{ bet.amount }}</span>
+                <span class="text-xs font-medium text-success font-outfit">{{ bet.amount }}</span>
             </div>
         </div>
     </div>
@@ -125,10 +125,10 @@
         <div class="flex gap-2 h-14">
             <button 
                 @click="$emit('place-bet', 'color', 'black')"
-                class="flex-1 bg-surface-lighter hover:bg-[#3a3a55] rounded-lg font-bold text-white transition-colors relative group flex items-center justify-center border-b-4 border-surface active:border-b-0 active:translate-y-1 font-outfit tracking-wider text-lg"
+                class="flex-1 bg-surface-lighter hover:bg-[#3a3a55] rounded-lg font-medium text-white transition-colors relative group flex items-center justify-center border-b-4 border-surface active:border-b-0 active:translate-y-1 font-outfit tracking-wider text-lg"
             >
                 BLACK
-                <span v-if="getBetAmount('color', 'black')" class="absolute -top-2 -right-2 bg-white text-surface text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-surface">
+                <span v-if="getBetAmount('color', 'black')" class="absolute -top-2 -right-2 bg-white text-surface text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-surface">
                     {{ getBetAmount('color', 'black') }}
                 </span>
             </button>
@@ -140,8 +140,8 @@
                     class="h-full rounded flex flex-col items-center justify-center border transition-all duration-300 font-outfit"
                     :class="getNumberClass(num)"
                 >
-                    <span class="text-sm font-bold">{{ num }}</span>
-                    <span v-if="getBetAmount('number', num) > 0" class="text-[10px] text-accent font-bold">
+                    <span class="text-sm font-medium">{{ num }}</span>
+                    <span v-if="getBetAmount('number', num) > 0" class="text-[10px] text-accent font-medium">
                         {{ getBetAmount('number', num) }}
                     </span>
                 </button>
@@ -152,15 +152,15 @@
         <div class="grid grid-cols-3 gap-2">
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">Users</span>
-                <span class="text-sm font-bold text-white font-outfit">{{ getBetsForColor('black').length }}</span>
+                <span class="text-sm font-medium text-white font-outfit">{{ getBetsForColor('black').length }}</span>
             </div>
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">Total</span>
-                <span class="text-sm font-bold text-white font-outfit">{{ getTotalBetForColor('black').toFixed(1) }}</span>
+                <span class="text-sm font-medium text-white font-outfit">{{ getTotalBetForColor('black').toFixed(1) }}</span>
             </div>
             <div class="bg-surface-light rounded p-2 flex flex-col items-center justify-center border border-white/5">
                 <span class="text-[10px] text-text-muted uppercase font-bold tracking-wider">You</span>
-                <span class="text-sm font-bold text-text-muted font-outfit">{{ getUserBetForColor('black').toFixed(1) }}</span>
+                <span class="text-sm font-medium text-text-muted font-outfit">{{ getUserBetForColor('black').toFixed(1) }}</span>
             </div>
         </div>
 
@@ -169,7 +169,7 @@
             <div v-for="(bet, i) in getBetsForColor('black')" :key="i" class="bg-surface-light rounded p-2 flex flex-col items-center gap-1 border border-white/5 hover:border-white/20 transition-colors">
                 <img src="@/assets/default-user.svg" class="w-8 h-8 rounded-full bg-surface p-1 border border-white/10" />
                 <span class="text-[10px] text-text-muted font-bold truncate w-full text-center">{{ bet.username || 'User' }}</span>
-                <span class="text-xs font-bold text-white font-outfit">{{ bet.amount }}</span>
+                <span class="text-xs font-medium text-white font-outfit">{{ bet.amount }}</span>
             </div>
         </div>
     </div>

@@ -13,15 +13,15 @@
       <template v-if="authStore.user">
         <!-- Balance Display -->
         <div v-if="authStore.user.role !== 'admin'" class="hidden md:flex items-center bg-surface-light rounded-lg px-4 py-2 border border-white/5 shadow-inner">
-            <span class="text-success font-bold mr-2 font-outfit">₹</span>
-            <span class="text-white font-outfit font-bold tracking-wide">{{ authStore.user.balance.toFixed(2) }}</span>
-            <button class="ml-3 bg-primary/20 hover:bg-primary/30 text-primary text-xs px-2 py-1 rounded transition-colors uppercase font-bold tracking-wider border border-primary/20">
+            <span class="text-success font-medium mr-2 font-outfit">₹</span>
+            <span class="text-white font-outfit font-medium tracking-wide">{{ authStore.user.balance.toFixed(2) }}</span>
+            <button class="ml-3 bg-primary/20 hover:bg-primary/30 text-primary text-xs px-2 py-1 rounded transition-colors uppercase font-medium tracking-wider border border-primary/20">
                 Wallet
             </button>
         </div>
 
         <!-- History Button -->
-        <router-link to="/history" class="hidden md:flex items-center space-x-2 px-3 py-2 bg-surface-light hover:bg-surface-lighter rounded-lg border border-white/5 transition-colors text-sm font-bold text-text-muted hover:text-white font-outfit tracking-wide">
+        <router-link to="/history" class="hidden md:flex items-center space-x-2 px-3 py-2 bg-surface-light hover:bg-surface-lighter rounded-lg border border-white/5 transition-colors text-sm font-medium text-text-muted hover:text-white font-outfit tracking-wide">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -30,7 +30,7 @@
 
         <!-- User Profile -->
         <div class="flex items-center space-x-3 cursor-pointer hover:bg-surface-light p-2 rounded-lg transition-colors border border-transparent hover:border-white/5">
-            <div class="w-8 h-8 rounded bg-surface flex items-center justify-center text-xs font-bold text-white border border-white/10">
+            <div class="w-8 h-8 rounded bg-surface flex items-center justify-center text-xs font-medium text-white border border-white/10">
                 {{ authStore.user.username?.substring(0, 2).toUpperCase() || 'US' }}
             </div>
             <span class="hidden md:block text-sm font-medium text-white font-outfit">{{ authStore.user.username }}</span>

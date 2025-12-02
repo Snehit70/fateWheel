@@ -30,7 +30,7 @@
             :y="getTextY(i)"
             fill="url(#textGradient)"
             font-size="5"
-            font-weight="700"
+            font-weight="300"
             text-anchor="middle"
             dominant-baseline="middle"
             :transform="getTextTransform(i)"
@@ -47,17 +47,17 @@
         
         <!-- Timer State -->
         <div v-if="status.includes('ROLLING IN')" class="text-center">
-            <div class="text-6xl font-outfit font-bold bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
+            <div class="text-6xl font-outfit font-light bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
                 {{ timeLeft.toFixed(2) }}
             </div>
-            <div class="text-text-muted text-sm font-bold tracking-[0.3em] uppercase">Rolling In</div>
+            <div class="text-text-muted text-sm font-light tracking-[0.3em] uppercase">Rolling In</div>
         </div>
 
         <!-- Result State -->
         <div v-else-if="lastResult" class="text-center animate-fade-in">
-            <div class="text-text-muted text-xs font-bold tracking-[0.3em] uppercase mb-4">Winning Number</div>
+            <div class="text-text-muted text-xs font-light tracking-[0.3em] uppercase mb-4">Winning Number</div>
             <div :class="[
-                'text-7xl font-outfit font-black mb-4 drop-shadow-2xl',
+                'text-7xl font-outfit font-light mb-4 drop-shadow-2xl',
                 lastResult.color === 'red' ? 'text-primary' : lastResult.color === 'green' ? 'text-success' : 'text-white'
             ]">
                 {{ lastResult.number }}
