@@ -192,15 +192,22 @@ class GameLoop {
         // Deduct Balance Immediately
         await User.findByIdAndUpdate(user.id, { $inc: { balance: -amount } });
 
-        const bet = {
-            userId: user.id,
-            username: dbUser.username,
-            type,
-            value,
-            amount
-        };
+        // Check if bet already exists
+        const existingBet = this.bets.find(b => b.userId === user.id && b.type === type && b.value === value);
 
-        this.bets.push(bet);
+        if (existingBet) {
+            existingBet.amount += amount;
+        } else {
+            const bet = {
+                userId: user.id,
+                username: dbUser.username,
+                type,
+                value,
+                amount
+            };
+            this.bets.push(bet);
+        }
+
         this.broadcastState(); // Update everyone with new bet
         return dbUser.balance - amount;
     }
