@@ -234,8 +234,8 @@ const getSectionClass = (color) => {
         // Winner
         return `bg-${color}-500/20 border-${color}-500/50 shadow-[0_0_30px_rgba(var(--color-${color}),0.2)] scale-[1.02] z-10 opacity-100`;
     } else {
-        // Loser
-        return 'bg-secondary/10 border-transparent opacity-30 blur-[1px] grayscale';
+        // Loser - Added hover effects to show it's clickable for next round
+        return 'bg-secondary/10 border-transparent opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300';
     }
 };
 
@@ -246,7 +246,8 @@ const getNumberClass = (num) => {
     if (props.lastResult.number === num) {
         return 'bg-yellow-500 text-black border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.5)] scale-110 z-20';
     } else {
-        return 'bg-[#0f0f13] border-transparent opacity-30';
+        // Loser - Added hover effects
+        return 'bg-[#0f0f13] border-transparent opacity-30 hover:opacity-100 hover:bg-[#2a2a2a] hover:border-white/20 transition-all duration-300';
     }
 };
 </script>
