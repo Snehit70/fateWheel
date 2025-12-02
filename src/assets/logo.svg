@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8860B;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer Ring -->
+  <circle cx="50" cy="50" r="45" fill="url(#gold-gradient)" stroke="#B8860B" stroke-width="2" filter="url(#shadow)"/>
+  <circle cx="50" cy="50" r="40" fill="#1a1a1a" />
+  
+  <!-- Wheel Segments -->
+  <g transform="translate(50,50)">
+    <path d="M0,0 L0,-38 A38,38 0 0,1 12,-36 Z" fill="#e50914" />
+    <path d="M0,0 L12,-36 A38,38 0 0,1 23,-30 Z" fill="#000" />
+    <path d="M0,0 L23,-30 A38,38 0 0,1 31,-22 Z" fill="#e50914" />
+    <path d="M0,0 L31,-22 A38,38 0 0,1 36,-12 Z" fill="#000" />
+    <path d="M0,0 L36,-12 A38,38 0 0,1 38,0 Z" fill="#e50914" />
+    <path d="M0,0 L38,0 A38,38 0 0,1 36,12 Z" fill="#000" />
+    <path d="M0,0 L36,12 A38,38 0 0,1 31,22 Z" fill="#e50914" />
+    <path d="M0,0 L31,22 A38,38 0 0,1 23,30 Z" fill="#000" />
+    <path d="M0,0 L23,30 A38,38 0 0,1 12,36 Z" fill="#e50914" />
+    <path d="M0,0 L12,36 A38,38 0 0,1 0,38 Z" fill="#000" />
+    <path d="M0,0 L0,38 A38,38 0 0,1 -12,36 Z" fill="#e50914" />
+    <path d="M0,0 L-12,36 A38,38 0 0,1 -23,30 Z" fill="#000" />
+    <path d="M0,0 L-23,30 A38,38 0 0,1 -31,22 Z" fill="#e50914" />
+    <path d="M0,0 L-31,22 A38,38 0 0,1 -36,12 Z" fill="#000" />
+    <path d="M0,0 L-36,12 A38,38 0 0,1 -38,0 Z" fill="#00c74d" /> <!-- Zero -->
+    <path d="M0,0 L-38,0 A38,38 0 0,1 -36,-12 Z" fill="#000" />
+    <path d="M0,0 L-36,-12 A38,38 0 0,1 -31,-22 Z" fill="#e50914" />
+    <path d="M0,0 L-31,-22 A38,38 0 0,1 -23,-30 Z" fill="#000" />
+    <path d="M0,0 L-23,-30 A38,38 0 0,1 -12,-36 Z" fill="#e50914" />
+    <path d="M0,0 L-12,-36 A38,38 0 0,1 0,-38 Z" fill="#000" />
+  </g>
+  
+  <!-- Center -->
+  <circle cx="50" cy="50" r="15" fill="url(#gold-gradient)" stroke="#B8860B" stroke-width="1"/>
+  <circle cx="50" cy="50" r="10" fill="#1a1a1a"/>
+  <circle cx="50" cy="50" r="3" fill="#e50914"/>
+</svg>

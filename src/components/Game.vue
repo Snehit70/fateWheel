@@ -2,7 +2,6 @@
   <div class="flex flex-col items-center w-full max-w-6xl mx-auto">
     
     <!-- Game Area -->
-    <!-- Game Area -->
     <div class="w-full relative flex flex-col gap-6">
         
         <!-- Top Section: Wheel (60%) and History (40%) -->
