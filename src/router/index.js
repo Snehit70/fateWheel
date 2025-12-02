@@ -1,12 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import RequestAccess from '../components/RequestAccess.vue';
-import Login from '../components/Login.vue';
 import Game from '../components/Game.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
     { path: '/', component: Game },
-    { path: '/login', component: Login },
     { path: '/admin', component: () => import('../components/AdminPanel.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
 ];
 
@@ -23,7 +20,14 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (to.meta.requiresAuth && !authStore.user) {
-        next('/login');
+        // next('/login'); // Login route removed, maybe trigger modal?
+        // For now, just allow or redirect to home if critical, but since LoginModal is in App.vue, 
+        // we might just want to let them be or show modal.
+        // But router guard expects a next().
+        // If we redirect to '/', we might loop if '/' requires auth (it doesn't).
+        next('/');
+        // Ideally we should trigger the login modal here.
+        authStore.openLoginModal();
     } else if (to.meta.requiresAdmin && authStore.user?.role !== 'admin') {
         next('/');
     } else {

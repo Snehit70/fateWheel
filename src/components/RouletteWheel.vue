@@ -138,9 +138,9 @@ const SEGMENT_ANGLE = 360 / 15;
 
 const getSegmentColor = (color) => {
     switch(color) {
-        case 'red': return '#e50914';
-        case 'black': return '#1f1f23'; // Slightly lighter black for visibility
-        case 'green': return '#00c74d';
+        case 'red': return 'var(--color-primary)';
+        case 'black': return '#1f1f23'; // Specific roulette black
+        case 'green': return '#00c74d'; // Specific roulette green
         default: return '#000';
     }
 };

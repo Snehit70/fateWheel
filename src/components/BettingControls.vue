@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full max-w-4xl mx-auto bg-[#1a1a1a] p-4 rounded-xl border border-[#2a2a2a] mb-8">
+  <div class="w-full max-w-4xl mx-auto bg-secondary p-4 rounded-xl border border-glass-border mb-8">
     <div class="flex flex-col md:flex-row gap-4 items-center">
         
         <!-- Balance / Input -->
@@ -8,8 +8,8 @@
                 <span>Your Balance</span>
                 <span>Your Bet</span>
             </div>
-            <div class="flex items-center bg-[#0f0f13] rounded-lg border border-[#2a2a2a] p-1">
-                <div class="px-3 py-2 text-white font-mono font-bold border-r border-[#2a2a2a]">
+            <div class="flex items-center bg-background rounded-lg border border-glass-border p-1">
+                <div class="px-3 py-2 text-white font-mono font-bold border-r border-glass-border">
                     <span class="text-green-500">₹</span> {{ balance.toFixed(2) }}
                 </div>
                 <input 
@@ -48,7 +48,7 @@
                 </button>
                 <button 
                     @click="$emit('spin')"
-                    class="flex-1 md:flex-none px-8 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg uppercase tracking-wider transition-colors shadow-[0_0_15px_rgba(255,215,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex-1 md:flex-none px-8 py-3 bg-accent hover:bg-yellow-400 text-black font-bold rounded-lg uppercase tracking-wider transition-colors shadow-[0_0_15px_rgba(255,215,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                     :class="{ 'animate-pulse': !isSpinning && totalBet > 0 }"
                     :disabled="isSpinning || totalBet === 0"
                 >

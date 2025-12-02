@@ -6,12 +6,12 @@
         <!-- Header Button -->
         <button 
             @click="$emit('place-bet', 'color', 'red')"
-            class="w-full h-14 bg-[#e50914] hover:bg-[#ff1f2b] rounded-lg font-bold text-white transition-colors relative group flex items-center justify-between px-4 border-b-4 border-[#b00710] active:border-b-0 active:translate-y-1"
+            class="w-full h-14 bg-primary hover:bg-primary-hover rounded-lg font-bold text-white transition-colors relative group flex items-center justify-between px-4 border-b-4 border-red-900 active:border-b-0 active:translate-y-1"
         >
             <span class="text-lg tracking-wider">RED</span>
             <span class="text-xs opacity-70 bg-black/20 px-2 py-1 rounded">x2</span>
             
-            <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200 animate-pop">
+            <span v-if="getBetAmount('color', 'red')" class="absolute -top-2 -right-2 bg-white text-primary text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border border-gray-200 animate-pop">
                 {{ getBetAmount('color', 'red') }}
             </span>
         </button>
@@ -22,7 +22,7 @@
                 v-for="num in [1, 2, 3, 4, 5, 6, 7]" 
                 :key="num"
                 @click="$emit('place-bet', 'number', num)"
-                class="h-10 bg-[#252525] hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-[#e50914] flex items-center justify-center"
+                class="h-10 bg-secondary hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-primary flex items-center justify-center"
             >
                 {{ num }}
                 <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-white text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-lg z-10">
@@ -32,13 +32,13 @@
         </div>
 
         <!-- Active Bets List -->
-        <div class="mt-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] p-2 min-h-[100px]">
+        <div class="mt-4 bg-secondary/50 rounded-lg border border-glass-border p-2 min-h-[100px]">
             <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 flex justify-between">
                 <span>{{ getBetsForColor('red').length }} Bets</span>
                 <span>Total: ₹{{ getTotalBetForColor('red').toFixed(2) }}</span>
             </div>
             <div class="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
-                <div v-for="(bet, i) in getBetsForColor('red')" :key="i" class="flex items-center justify-between bg-[#252525] p-2 rounded border-l-2 border-red-500">
+                <div v-for="(bet, i) in getBetsForColor('red')" :key="i" class="flex items-center justify-between bg-[#252525] p-2 rounded border-l-2 border-primary">
                     <div class="flex items-center gap-2">
                         <div class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[10px] text-white font-bold">
                             {{ bet.username?.substring(0, 2).toUpperCase() || 'US' }}
@@ -56,7 +56,7 @@
         <!-- Header Button (Zero) -->
         <button 
             @click="$emit('place-bet', 'number', 0)"
-            class="w-full h-14 bg-[#00c74d] hover:bg-[#00e057] rounded-lg font-bold text-white transition-colors relative group flex items-center justify-between px-4 border-b-4 border-[#00a33f] active:border-b-0 active:translate-y-1"
+            class="w-full h-14 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-white transition-colors relative group flex items-center justify-between px-4 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
         >
             <span class="text-lg tracking-wider">ZERO</span>
             <span class="text-xs opacity-70 bg-black/20 px-2 py-1 rounded">x14</span>
@@ -70,20 +70,20 @@
         <div class="grid grid-cols-2 gap-2">
              <button 
                 @click="$emit('place-bet', 'type', 'even')"
-                class="h-10 bg-[#252525] hover:bg-[#333] rounded text-gray-400 font-medium transition-colors border border-transparent hover:border-[#00c74d] flex items-center justify-center text-xs uppercase tracking-wider"
+                class="h-10 bg-secondary hover:bg-[#333] rounded text-gray-400 font-medium transition-colors border border-transparent hover:border-green-500 flex items-center justify-center text-xs uppercase tracking-wider"
             >
                 EVEN
             </button>
             <button 
                 @click="$emit('place-bet', 'type', 'odd')"
-                class="h-10 bg-[#252525] hover:bg-[#333] rounded text-gray-400 font-medium transition-colors border border-transparent hover:border-[#00c74d] flex items-center justify-center text-xs uppercase tracking-wider"
+                class="h-10 bg-secondary hover:bg-[#333] rounded text-gray-400 font-medium transition-colors border border-transparent hover:border-green-500 flex items-center justify-center text-xs uppercase tracking-wider"
             >
                 ODD
             </button>
         </div>
 
         <!-- Active Bets List -->
-        <div class="mt-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] p-2 min-h-[100px]">
+        <div class="mt-4 bg-secondary/50 rounded-lg border border-glass-border p-2 min-h-[100px]">
              <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 flex justify-between">
                 <span>{{ getBetsForColor('green').length }} Bets</span>
                 <span>Total: ₹{{ getTotalBetForColor('green').toFixed(2) }}</span>
@@ -107,7 +107,7 @@
         <!-- Header Button -->
         <button 
             @click="$emit('place-bet', 'color', 'black')"
-            class="w-full h-14 bg-[#1f1f23] hover:bg-[#2a2a2a] rounded-lg font-bold text-white transition-colors relative group flex items-center justify-between px-4 border-b-4 border-[#0f0f13] active:border-b-0 active:translate-y-1"
+            class="w-full h-14 bg-[#1f1f23] hover:bg-[#2a2a2a] rounded-lg font-bold text-white transition-colors relative group flex items-center justify-between px-4 border-b-4 border-black active:border-b-0 active:translate-y-1"
         >
             <span class="text-lg tracking-wider">BLACK</span>
             <span class="text-xs opacity-70 bg-white/10 px-2 py-1 rounded">x2</span>
@@ -123,7 +123,7 @@
                 v-for="num in [8, 9, 10, 11, 12, 13, 14]" 
                 :key="num"
                 @click="$emit('place-bet', 'number', num)"
-                class="h-10 bg-[#252525] hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-gray-500 flex items-center justify-center"
+                class="h-10 bg-secondary hover:bg-[#333] rounded text-gray-400 font-medium transition-colors relative border border-transparent hover:border-gray-500 flex items-center justify-center"
             >
                 {{ num }}
                 <span v-if="getBetAmount('number', num)" class="absolute -top-2 -right-2 bg-white text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-lg z-10 animate-pop">
@@ -133,7 +133,7 @@
         </div>
 
         <!-- Active Bets List -->
-        <div class="mt-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] p-2 min-h-[100px]">
+        <div class="mt-4 bg-secondary/50 rounded-lg border border-glass-border p-2 min-h-[100px]">
              <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 flex justify-between">
                 <span>{{ getBetsForColor('black').length }} Bets</span>
                 <span>Total: ₹{{ getTotalBetForColor('black').toFixed(2) }}</span>

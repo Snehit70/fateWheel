@@ -1,29 +1,40 @@
 @import "tailwindcss";
 
 @theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
+  
   --animate-spin-slow: spinSlow 20s linear infinite;
   --animate-pop-in: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  --animate-fade-in: fadeIn 0.5s ease-out forwards;
 }
 
 :root {
+  /* Core Colors */
   --background: #0f0f13;
   --foreground: #ededed;
-  --primary: #e50914;
-  /* Roulette Red */
+  
+  /* Brand Colors */
+  --primary: #e50914; /* Roulette Red */
   --primary-hover: #ff1f2b;
   --secondary: #1a1a1a;
-  --accent: #ffd700;
-  /* Gold */
+  --accent: #ffd700; /* Gold */
+  
+  /* Glassmorphism */
   --glass: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.1);
+  
+  /* Semantic Colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
 }
 
 body {
@@ -39,6 +50,7 @@ body {
   min-height: 100vh;
 }
 
+/* Utility Classes */
 .glass-panel {
   background: var(--glass);
   backdrop-filter: blur(16px);
@@ -65,15 +77,18 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
   filter: brightness(1.1);
 }
 
-.btn-primary:active {
+.btn-primary:active:not(:disabled) {
   transform: translateY(0);
 }
 
@@ -82,6 +97,7 @@ body {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  background: #333;
 }
 
 .input-field {
@@ -140,10 +156,7 @@ body {
   animation: pulse-glow 2s infinite;
 }
 
-.clip-triangle {
-  clip-path: polygon(50% 100%, 0 0, 100% 0);
-}
-
+/* Components */
 .chip-stack {
   position: relative;
   display: flex;
@@ -163,6 +176,7 @@ body {
     inset 0 0 10px rgba(0,0,0,0.5),
     0 2px 5px rgba(0,0,0,0.3);
   position: relative;
+  user-select: none;
 }
 
 .chip::before {
@@ -181,7 +195,7 @@ body {
   border-width: 2px;
 }
 
-/* Custom Scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
