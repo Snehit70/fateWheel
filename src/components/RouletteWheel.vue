@@ -13,8 +13,8 @@
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
           <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:rgba(255,255,255,0.4);stop-opacity:1" />
-            <stop offset="100%" style="stop-color:rgba(255,255,255,1);stop-opacity:1" />
+            <stop offset="0%" style="stop-color:rgba(255,255,255,1);stop-opacity:1" />
+            <stop offset="100%" style="stop-color:rgba(255,255,255,0.4);stop-opacity:1" />
           </linearGradient>
         </defs>
         <g v-for="(segment, i) in SEGMENTS" :key="i">
@@ -47,7 +47,7 @@
         
         <!-- Timer State -->
         <div v-if="status.includes('ROLLING IN')" class="text-center">
-            <div class="text-6xl font-mono font-thin bg-gradient-to-r from-white/40 to-white bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
+            <div class="text-6xl font-mono font-thin bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
                 {{ timeLeft.toFixed(2) }}
             </div>
             <div class="text-gray-400 text-sm font-bold tracking-[0.3em] uppercase">Rolling In</div>
