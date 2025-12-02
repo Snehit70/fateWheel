@@ -12,6 +12,10 @@
             <feGaussianBlur stdDeviation="2" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
+          <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:rgba(255,255,255,0.4);stop-opacity:1" />
+            <stop offset="100%" style="stop-color:rgba(255,255,255,1);stop-opacity:1" />
+          </linearGradient>
         </defs>
         <g v-for="(segment, i) in SEGMENTS" :key="i">
           <path 
@@ -24,9 +28,9 @@
           <text
             :x="getTextX(i)"
             :y="getTextY(i)"
-            fill="rgba(255,255,255,0.9)"
+            fill="url(#textGradient)"
             font-size="5"
-            font-weight="bold"
+            font-weight="300"
             text-anchor="middle"
             dominant-baseline="middle"
             :transform="getTextTransform(i)"
@@ -47,11 +51,6 @@
                 {{ timeLeft.toFixed(2) }}
             </div>
             <div class="text-gray-400 text-sm font-bold tracking-[0.3em] uppercase">Rolling In</div>
-            
-            <!-- Progress Bar -->
-            <div class="w-48 h-1.5 bg-gray-800/50 rounded-full mt-6 mx-auto overflow-hidden backdrop-blur-sm">
-                <div class="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-100 ease-linear" :style="{ width: `${(timeLeft / 15) * 100}%` }"></div>
-            </div>
         </div>
 
         <!-- Result State -->
