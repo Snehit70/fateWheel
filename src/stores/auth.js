@@ -42,29 +42,30 @@ export const useAuthStore = defineStore('auth', {
                 throw err.response?.data?.message || 'Registration failed';
             }
         },
-        this.token = data.token;
-        this.user = data.user;
-        localStorage.setItem('token', data.token);
-        api.defaults.headers.common['x-auth-token'] = data.token;
-        socket.setToken(data.token);
-    },
-    logout() {
-        this.token = null;
-        this.user = null;
-        localStorage.removeItem('token');
-        delete api.defaults.headers.common['x-auth-token'];
-        socket.setToken(null);
-    },
-    updateBalance(newBalance) {
-        if (this.user) {
-            this.user.balance = newBalance;
+        setAuth(data) {
+            this.token = data.token;
+            this.user = data.user;
+            localStorage.setItem('token', data.token);
+            api.defaults.headers.common['x-auth-token'] = data.token;
+            socket.setToken(data.token);
+        },
+        logout() {
+            this.token = null;
+            this.user = null;
+            localStorage.removeItem('token');
+            delete api.defaults.headers.common['x-auth-token'];
+            socket.setToken(null);
+        },
+        updateBalance(newBalance) {
+            if (this.user) {
+                this.user.balance = newBalance;
+            }
+        },
+        openLoginModal() {
+            this.isLoginModalOpen = true;
+        },
+        closeLoginModal() {
+            this.isLoginModalOpen = false;
         }
-    },
-    openLoginModal() {
-        this.isLoginModalOpen = true;
-    },
-    closeLoginModal() {
-        this.isLoginModalOpen = false;
     }
-}
 });

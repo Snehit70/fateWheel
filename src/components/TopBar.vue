@@ -70,6 +70,6 @@ const router = useRouter();
 
 const handleLogout = () => {
     authStore.logout();
-    // router.push('/login'); // No need to redirect
+    router.push('/'); 
 };
 </script>
