@@ -192,7 +192,7 @@ const getBetsForColor = (color) => {
         if (color === 'red') {
             return (bet.type === 'color' && bet.value === 'red') || (bet.type === 'number' && [1,2,3,4,5,6,7].includes(bet.value));
         } else if (color === 'green') {
-            return (bet.type === 'number' && bet.value === 0) || bet.type === 'even' || bet.type === 'odd';
+            return (bet.type === 'number' && bet.value === 0) || (bet.type === 'type' && ['even', 'odd'].includes(bet.value));
         } else if (color === 'black') {
             return (bet.type === 'color' && bet.value === 'black') || (bet.type === 'number' && [8,9,10,11,12,13,14].includes(bet.value));
         }
