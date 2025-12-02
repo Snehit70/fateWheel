@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Define log files
-BACKEND_LOG="backend.log"
-FRONTEND_LOG="frontend.log"
-PIDS_FILE="$(pwd)/.pids"
+# Define log files
+BACKEND_LOG="logs/backend.log"
+FRONTEND_LOG="logs/frontend.log"
+PIDS_FILE="$(pwd)/logs/.pids"
 
 # Clear previous logs and pids
 > $BACKEND_LOG
@@ -33,10 +34,12 @@ echo $BACKEND_PID >> "$PIDS_FILE"
 cd ..
 
 echo "Starting frontend..."
+cd client
 # Start frontend in background, redirect output to log
-npm run dev > $FRONTEND_LOG 2>&1 &
+npm run dev > ../$FRONTEND_LOG 2>&1 &
 FRONTEND_PID=$!
 echo $FRONTEND_PID >> "$PIDS_FILE"
+cd ..
 
 # Wait for services to initialize
 echo "Waiting for services to initialize..."

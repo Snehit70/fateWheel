@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PIDS_FILE="$(pwd)/.pids"
+PIDS_FILE="$(pwd)/logs/.pids"
 
 if [ -f "$PIDS_FILE" ]; then
     echo "Stopping application..."
