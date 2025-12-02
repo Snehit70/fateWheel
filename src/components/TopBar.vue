@@ -1,44 +1,24 @@
 <template>
   <header class="h-20 bg-[#0f0f13] border-b border-[#2a2a2a] flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
-    <!-- Left: Breadcrumbs / Links -->
-    <div class="flex items-center space-x-6">
-      <div class="flex items-center text-gray-400 text-sm font-medium">
-        <span class="mr-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-3.084A5 5 0 0010 11z" clip-rule="evenodd" />
-            </svg>
-        </span>
-        <span class="hover:text-white cursor-pointer transition-colors">Home</span>
-        <span class="mx-2 text-gray-600">/</span>
-        <span class="text-white flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            Provably Fair
-        </span>
-      </div>
-    </div>
+    <!-- Left: Logo & Brand -->
+    <router-link to="/" class="flex items-center space-x-3 group">
+      <img src="@/assets/logo.svg" alt="Roulette Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300" />
+      <span class="text-2xl font-bold tracking-widest text-white font-mono group-hover:text-green-500 transition-colors duration-300">
+        ROULETTE
+      </span>
+    </router-link>
 
     <!-- Right: User / Auth -->
     <div class="flex items-center space-x-4">
       <template v-if="authStore.user">
         <!-- Balance Display -->
-        <div class="hidden md:flex items-center bg-[#1a1a1a] rounded-lg px-4 py-2 border border-[#2a2a2a]">
+        <div v-if="authStore.user.role !== 'admin'" class="hidden md:flex items-center bg-[#1a1a1a] rounded-lg px-4 py-2 border border-[#2a2a2a]">
             <span class="text-green-500 font-bold mr-2">₹</span>
             <span class="text-white font-mono font-bold">{{ authStore.user.balance.toFixed(2) }}</span>
             <button class="ml-3 bg-blue-600 hover:bg-blue-500 text-white text-xs px-2 py-1 rounded transition-colors">
                 Wallet
             </button>
         </div>
-
-        <!-- Admin Link -->
-        <router-link 
-            v-if="authStore.user?.role === 'admin'"
-            to="/admin"
-            class="mr-4 text-red-500 font-bold uppercase text-xs tracking-wider border border-red-500/30 px-3 py-1 rounded hover:bg-red-500/10 transition-colors"
-        >
-            Admin Panel
-        </router-link>
 
         <!-- User Profile -->
         <div class="flex items-center space-x-3 cursor-pointer hover:bg-[#1a1a1a] p-2 rounded-lg transition-colors">
@@ -59,11 +39,6 @@
             </svg>
         </button>
         
-        <!-- Location Flag -->
-        <div class="flex items-center space-x-1 bg-[#1a1a1a] px-2 py-1 rounded border border-[#2a2a2a]">
-            <span class="text-lg">🇮🇳</span>
-            <span class="text-xs font-bold text-gray-400">IN</span>
-        </div>
       </template>
 
       <template v-else>

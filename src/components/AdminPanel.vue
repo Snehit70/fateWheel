@@ -18,10 +18,7 @@
           <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Balance</h3>
           <div class="text-3xl font-mono font-bold text-green-500">₹{{ totalSystemBalance.toFixed(2) }}</div>
         </div>
-         <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a]">
-          <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Admin Status</h3>
-          <div class="text-3xl font-mono font-bold text-blue-500">Active</div>
-        </div>
+
       </div>
 
       <!-- Users Table -->
@@ -57,9 +54,12 @@
                 </td>
                 <td class="p-4 font-mono text-green-500">₹{{ user.balance.toFixed(2) }}</td>
                 <td class="p-4 text-gray-400 text-sm">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
-                <td class="p-4">
+                <td class="p-4 flex gap-2">
                   <button @click="openEditBalance(user)" class="text-blue-400 hover:text-blue-300 text-sm font-bold">
                     Edit Balance
+                  </button>
+                  <button @click="confirmDelete(user)" class="text-red-400 hover:text-red-300 text-sm font-bold">
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -90,6 +90,19 @@
       </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div v-if="deletingUser" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a] w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4 text-red-500">Delete User</h3>
+        <p class="text-gray-300 mb-6">Are you sure you want to delete user <span class="font-bold text-white">{{ deletingUser.username }}</span>? This action cannot be undone.</p>
+        
+        <div class="flex justify-end gap-3">
+          <button @click="deletingUser = null" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+          <button @click="deleteUser" class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold">Delete</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -100,6 +113,7 @@ import api from '../services/api';
 const users = ref([]);
 const searchQuery = ref('');
 const editingUser = ref(null);
+const deletingUser = ref(null);
 const newBalance = ref(0);
 
 const fetchUsers = async () => {
@@ -113,8 +127,11 @@ const fetchUsers = async () => {
 };
 
 const filteredUsers = computed(() => {
-  if (!searchQuery.value) return users.value;
-  return users.value.filter(u => u.username.toLowerCase().includes(searchQuery.value.toLowerCase()));
+  let result = users.value.filter(u => u.role !== 'admin');
+  if (searchQuery.value) {
+    result = result.filter(u => u.username.toLowerCase().includes(searchQuery.value.toLowerCase()));
+  }
+  return result;
 });
 
 const totalSystemBalance = computed(() => {
@@ -144,6 +161,23 @@ const saveBalance = async () => {
   } catch (err) {
     console.error(err);
     alert('Failed to update balance');
+  }
+};
+
+const confirmDelete = (user) => {
+  deletingUser.value = user;
+};
+
+const deleteUser = async () => {
+  if (!deletingUser.value) return;
+
+  try {
+    await api.delete(`/admin/users/${deletingUser.value._id}`);
+    users.value = users.value.filter(u => u._id !== deletingUser.value._id);
+    deletingUser.value = null;
+  } catch (err) {
+    console.error(err);
+    alert('Failed to delete user');
   }
 };
 

@@ -73,8 +73,10 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
 const username = ref('');
@@ -109,6 +111,12 @@ const handleSubmit = async () => {
     } else {
       await authStore.register(username.value, password.value);
     }
+    
+    // Check if admin and redirect
+    if (authStore.user?.role === 'admin') {
+      router.push('/admin');
+    }
+    
     close();
   } catch (err) {
     error.value = err;

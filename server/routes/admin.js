@@ -35,4 +35,17 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
     }
 });
 
+// @route   DELETE api/admin/users/:id
+// @desc    Delete user
+// @access  Admin
+router.delete('/users/:id', auth, admin, async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'User removed' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;
