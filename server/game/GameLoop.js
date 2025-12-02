@@ -209,13 +209,16 @@ class GameLoop {
         }
 
         // Validate Balance
-        const dbUser = await User.findById(user.id);
-        if (!dbUser || dbUser.balance < amount) {
+        // Atomic check and deduct
+        const dbUser = await User.findOneAndUpdate(
+            { _id: user.id, balance: { $gte: amount } },
+            { $inc: { balance: -amount } },
+            { new: true }
+        );
+
+        if (!dbUser) {
             throw new Error("Insufficient balance");
         }
-
-        // Deduct Balance Immediately
-        await User.findByIdAndUpdate(user.id, { $inc: { balance: -amount } });
 
         // Check if bet already exists
         const existingBet = this.bets.find(b => b.userId === user.id && b.type === type && b.value === value);
