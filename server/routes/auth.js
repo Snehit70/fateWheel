@@ -9,6 +9,10 @@ router.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
 
+        if (!password || password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
         // Check if user exists
         let user = await User.findOne({ username });
         if (user) {
