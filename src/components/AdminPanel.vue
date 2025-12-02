@@ -3,16 +3,13 @@
     <div class="max-w-7xl mx-auto">
       <div class="flex justify-between items-center mb-8">
         <h1 class="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
-        <button @click="$router.push('/')" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] rounded-lg transition-colors">
-          Back to Game
-        </button>
       </div>
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a]">
           <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Users</h3>
-          <div class="text-3xl font-mono font-bold">{{ users.length }}</div>
+          <div class="text-3xl font-mono font-bold">{{ totalUsersCount }}</div>
         </div>
         <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a]">
           <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Balance</h3>
@@ -136,6 +133,10 @@ const filteredUsers = computed(() => {
 
 const totalSystemBalance = computed(() => {
   return users.value.reduce((sum, u) => sum + u.balance, 0);
+});
+
+const totalUsersCount = computed(() => {
+  return users.value.filter(u => u.role !== 'admin').length;
 });
 
 const openEditBalance = (user) => {
