@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const User = require('../models/User');
 const Bet = require('../models/Bet');
+const GameResult = require('../models/GameResult');
 
 const STATES = {
     WAITING: 'WAITING',
@@ -35,7 +36,20 @@ class GameLoop {
         this.timeLeft = 20; // Seconds (Waiting time)
         this.result = null;
 
+        this.result = null;
+
+        this.init();
         this.startLoop();
+    }
+
+    async init() {
+        try {
+            const results = await GameResult.find().sort({ createdAt: -1 }).limit(20);
+            this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
+            console.log(`Loaded ${this.history.length} past results`);
+        } catch (err) {
+            console.error("Failed to load game history:", err);
+        }
     }
 
     startLoop() {
@@ -159,6 +173,17 @@ class GameLoop {
             } catch (err) {
                 console.error("Error saving bet history:", err);
             }
+        }
+
+        // Save Game Result
+        try {
+            const gameResult = new GameResult({
+                number: this.result.number,
+                color: this.result.color
+            });
+            await gameResult.save();
+        } catch (err) {
+            console.error("Error saving game result:", err);
         }
 
         this.broadcastState();
