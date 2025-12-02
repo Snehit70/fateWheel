@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
+import socket from '../services/socket';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -41,28 +42,29 @@ export const useAuthStore = defineStore('auth', {
                 throw err.response?.data?.message || 'Registration failed';
             }
         },
-        setAuth(data) {
-            this.token = data.token;
-            this.user = data.user;
-            localStorage.setItem('token', data.token);
-            api.defaults.headers.common['x-auth-token'] = data.token;
-        },
-        logout() {
-            this.token = null;
-            this.user = null;
-            localStorage.removeItem('token');
-            delete api.defaults.headers.common['x-auth-token'];
-        },
-        updateBalance(newBalance) {
-            if (this.user) {
-                this.user.balance = newBalance;
-            }
-        },
-        openLoginModal() {
-            this.isLoginModalOpen = true;
-        },
-        closeLoginModal() {
-            this.isLoginModalOpen = false;
+        this.token = data.token;
+        this.user = data.user;
+        localStorage.setItem('token', data.token);
+        api.defaults.headers.common['x-auth-token'] = data.token;
+        socket.setToken(data.token);
+    },
+    logout() {
+        this.token = null;
+        this.user = null;
+        localStorage.removeItem('token');
+        delete api.defaults.headers.common['x-auth-token'];
+        socket.setToken(null);
+    },
+    updateBalance(newBalance) {
+        if (this.user) {
+            this.user.balance = newBalance;
         }
+    },
+    openLoginModal() {
+        this.isLoginModalOpen = true;
+    },
+    closeLoginModal() {
+        this.isLoginModalOpen = false;
     }
+}
 });

@@ -6,15 +6,15 @@ class SocketService {
         this.socket = null;
     }
 
-    connect() {
+    connect(token = null) {
         if (this.socket) return;
 
-        const authStore = useAuthStore();
-        const token = localStorage.getItem('token');
+        const storedToken = localStorage.getItem('token');
+        const authToken = token || storedToken;
 
         this.socket = io('http://localhost:3000', {
             auth: {
-                token: token
+                token: authToken
             }
         });
 
@@ -47,6 +47,14 @@ class SocketService {
     emit(event, data, callback) {
         if (!this.socket) return;
         this.socket.emit(event, data, callback);
+    }
+
+    setToken(token) {
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+        this.connect(token);
     }
 }
 
