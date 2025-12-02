@@ -14,25 +14,39 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore();
+
     // Ensure auth state is initialized
     if (!authStore.isInitialized) {
         await authStore.init();
     }
 
-    if (to.meta.requiresAuth && !authStore.user) {
-        // next('/login'); // Login route removed, maybe trigger modal?
-        // For now, just allow or redirect to home if critical, but since LoginModal is in App.vue, 
-        // we might just want to let them be or show modal.
-        // But router guard expects a next().
-        // If we redirect to '/', we might loop if '/' requires auth (it doesn't).
-        next('/');
-        // Ideally we should trigger the login modal here.
-        authStore.openLoginModal();
-    } else if (to.meta.requiresAdmin && authStore.user?.role !== 'admin') {
-        next('/');
-    } else {
-        next();
+    // 1. Admin Route Protection (Strict)
+    if (to.meta.requiresAdmin) {
+        if (!authStore.user || authStore.user.role !== 'admin') {
+            next('/'); // Redirect unauthorized users to home
+            return;
+        }
     }
+
+    // 2. Auth Requirement (Game Page)
+    if (to.meta.requiresAuth) {
+        if (!authStore.user) {
+            // Allow navigation to home so background loads, but open modal
+            if (to.path === '/') {
+                next();
+                // We need to wait a tick or ensure store is ready, but calling action is fine
+                authStore.openLoginModal();
+                return;
+            } else {
+                // For other protected routes (if any), redirect to home
+                next('/');
+                authStore.openLoginModal();
+                return;
+            }
+        }
+    }
+
+    next();
 });
 
 export default router;
