@@ -132,14 +132,14 @@ class GameLoop {
         for (const bet of this.bets) {
             let winnings = 0;
             if (bet.type === "number" && bet.value === this.result.number) {
-                winnings = bet.amount * 14;
+                winnings = Math.floor(bet.amount * 14);
             } else if (bet.type === "color" && bet.value === this.result.color) {
-                winnings = bet.amount * 2;
+                winnings = Math.floor(bet.amount * 2);
             } else if (bet.type === "type") {
                 if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
-                    winnings = bet.amount * 2;
+                    winnings = Math.floor(bet.amount * 2);
                 } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
-                    winnings = bet.amount * 2;
+                    winnings = Math.floor(bet.amount * 2);
                 }
             }
 

@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     },
     balance: {
         type: Number,
-        default: 0 // Initial balance
+        default: 0, // Initial balance
+        set: v => Math.floor(v)
     },
     role: {
         type: String,

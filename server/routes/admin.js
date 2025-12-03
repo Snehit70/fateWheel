@@ -80,7 +80,8 @@ router.get('/stats', auth, admin, async (req, res) => {
 // @access  Admin
 router.put('/users/:id/balance', auth, admin, async (req, res) => {
     try {
-        const { balance, reason } = req.body;
+        const { balance: rawBalance, reason } = req.body;
+        const balance = Math.floor(rawBalance);
 
         if (!reason || reason.trim() === '') {
             return res.status(400).json({ msg: 'Reason is required' });
