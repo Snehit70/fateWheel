@@ -1,124 +1,135 @@
 <template>
-  <div class="min-h-screen bg-[#0f0f13] text-white p-6">
-    <div class="max-w-7xl mx-auto">
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
+  <div class="min-h-screen bg-background text-foreground p-6">
+    <div class="max-w-7xl mx-auto space-y-8">
+      <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
       </div>
 
-
-
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a]">
-          <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Users</h3>
-          <div class="text-3xl font-mono font-bold">{{ totalUsersCount }}</div>
-        </div>
-        <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a] relative">
-          <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Balance</h3>
-            <div class="text-3xl font-mono font-bold text-green-500">₹{{ Math.floor(totalSystemBalance) }}</div>
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Total Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-2xl font-bold">{{ totalUsersCount }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Total Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-2xl font-bold text-green-500">₹{{ Math.floor(totalSystemBalance) }}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <!-- Users Table -->
-      <div class="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden">
-        <div class="p-4 border-b border-[#2a2a2a] flex justify-between items-center">
-          <h2 class="text-xl font-bold">User Management</h2>
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Search users..." 
-            class="bg-[#0f0f13] border border-[#2a2a2a] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-red-500 transition-colors"
-          >
-        </div>
-        
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead>
-              <tr class="bg-[#0f0f13] text-gray-400 text-xs uppercase tracking-wider">
-                <th class="p-4">Username</th>
-                <th class="p-4">Role</th>
-                <th class="p-4">Status</th>
-                <th class="p-4">Balance</th>
-                <th class="p-4">Joined</th>
-                <th class="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[#2a2a2a]">
-              <tr v-for="user in filteredUsers" :key="user._id" class="hover:bg-[#252525] transition-colors">
-                <td class="p-4 font-medium">{{ user.username }}</td>
-                <td class="p-4">
-                  <span :class="['px-2 py-1 rounded text-xs font-bold uppercase', user.role === 'admin' ? 'bg-red-900/30 text-red-500' : 'bg-gray-800 text-gray-400']">
+      <Card>
+        <CardHeader>
+          <div class="flex items-center justify-between">
+            <CardTitle>User Management</CardTitle>
+            <div class="w-64">
+              <Input 
+                v-model="searchQuery" 
+                placeholder="Search users..." 
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Balance</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="user in filteredUsers" :key="user._id">
+                <TableCell class="font-medium">{{ user.username }}</TableCell>
+                <TableCell>
+                  <Badge :variant="user.role === 'admin' ? 'destructive' : 'secondary'">
                     {{ user.role }}
-                  </span>
-                </td>
-                <td class="p-4">
-                  <span :class="['px-2 py-1 rounded text-xs font-bold uppercase', 
-                    user.status === 'approved' ? 'bg-green-900/30 text-green-500' : 
-                    user.status === 'rejected' ? 'bg-red-900/30 text-red-500' : 
-                    'bg-yellow-900/30 text-yellow-500']">
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge :variant="getStatusVariant(user.status)">
                     {{ user.status || 'approved' }}
-                  </span>
-                </td>
-                <td class="p-4 font-mono text-green-500">₹{{ Math.floor(user.balance) }}</td>
-                <td class="p-4 text-gray-400 text-sm">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
-                <td class="p-4 flex gap-2">
-                  <template v-if="user.status === 'pending'">
-                    <button @click="updateStatus(user, 'approved')" class="bg-green-600/20 hover:bg-green-600/40 text-green-400 hover:text-green-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-green-600/30">
-                      Approve
-                    </button>
-                    <button @click="updateStatus(user, 'rejected')" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-red-600/30">
-                      Reject
-                    </button>
-                  </template>
-                  <button @click="openEditBalance(user)" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 hover:text-blue-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-blue-600/30">
-                    Edit Balance
-                  </button>
-                  <button @click="confirmDelete(user)" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border border-red-600/30">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </Badge>
+                </TableCell>
+                <TableCell class="font-mono text-green-500">₹{{ Math.floor(user.balance) }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
+                <TableCell>
+                  <div class="flex gap-2">
+                    <template v-if="user.status === 'pending'">
+                      <Button size="sm" variant="outline" class="text-green-500 hover:text-green-600 border-green-500/20 hover:bg-green-500/10" @click="updateStatus(user, 'approved')">
+                        Approve
+                      </Button>
+                      <Button size="sm" variant="outline" class="text-red-500 hover:text-red-600 border-red-500/20 hover:bg-red-500/10" @click="updateStatus(user, 'rejected')">
+                        Reject
+                      </Button>
+                    </template>
+                    <Button size="sm" variant="outline" @click="openEditBalance(user)">
+                      Edit Balance
+                    </Button>
+                    <Button size="sm" variant="destructive" @click="confirmDelete(user)">
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
 
-    <!-- Edit Balance Modal -->
-    <div v-if="editingUser" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a] w-full max-w-md">
-        <h3 class="text-xl font-bold mb-4">Edit Balance: {{ editingUser.username }}</h3>
-        
-        <div class="mb-6">
-          <label class="block text-xs uppercase text-gray-500 font-bold mb-2">New Balance</label>
-          <input 
-            v-model.number="newBalance" 
-            type="number" 
-            class="w-full bg-[#0f0f13] border border-[#2a2a2a] rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-red-500"
-          >
+    <!-- Edit Balance Dialog -->
+    <Dialog :open="!!editingUser" @update:open="(val) => !val && (editingUser = null)">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Balance: {{ editingUser?.username }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <label class="text-right text-sm font-medium">New Balance</label>
+            <Input
+              v-model.number="newBalance"
+              type="number"
+              class="col-span-3"
+            />
+          </div>
         </div>
+        <DialogFooter>
+          <Button variant="outline" @click="editingUser = null">Cancel</Button>
+          <Button @click="saveBalance">Save changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-        <div class="flex justify-end gap-3">
-          <button @click="editingUser = null" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
-          <button @click="saveBalance" class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold">Save</button>
+    <!-- Delete Confirmation Dialog -->
+    <Dialog :open="!!deletingUser" @update:open="(val) => !val && (deletingUser = null)">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle class="text-destructive">Delete User</DialogTitle>
+        </DialogHeader>
+        <div class="py-4">
+          <p class="text-muted-foreground">
+            Are you sure you want to delete user <span class="font-bold text-foreground">{{ deletingUser?.username }}</span>? This action cannot be undone.
+          </p>
         </div>
-      </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div v-if="deletingUser" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a] w-full max-w-md">
-        <h3 class="text-xl font-bold mb-4 text-red-500">Delete User</h3>
-        <p class="text-gray-300 mb-6">Are you sure you want to delete user <span class="font-bold text-white">{{ deletingUser.username }}</span>? This action cannot be undone.</p>
-        
-        <div class="flex justify-end gap-3">
-          <button @click="deletingUser = null" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
-          <button @click="deleteUser" class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold">Delete</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Logs Modal Removed -->
+        <DialogFooter>
+          <Button variant="outline" @click="deletingUser = null">Cancel</Button>
+          <Button variant="destructive" @click="deleteUser">Delete</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
   </div>
 </template>
@@ -126,14 +137,18 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../services/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const users = ref([]);
 const searchQuery = ref('');
 const editingUser = ref(null);
 const deletingUser = ref(null);
 const newBalance = ref(0);
-
-
 
 const fetchUsers = async () => {
   try {
@@ -162,6 +177,15 @@ const totalSystemBalance = computed(() => {
 const totalUsersCount = computed(() => {
   return users.value.filter(u => u.role !== 'admin').length;
 });
+
+const getStatusVariant = (status) => {
+  switch (status) {
+    case 'approved': return 'default'; // default is usually primary/black which looks good for approved
+    case 'rejected': return 'destructive';
+    case 'pending': return 'secondary'; // or outline
+    default: return 'default';
+  }
+};
 
 const openEditBalance = (user) => {
   editingUser.value = user;

@@ -1,48 +1,52 @@
 <template>
-  <div class="min-h-screen bg-[#0f0f13] text-white p-6">
-    <div class="max-w-7xl mx-auto">
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">System Logs</h1>
-        <router-link to="/admin" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border border-gray-600 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Panel
-        </router-link>
+  <div class="min-h-screen bg-background text-foreground p-6">
+    <div class="max-w-7xl mx-auto space-y-8">
+      <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">System Logs</h1>
+        <Button variant="outline" as-child>
+          <router-link to="/admin" class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Panel
+          </router-link>
+        </Button>
       </div>
 
-      <div class="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead>
-              <tr class="bg-[#0f0f13] text-gray-400 text-xs uppercase tracking-wider">
-                <th class="p-4">Action</th>
-                <th class="p-4">Admin</th>
-                <th class="p-4">Target User</th>
-                <th class="p-4">Details</th>
-                <th class="p-4">Time</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[#2a2a2a]">
-              <tr v-if="logsLoading">
-                <td colspan="5" class="p-8 text-center text-gray-500">Loading logs...</td>
-              </tr>
-              <tr v-else-if="logs.length === 0">
-                <td colspan="5" class="p-8 text-center text-gray-500">No logs found</td>
-              </tr>
-              <tr v-else v-for="log in logs" :key="log._id" class="hover:bg-[#252525] transition-colors">
-                <td class="p-4">
-                  <span :class="getActionClass(log.action)">{{ log.action.replace(/_/g, ' ') }}</span>
-                </td>
-                <td class="p-4 text-gray-300">{{ log.adminId?.username || 'System' }}</td>
-                <td class="p-4 text-gray-300">{{ log.targetUsername || '-' }}</td>
-                <td class="p-4 text-gray-400 text-sm">{{ log.details }}</td>
-                <td class="p-4 text-gray-500 text-xs">{{ new Date(log.createdAt).toLocaleString() }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Card>
+        <CardContent class="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Action</TableHead>
+                <TableHead>Admin</TableHead>
+                <TableHead>Target User</TableHead>
+                <TableHead>Details</TableHead>
+                <TableHead>Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-if="logsLoading">
+                <TableCell colspan="5" class="h-24 text-center">Loading logs...</TableCell>
+              </TableRow>
+              <TableRow v-else-if="logs.length === 0">
+                <TableCell colspan="5" class="h-24 text-center">No logs found</TableCell>
+              </TableRow>
+              <TableRow v-else v-for="log in logs" :key="log._id">
+                <TableCell>
+                  <Badge :variant="getActionVariant(log.action)">
+                    {{ log.action.replace(/_/g, ' ') }}
+                  </Badge>
+                </TableCell>
+                <TableCell class="font-medium">{{ log.adminId?.username || 'System' }}</TableCell>
+                <TableCell>{{ log.targetUsername || '-' }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ log.details }}</TableCell>
+                <TableCell class="text-muted-foreground text-xs">{{ new Date(log.createdAt).toLocaleString() }}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
@@ -50,6 +54,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 const logs = ref([]);
 const logsLoading = ref(false);
@@ -66,13 +74,13 @@ const fetchLogs = async () => {
     }
 };
 
-const getActionClass = (action) => {
+const getActionVariant = (action) => {
     switch(action) {
-        case 'approve_user': return 'text-green-500 font-bold uppercase text-xs';
-        case 'reject_user': return 'text-red-500 font-bold uppercase text-xs';
-        case 'delete_user': return 'text-red-600 font-bold uppercase text-xs bg-red-900/20 px-2 py-1 rounded';
-        case 'update_balance': return 'text-blue-400 font-bold uppercase text-xs';
-        default: return 'text-gray-400 uppercase text-xs';
+        case 'approve_user': return 'default'; // Green-ish usually
+        case 'reject_user': return 'destructive';
+        case 'delete_user': return 'destructive';
+        case 'update_balance': return 'secondary';
+        default: return 'outline';
     }
 };
 
