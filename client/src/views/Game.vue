@@ -25,8 +25,14 @@
                 class="w-full lg:w-[40%] flex flex-col gap-6 transition-all duration-500"
                 :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
             >
-                <!-- History Section -->
-                <Card class="p-2 sm:p-4 flex-none">
+                <!-- History Section (Mobile) -->
+                <div class="lg:hidden bg-secondary/30 rounded-lg p-2 flex items-center gap-3 overflow-hidden border border-border/50">
+                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap pl-2">History</h3>
+                    <HistoryBar :history="spinHistory" class="h-10 sm:h-12 flex-1" />
+                </div>
+
+                <!-- History Section (Desktop) -->
+                <Card class="hidden lg:block p-4 flex-none">
                     <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs mb-3">History</h3>
                     <HistoryBar :history="spinHistory" class="h-14" />
                 </Card>

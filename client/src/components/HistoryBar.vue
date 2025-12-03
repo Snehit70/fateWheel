@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-full">
-    <div class="flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide px-1">
+    <div class="flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide">
         <transition-group name="list">
             <div 
                 v-for="(res, idx) in limitedHistory" 
