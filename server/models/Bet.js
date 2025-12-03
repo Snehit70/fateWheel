@@ -25,8 +25,7 @@ const betSchema = new mongoose.Schema({
     },
     result: {
         type: String,
-        enum: ['win', 'loss'],
-        required: true
+        enum: ['win', 'loss']
     },
     payout: {
         type: Number,
