@@ -5,7 +5,13 @@ require('dotenv').config();
 
 const createAdmin = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/roulette');
+        const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/roulette';
+
+        if (!process.env.MONGODB_URI && !process.env.MONGO_URL && !process.env.DATABASE_URL) {
+            console.warn('Warning: MONGODB_URI not found in environment, defaulting to localhost');
+        }
+
+        await mongoose.connect(MONGODB_URI);
         console.log('Connected to MongoDB');
 
         const adminUsername = 'admin';
