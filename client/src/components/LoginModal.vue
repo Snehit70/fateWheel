@@ -136,7 +136,11 @@ const handleSubmit = async () => {
       }, 2000);
     }
   } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'An error occurred';
+    if (typeof err === 'string') {
+        error.value = err;
+    } else {
+        error.value = err.response?.data?.message || err.message || 'An error occurred';
+    }
     isSuccess.value = false;
   } finally {
     loading.value = false;
