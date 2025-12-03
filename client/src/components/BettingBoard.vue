@@ -9,7 +9,7 @@
       <div class="flex gap-2 h-14">
         <Button
           @click="$emit('place-bet', 'color', 'red')"
-          class="flex-1 bg-red-600 hover:bg-red-700 text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-red-800 active:border-b-0 active:translate-y-1"
+          class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1"
         >
           RED
           <span
@@ -82,7 +82,7 @@
         >
           <img
             src="@/assets/default-user.svg"
-            class="w-8 h-8 rounded-full bg-background p-1 border border-border"
+            class="w-8 h-8 rounded-full bg-white p-1 border border-border"
           />
           <span
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
@@ -174,7 +174,7 @@
         >
           <img
             src="@/assets/default-user.svg"
-            class="w-8 h-8 rounded-full bg-background p-1 border border-border"
+            class="w-8 h-8 rounded-full bg-white p-1 border border-border"
           />
           <span
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
@@ -196,7 +196,7 @@
       <div class="flex gap-2 h-14">
         <Button
           @click="$emit('place-bet', 'color', 'black')"
-          class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-black active:border-b-0 active:translate-y-1"
+          class="flex-1 bg-[#1a1a1a] hover:bg-black text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-black active:border-b-0 active:translate-y-1"
         >
           BLACK
           <span
@@ -269,7 +269,7 @@
         >
           <img
             src="@/assets/default-user.svg"
-            class="w-8 h-8 rounded-full bg-background p-1 border border-border"
+            class="w-8 h-8 rounded-full bg-white p-1 border border-border"
           />
           <span
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
@@ -371,7 +371,7 @@ const getSectionClass = (color) => {
 // Helper for number buttons
 const getNumberClass = (num) => {
   if (!props.lastResult) {
-    if (num === 0) return "bg-green-600 hover:bg-green-500 text-white border-green-500";
+    if (num === 0) return "bg-[#00b300] hover:bg-[#009900] text-white border-[#008000]";
     return "bg-secondary/50 hover:bg-secondary border-border";
   }
 

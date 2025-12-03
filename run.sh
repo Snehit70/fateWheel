@@ -19,24 +19,24 @@ mkdir -p "$LOGS_DIR"
 
 # Dependency Check
 for cmd in npm node lsof podman; do
-    if ! command -v $cmd &> /dev/null; then
-        echo -e "\e[31mError: Required command '$cmd' is not installed.\e[0m"
-        exit 1
-    fi
+  if ! command -v $cmd &>/dev/null; then
+    echo -e "\e[31mError: Required command '$cmd' is not installed.\e[0m"
+    exit 1
+  fi
 done
 
 # Port Check
 check_port_free() {
-    if lsof -i:$1 -t >/dev/null; then
-        echo -e "\e[31mError: Port $1 is already in use.\e[0m"
-        return 1
-    fi
-    return 0
+  if lsof -i:$1 -t >/dev/null; then
+    echo -e "\e[31mError: Port $1 is already in use.\e[0m"
+    return 1
+  fi
+  return 0
 }
 
 if ! check_port_free 3000 || ! check_port_free 5173; then
-    echo "Please stop the running services or free up the ports before starting."
-    exit 1
+  echo "Please stop the running services or free up the ports before starting."
+  exit 1
 fi
 
 # Check and start MongoDB
@@ -77,27 +77,27 @@ BACKEND_READY=false
 FRONTEND_READY=false
 
 while [ $COUNT -lt $TIMEOUT ]; do
-    if ! $BACKEND_READY && lsof -i:3000 -t >/dev/null; then
-        BACKEND_READY=true
-        echo -e "\e[32mBackend is ready on port 3000.\e[0m"
-    fi
-    
-    if ! $FRONTEND_READY && lsof -i:5173 -t >/dev/null; then
-        FRONTEND_READY=true
-        echo -e "\e[32mFrontend is ready on port 5173.\e[0m"
-    fi
-    
-    if $BACKEND_READY && $FRONTEND_READY; then
-        break
-    fi
-    
-    sleep 1
-    ((COUNT++))
+  if ! $BACKEND_READY && lsof -i:3000 -t >/dev/null; then
+    BACKEND_READY=true
+    echo -e "\e[32mBackend is ready on port 3000.\e[0m"
+  fi
+
+  if ! $FRONTEND_READY && lsof -i:5173 -t >/dev/null; then
+    FRONTEND_READY=true
+    echo -e "\e[32mFrontend is ready on port 5173.\e[0m"
+  fi
+
+  if $BACKEND_READY && $FRONTEND_READY; then
+    break
+  fi
+
+  sleep 1
+  ((COUNT++))
 done
 
 if ! $BACKEND_READY || ! $FRONTEND_READY; then
-    echo -e "\e[31mWarning: One or more services failed to start within $TIMEOUT seconds.\e[0m"
-    echo "Check logs for details: $BACKEND_LOG, $FRONTEND_LOG"
+  echo -e "\e[31mWarning: One or more services failed to start within $TIMEOUT seconds.\e[0m"
+  echo "Check logs for details: $BACKEND_LOG, $FRONTEND_LOG"
 fi
 
 # Function to check if a port is listening (for status report)
