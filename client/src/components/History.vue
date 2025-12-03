@@ -1,89 +1,88 @@
 <template>
-  <div class="min-h-screen bg-[#0f0f13] text-white pt-24 px-4 pb-12">
-    <div class="max-w-6xl mx-auto">
-      <div class="flex items-center justify-between mb-8">
+  <div class="min-h-screen bg-background text-foreground pt-24 px-4 pb-12">
+    <div class="max-w-6xl mx-auto space-y-8">
+      <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold font-mono tracking-wider">BET HISTORY</h1>
-        <router-link to="/" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-sm font-bold">
-          BACK TO GAME
-        </router-link>
+        <Button variant="secondary" as-child>
+          <router-link to="/">
+            BACK TO GAME
+          </router-link>
+        </Button>
       </div>
 
-      <div class="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-2xl">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead class="bg-[#252525] text-gray-400 text-xs uppercase tracking-wider">
-              <tr>
-                <th class="px-6 py-4 font-medium">Time</th>
-                <th class="px-6 py-4 font-medium">Bet Type</th>
-                <th class="px-6 py-4 font-medium">Value</th>
-                <th class="px-6 py-4 font-medium">Amount</th>
-                <th class="px-6 py-4 font-medium">Result</th>
-                <th class="px-6 py-4 font-medium">Payout</th>
-                <th class="px-6 py-4 font-medium">Winning Number</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[#2a2a2a]">
-              <tr v-if="loading" class="animate-pulse">
-                <td colspan="7" class="px-6 py-8 text-center text-gray-500">Loading history...</td>
-              </tr>
-              <tr v-else-if="history.length === 0">
-                <td colspan="7" class="px-6 py-8 text-center text-gray-500">No bets found. Start playing!</td>
-              </tr>
-              <tr v-for="item in history" :key="item._id" class="hover:bg-[#202020] transition-colors">
-                <td class="px-6 py-4 text-gray-400 text-sm whitespace-nowrap">
+      <Card>
+        <CardContent class="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Bet Type</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Result</TableHead>
+                <TableHead>Payout</TableHead>
+                <TableHead>Winning Number</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-if="loading">
+                <TableCell colspan="7" class="h-24 text-center">Loading history...</TableCell>
+              </TableRow>
+              <TableRow v-else-if="history.length === 0">
+                <TableCell colspan="7" class="h-24 text-center">No bets found. Start playing!</TableCell>
+              </TableRow>
+              <TableRow v-else v-for="item in history" :key="item._id">
+                <TableCell class="text-muted-foreground whitespace-nowrap">
                   {{ formatDate(item.createdAt) }}
-                </td>
+                </TableCell>
                 
                 <!-- Type & Value -->
-                <td class="px-6 py-4 text-sm font-medium capitalize">
+                <TableCell class="font-medium capitalize">
                   <span v-if="isTransaction(item)" :class="getTransactionTypeClass(item.type)">
                     {{ item.type }}
                   </span>
                   <span v-else>
                     {{ item.type }}
                   </span>
-                </td>
-                <td class="px-6 py-4 text-sm">
-                  <span v-if="isTransaction(item)" class="text-gray-400 italic">
+                </TableCell>
+                <TableCell>
+                  <span v-if="isTransaction(item)" class="text-muted-foreground italic">
                     {{ item.description || '-' }}
                   </span>
                   <span v-else :class="getValueClass(item)">
                     {{ formatValue(item) }}
                   </span>
-                </td>
+                </TableCell>
 
                 <!-- Amount -->
-                <td class="px-6 py-4 text-sm font-mono">
-                  <span :class="isTransaction(item) && item.type === 'deposit' ? 'text-green-500 font-bold' : 'text-white'">
+                <TableCell class="font-mono">
+                  <span :class="isTransaction(item) && item.type === 'deposit' ? 'text-green-500 font-bold' : ''">
                     ₹{{ item.amount }}
                   </span>
-                </td>
+                </TableCell>
 
                 <!-- Result -->
-                <td class="px-6 py-4">
-                  <span v-if="!isTransaction(item)" :class="[
-                    'px-2 py-1 rounded text-xs font-bold uppercase tracking-wide',
-                    item.result === 'win' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'
-                  ]">
+                <TableCell>
+                  <Badge v-if="!isTransaction(item)" :variant="item.result === 'win' ? 'default' : 'destructive'" :class="item.result === 'win' ? 'bg-green-500 hover:bg-green-600' : ''">
                     {{ item.result }}
-                  </span>
-                  <span v-else class="text-gray-600 text-xs uppercase font-bold">
+                  </Badge>
+                  <span v-else class="text-muted-foreground text-xs uppercase font-bold">
                     Completed
                   </span>
-                </td>
+                </TableCell>
 
                 <!-- Payout / Balance After -->
-                <td class="px-6 py-4 text-sm font-mono font-bold">
-                  <span v-if="isTransaction(item)" class="text-gray-400">
+                <TableCell class="font-mono font-bold">
+                  <span v-if="isTransaction(item)" class="text-muted-foreground">
                     Bal: ₹{{ item.balanceAfter }}
                   </span>
-                  <span v-else :class="item.payout > 0 ? 'text-green-500' : 'text-gray-500'">
+                  <span v-else :class="item.payout > 0 ? 'text-green-500' : 'text-muted-foreground'">
                     {{ item.payout > 0 ? '+' : '' }}₹{{ item.payout }}
                   </span>
-                </td>
+                </TableCell>
 
                 <!-- Winning Number -->
-                <td class="px-6 py-4">
+                <TableCell>
                     <div v-if="!isTransaction(item) && item.gameResult" class="flex items-center space-x-2">
                         <span :class="[
                             'w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold text-white',
@@ -92,15 +91,15 @@
                             {{ item.gameResult.number }}
                         </span>
                     </div>
-                    <div v-else-if="isTransaction(item)" class="text-gray-600 text-xs">
+                    <div v-else-if="isTransaction(item)" class="text-muted-foreground text-xs">
                         -
                     </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
@@ -108,6 +107,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 const history = ref([]);
 const loading = ref(true);
@@ -137,17 +140,16 @@ const formatValue = (bet) => {
     if (bet.type === 'type') return bet.value.toUpperCase();
     if (bet.type === 'color') return bet.value.toUpperCase();
     return bet.value;
-};
+  };
 
 const getValueClass = (bet) => {
     if (bet.type === 'color') {
         return bet.value === 'red' ? 'text-red-500 font-bold' : bet.value === 'black' ? 'text-gray-400 font-bold' : 'text-green-500 font-bold';
     }
     if (bet.type === 'number') {
-        // We don't know the color of the bet number easily without logic, keep it white
-        return 'text-white font-bold';
+        return 'text-foreground font-bold';
     }
-    return 'text-gray-300';
+    return 'text-muted-foreground';
 };
 
 const getGameResultColor = (color) => {

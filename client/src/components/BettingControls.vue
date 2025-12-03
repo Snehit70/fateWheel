@@ -1,48 +1,56 @@
 <template>
   <div class="w-full h-full flex flex-col gap-4">
     <!-- Input & Multipliers -->
-    <div class="flex items-center gap-2 bg-background/50 p-1 rounded-lg border border-white/5">
+    <div class="flex items-center gap-2">
         <div class="relative flex-1">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium">₹</span>
-            <input 
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium z-10">₹</span>
+            <Input 
                 type="number" 
                 v-model.number="betAmount"
-                class="w-full bg-transparent border-none text-white pl-8 pr-3 py-2 focus:ring-0 font-mono text-lg font-medium placeholder-gray-600"
+                class="pl-8 pr-3 font-mono text-lg font-medium"
                 placeholder="0"
-            >
+            />
         </div>
-        <div class="flex gap-1 pr-1">
-             <button @click="setAmount('half')" class="px-3 py-1.5 text-xs bg-[#2a2a2a] hover:bg-[#333] text-gray-400 hover:text-white rounded font-medium transition-colors">1/2</button>
-             <button @click="setAmount('double')" class="px-3 py-1.5 text-xs bg-[#2a2a2a] hover:bg-[#333] text-gray-400 hover:text-white rounded font-medium transition-colors">2x</button>
-             <button @click="setAmount('max')" class="px-3 py-1.5 text-xs bg-[#2a2a2a] hover:bg-[#333] text-gray-400 hover:text-white rounded font-medium transition-colors">MAX</button>
+        <div class="flex gap-1">
+             <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-10 px-3 text-xs font-medium">1/2</Button>
+             <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-10 px-3 text-xs font-medium">2x</Button>
+             <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 px-3 text-xs font-medium">MAX</Button>
         </div>
     </div>
 
     <!-- Quick Chips -->
     <div class="grid grid-cols-5 gap-2">
-        <button v-for="chip in chips" :key="chip.value" @click="addAmount(chip.value)" class="bg-[#252525] hover:bg-[#333] border border-white/5 hover:border-primary/50 rounded-lg py-2 flex flex-col items-center justify-center transition-all active:scale-95 group">
-            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-black border border-gray-600 shadow-lg flex items-center justify-center text-[8px] font-medium text-white mb-1 group-hover:border-primary transition-colors">
+        <Button 
+            v-for="chip in chips" 
+            :key="chip.value" 
+            variant="outline" 
+            class="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
+            @click="addAmount(chip.value)"
+        >
+            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-black border border-gray-600 shadow-lg flex items-center justify-center text-[8px] font-medium text-white group-hover:border-primary transition-colors">
                 {{ chip.label }}
             </div>
-            <span class="text-[10px] text-gray-400 font-medium group-hover:text-white">+{{ chip.label }}</span>
-        </button>
+            <span class="text-[10px] text-muted-foreground font-medium group-hover:text-foreground">+{{ chip.label }}</span>
+        </Button>
     </div>
 
     <!-- Actions -->
     <div class="flex gap-2 mt-auto">
-        <button 
+        <Button 
+            variant="secondary" 
+            class="flex-1 hover:bg-destructive/10 hover:text-destructive text-xs uppercase tracking-wider"
             @click="betAmount = 0" 
-            class="flex-1 py-3 bg-[#2a2a2a] hover:bg-red-900/20 text-gray-400 hover:text-red-500 font-medium rounded-lg transition-colors text-xs uppercase tracking-wider"
         >
             Reset Amount
-        </button>
-        <button 
+        </Button>
+        <Button 
+            variant="secondary"
+            class="flex-1 text-xs uppercase tracking-wider"
             @click="$emit('clear-bets')"
-            class="flex-1 py-3 bg-[#2a2a2a] hover:bg-[#333] text-gray-400 hover:text-white font-medium rounded-lg transition-colors text-xs uppercase tracking-wider"
             :disabled="isSpinning"
         >
             Clear Board
-        </button>
+        </Button>
     </div>
   </div>
 </template>
@@ -50,6 +58,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const authStore = useAuthStore();
 
