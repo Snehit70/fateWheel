@@ -8,8 +8,9 @@
       <!-- Header Row -->
       <div class="flex gap-2 h-14">
         <Button
-          @click="$emit('place-bet', 'color', COLORS.RED)"
+          @click="handlePlaceBet('color', COLORS.RED)"
           class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1"
+          :class="{ 'opacity-80 hover:bg-[#ff4d4d] cursor-not-allowed': !isLoggedIn }"
         >
           RED
           <span
@@ -23,10 +24,10 @@
           <Button
             v-for="num in getNumbersByColor(COLORS.RED)"
             :key="num"
-            @click="$emit('place-bet', 'number', num)"
+            @click="handlePlaceBet('number', num)"
             variant="outline"
             class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-            :class="getNumberClass(num)"
+            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn }]"
           >
             <span class="text-sm font-medium">{{ num }}</span>
             <span
@@ -103,16 +104,17 @@
       <!-- Header Row -->
       <div class="grid grid-cols-3 gap-2 h-14">
         <Button
-          @click="$emit('place-bet', 'type', 'even')"
+          @click="handlePlaceBet('type', 'even')"
           variant="outline"
           class="h-full bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500 text-xs uppercase tracking-wider font-outfit font-bold"
+          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn }"
         >
           EVEN
         </Button>
         <Button
-          @click="$emit('place-bet', 'number', 0)"
+          @click="handlePlaceBet('number', 0)"
           class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-          :class="getNumberClass(0)"
+          :class="[getNumberClass(0), { 'opacity-80 cursor-not-allowed': !isLoggedIn }]"
         >
           <span class="text-sm font-medium">0</span>
           <span
@@ -123,9 +125,10 @@
           </span>
         </Button>
         <Button
-          @click="$emit('place-bet', 'type', 'odd')"
+          @click="handlePlaceBet('type', 'odd')"
           variant="outline"
           class="h-full bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500 text-xs uppercase tracking-wider font-outfit font-bold"
+          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn }"
         >
           ODD
         </Button>
@@ -195,8 +198,9 @@
       <!-- Header Row -->
       <div class="flex gap-2 h-14">
         <Button
-          @click="$emit('place-bet', 'color', COLORS.BLACK)"
+          @click="handlePlaceBet('color', COLORS.BLACK)"
           class="flex-1 bg-[#1a1a1a] hover:bg-black text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-black active:border-b-0 active:translate-y-1"
+          :class="{ 'opacity-80 hover:bg-[#1a1a1a] cursor-not-allowed': !isLoggedIn }"
         >
           BLACK
           <span
@@ -210,10 +214,10 @@
           <Button
             v-for="num in getNumbersByColor(COLORS.BLACK)"
             :key="num"
-            @click="$emit('place-bet', 'number', num)"
+            @click="handlePlaceBet('number', num)"
             variant="outline"
             class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-            :class="getNumberClass(num)"
+            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn }]"
           >
             <span class="text-sm font-medium">{{ num }}</span>
             <span
@@ -287,6 +291,9 @@ import { useBettingBoard } from "../composables/useBettingBoard";
 import { getNumbersByColor, COLORS } from "../constants/game";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAuthStore } from '../stores/auth';
+
+const authStore = useAuthStore();
 
 const props = defineProps({
   bets: {
@@ -297,9 +304,21 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  isLoggedIn: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const emit = defineEmits(["place-bet"]);
+
+const handlePlaceBet = (type, value) => {
+    if (!props.isLoggedIn) {
+        authStore.openLoginModal();
+        return;
+    }
+    emit('place-bet', type, value);
+};
 
 const {
     getBetAmount,

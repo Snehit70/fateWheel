@@ -55,6 +55,7 @@
             <BettingBoard 
                 :bets="bets"
                 :last-result="lastResult"
+                :is-logged-in="!!authStore.user"
                 @place-bet="handlePlaceBet"
             />
         </div>
