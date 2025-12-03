@@ -7,6 +7,7 @@ const routes = [
     { path: '/', component: Game },
     { path: '/history', component: History, meta: { requiresAuth: true } },
     { path: '/admin', component: () => import('../components/AdminPanel.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
+    { path: '/admin/logs', component: () => import('../views/AdminLogs.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
 ];
 
 const router = createRouter({

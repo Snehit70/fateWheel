@@ -26,7 +26,10 @@ const AdminLog = require('../models/AdminLog');
 // @access  Admin
 router.get('/logs', auth, admin, async (req, res) => {
     try {
-        const logs = await AdminLog.find().sort({ createdAt: -1 }).limit(100);
+        const logs = await AdminLog.find()
+            .populate('adminId', 'username')
+            .sort({ createdAt: -1 })
+            .limit(100);
         res.json(logs);
     } catch (err) {
         console.error(err.message);

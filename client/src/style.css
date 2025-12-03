@@ -72,7 +72,7 @@ body {
 
 /* Component Classes */
 .btn-primary {
-  @apply bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-[0_4px_14px_rgba(255, 62, 62, 0.4)] hover:shadow-[0_6px_20px_rgba(255, 62, 62, 0.6)] active:transform active:scale-95 uppercase tracking-wider font-outfit;
+  @apply bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-[0_4px_14px_rgba(255,62,62,0.4)] hover:shadow-[0_6px_20px_rgba(255,62,62,0.6)] active:transform active:scale-95 uppercase tracking-wider font-outfit;
 }
 
 .btn-secondary {
@@ -84,7 +84,7 @@ body {
 }
 
 .chip {
-  @apply rounded-full flex items-center justify-center font-black shadow-[0_2px_5px_rgba(0, 0, 0, 0.3)] relative select-none font-outfit border-2 border-dashed border-white/30;
+  @apply rounded-full flex items-center justify-center font-black shadow-[0_2px_5px_rgba(0,0,0,0.3)] relative select-none font-outfit border-2 border-dashed border-white/30;
   background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), transparent);
 }
 
