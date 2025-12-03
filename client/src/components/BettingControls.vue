@@ -21,7 +21,7 @@
                 <Input 
                     type="number" 
                     v-model.number="betAmount"
-                    class="pl-10 pr-4 font-mono text-2xl font-bold h-14"
+                    class="pl-10 pr-4 font-mono text-xl sm:text-2xl font-bold h-10 sm:h-14"
                     placeholder="0"
                     :min="10"
                     :max="201"
@@ -29,9 +29,9 @@
                 />
             </div>
             <div class="flex gap-1">
-                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn || isSpinning">1/2</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn || isSpinning">2x</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MAX</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">1/2</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">2x</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MAX</Button>
             </div>
         </div>
         <span v-if="isOutOfRange" class="text-sm text-red-500 font-bold ml-1">
@@ -45,11 +45,11 @@
             v-for="chip in chips" 
             :key="chip.value" 
             variant="outline" 
-            class="h-auto py-3 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
+            class="h-auto py-2 sm:py-3 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
             @click="addAmount(chip.value)"
             :disabled="!isLoggedIn || isSpinning"
         >
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-xs font-bold text-white group-hover:border-primary transition-colors">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-[10px] sm:text-xs font-bold text-white group-hover:border-primary transition-colors">
                 {{ chip.label }}
             </div>
             <span class="text-xs text-muted-foreground font-bold group-hover:text-foreground">+{{ chip.label }}</span>
@@ -60,7 +60,7 @@
     <div class="flex gap-3 mt-auto" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <Button 
             variant="secondary" 
-            class="flex-1 h-12 hover:bg-destructive/10 hover:text-destructive text-sm font-bold uppercase tracking-wider"
+            class="flex-1 h-10 sm:h-12 hover:bg-destructive/10 hover:text-destructive text-xs sm:text-sm font-bold uppercase tracking-wider"
             @click="betAmount = 0" 
             :disabled="!isLoggedIn || isSpinning"
         >
@@ -68,7 +68,7 @@
         </Button>
         <Button 
             variant="secondary"
-            class="flex-1 h-12 text-sm font-bold uppercase tracking-wider"
+            class="flex-1 h-10 sm:h-12 text-xs sm:text-sm font-bold uppercase tracking-wider"
             @click="$emit('clear-bets')"
             :disabled="isSpinning || !isLoggedIn"
         >

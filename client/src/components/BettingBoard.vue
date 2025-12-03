@@ -1,9 +1,41 @@
+
 <template>
-  <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
+  <div class="w-full mb-8">
+    <!-- Mobile Tabs -->
+    <div class="grid grid-cols-3 gap-1 mb-4 lg:hidden bg-secondary/30 p-1 rounded-lg">
+      <button 
+        @click="activeTab = 'red'"
+        class="flex flex-col items-center justify-center py-2 rounded transition-all duration-300"
+        :class="activeTab === 'red' ? 'bg-[#ff4d4d]/20 text-[#ff4d4d] border border-[#ff4d4d]/50 shadow-[0_0_10px_rgba(255,77,77,0.2)]' : 'text-muted-foreground hover:bg-white/5'"
+      >
+        <span class="text-xs font-bold tracking-wider">RED</span>
+        <span class="text-[10px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("red") }}</span>
+      </button>
+      
+      <button 
+        @click="activeTab = 'green'"
+        class="flex flex-col items-center justify-center py-2 rounded transition-all duration-300"
+        :class="activeTab === 'green' ? 'bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'text-muted-foreground hover:bg-white/5'"
+      >
+        <span class="text-xs font-bold tracking-wider">ZERO</span>
+        <span class="text-[10px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("green") }}</span>
+      </button>
+
+      <button 
+        @click="activeTab = 'black'"
+        class="flex flex-col items-center justify-center py-2 rounded transition-all duration-300"
+        :class="activeTab === 'black' ? 'bg-white/10 text-white border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)]' : 'text-muted-foreground hover:bg-white/5'"
+      >
+        <span class="text-xs font-bold tracking-wider">BLACK</span>
+        <span class="text-[10px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("black") }}</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
     <!-- Red Section -->
     <Card
       class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
-      :class="getSectionClass('red')"
+      :class="[getSectionClass('red'), { 'hidden lg:flex': activeTab !== 'red' }]"
     >
       <!-- Header Row -->
       <div class="flex gap-2 h-14">
@@ -99,7 +131,7 @@
     <!-- Green Section -->
     <Card
       class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
-      :class="getSectionClass('green')"
+      :class="[getSectionClass('green'), { 'hidden lg:flex': activeTab !== 'green' }]"
     >
       <!-- Header Row -->
       <div class="grid grid-cols-3 gap-2 h-14">
@@ -193,7 +225,7 @@
     <!-- Black Section -->
     <Card
       class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
-      :class="getSectionClass('black')"
+      :class="[getSectionClass('black'), { 'hidden lg:flex': activeTab !== 'black' }]"
     >
       <!-- Header Row -->
       <div class="flex gap-2 h-14">
@@ -283,6 +315,7 @@
         </div>
       </div>
     </Card>
+    </div>
   </div>
 </template>
 
@@ -293,7 +326,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuthStore } from '../stores/auth';
 
+import { ref } from 'vue';
+
 const authStore = useAuthStore();
+const activeTab = ref('red');
 
 const props = defineProps({
   bets: {

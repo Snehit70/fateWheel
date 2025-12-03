@@ -26,7 +26,7 @@
                 :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
             >
                 <!-- History Section -->
-                <Card class="p-4 flex-none">
+                <Card class="p-2 sm:p-4 flex-none">
                     <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs mb-3">History</h3>
                     <HistoryBar :history="spinHistory" class="h-14" />
                 </Card>

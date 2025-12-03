@@ -6,7 +6,7 @@
                 v-for="(res, idx) in limitedHistory" 
                 :key="res.id || idx"
                 :class="[
-                    'w-8 h-12 rounded-md flex-shrink-0 flex items-center justify-center text-xs font-medium border border-opacity-20 transition-all duration-300',
+                    'w-6 h-10 sm:w-8 sm:h-12 rounded-md flex-shrink-0 flex items-center justify-center text-[10px] sm:text-xs font-medium border border-opacity-20 transition-all duration-300',
                     getColorClass(res.color)
                 ]"
             >

@@ -3,7 +3,7 @@
     <!-- Left: Logo & Brand -->
     <router-link to="/" class="flex items-center space-x-3 group">
       <img src="@/assets/logo.svg" alt="Roulette Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_10px_rgba(255,62,62,0.5)]" />
-      <span class="text-2xl font-black tracking-widest text-foreground font-outfit group-hover:text-primary transition-colors duration-300">
+      <span class="hidden md:block text-2xl font-black tracking-widest text-foreground font-outfit group-hover:text-primary transition-colors duration-300">
         ROULETTE
       </span>
     </router-link>
