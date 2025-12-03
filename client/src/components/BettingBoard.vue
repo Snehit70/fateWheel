@@ -57,7 +57,7 @@
             >Total</span
           >
           <span class="text-sm font-medium text-white font-outfit">{{
-            getTotalBetForColor("red").toFixed(1)
+            getTotalBetForColor("red")
           }}</span>
         </div>
         <div
@@ -67,7 +67,7 @@
             >You</span
           >
           <span class="text-sm font-medium text-primary font-outfit">{{
-            getUserBetForColor("red").toFixed(1)
+            getUserBetForColor("red")
           }}</span>
         </div>
       </div>
@@ -147,7 +147,7 @@
             >Total</span
           >
           <span class="text-sm font-medium text-white font-outfit">{{
-            getTotalBetForColor("green").toFixed(1)
+            getTotalBetForColor("green")
           }}</span>
         </div>
         <div
@@ -157,7 +157,7 @@
             >You</span
           >
           <span class="text-sm font-medium text-success font-outfit">{{
-            getUserBetForColor("green").toFixed(1)
+            getUserBetForColor("green")
           }}</span>
         </div>
       </div>
@@ -241,7 +241,7 @@
             >Total</span
           >
           <span class="text-sm font-medium text-white font-outfit">{{
-            getTotalBetForColor("black").toFixed(1)
+            getTotalBetForColor("black")
           }}</span>
         </div>
         <div
@@ -251,7 +251,7 @@
             >You</span
           >
           <span class="text-sm font-medium text-text-muted font-outfit">{{
-            getUserBetForColor("black").toFixed(1)
+            getUserBetForColor("black")
           }}</span>
         </div>
       </div>

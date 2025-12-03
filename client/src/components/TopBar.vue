@@ -14,7 +14,7 @@
         <!-- Balance Display -->
         <div v-if="authStore.user.role !== 'admin'" class="hidden md:flex items-center bg-surface-light rounded-lg px-4 py-2 border border-white/5 shadow-inner">
             <span class="text-success font-medium mr-2 font-outfit">₹</span>
-            <span class="text-white font-outfit font-medium tracking-wide">{{ authStore.user.balance.toFixed(2) }}</span>
+            <span class="text-white font-outfit font-medium tracking-wide">{{ Math.floor(authStore.user.balance) }}</span>
             <button class="ml-3 bg-primary/20 hover:bg-primary/30 text-primary text-xs px-2 py-1 rounded transition-colors uppercase font-medium tracking-wider border border-primary/20">
                 Wallet
             </button>

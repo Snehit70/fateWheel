@@ -204,8 +204,8 @@ class GameLoop {
 
         const { type, value, amount } = betData;
 
-        if (!amount || isNaN(amount) || amount <= 0) {
-            throw new Error("Invalid bet amount");
+        if (!amount || isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
+            throw new Error("Invalid bet amount (must be a whole number)");
         }
 
         // Validate Balance

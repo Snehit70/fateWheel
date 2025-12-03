@@ -15,7 +15,7 @@
         </div>
         <div class="bg-[#1a1a1a] p-6 rounded-xl border border-[#2a2a2a] relative">
           <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Total Balance</h3>
-            <div class="text-3xl font-mono font-bold text-green-500">₹{{ totalSystemBalance.toFixed(2) }}</div>
+            <div class="text-3xl font-mono font-bold text-green-500">₹{{ Math.floor(totalSystemBalance) }}</div>
         </div>
       </div>
 
@@ -59,7 +59,7 @@
                     {{ user.status || 'approved' }}
                   </span>
                 </td>
-                <td class="p-4 font-mono text-green-500">₹{{ user.balance.toFixed(2) }}</td>
+                <td class="p-4 font-mono text-green-500">₹{{ Math.floor(user.balance) }}</td>
                 <td class="p-4 text-gray-400 text-sm">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
                 <td class="p-4 flex gap-2">
                   <template v-if="user.status === 'pending'">
