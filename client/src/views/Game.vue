@@ -8,7 +8,7 @@
         <div class="flex flex-col lg:flex-row gap-6 items-stretch">
             <!-- Left: Wheel -->
             <Card 
-                class="w-full lg:w-[60%] p-4 relative min-h-[450px] flex items-center justify-center transition-all duration-500"
+                class="w-full lg:w-[60%] p-2 sm:p-4 relative min-h-[200px] sm:min-h-[300px] md:min-h-[450px] flex items-center justify-center transition-all duration-500"
                 :class="{ 'ring-2 ring-yellow-500/20 shadow-[0_0_50px_rgba(255,215,0,0.1)]': isSpinning }"
             >
                 <RouletteWheel 

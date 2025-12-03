@@ -1,8 +1,8 @@
 <template>
-  <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
     <!-- Red Section -->
     <Card
-      class="flex flex-col gap-4 p-4 transition-all duration-500"
+      class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
       :class="getSectionClass('red')"
     >
       <!-- Header Row -->
@@ -98,7 +98,7 @@
 
     <!-- Green Section -->
     <Card
-      class="flex flex-col gap-4 p-4 transition-all duration-500"
+      class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
       :class="getSectionClass('green')"
     >
       <!-- Header Row -->
@@ -192,7 +192,7 @@
 
     <!-- Black Section -->
     <Card
-      class="flex flex-col gap-4 p-4 transition-all duration-500"
+      class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
       :class="getSectionClass('black')"
     >
       <!-- Header Row -->

@@ -12,10 +12,10 @@
     <div class="flex items-center space-x-4">
       <template v-if="authStore.user">
         <!-- Balance Display -->
-        <div v-if="authStore.user.role !== 'admin'" class="hidden md:flex items-center bg-secondary/50 rounded-lg px-4 py-2 border border-border">
-            <span class="text-green-500 font-medium mr-2 font-outfit">₹</span>
-            <span class="text-foreground font-outfit font-medium tracking-wide">{{ Math.floor(authStore.user.balance) }}</span>
-            <Button variant="ghost" size="sm" class="ml-3 h-6 text-xs uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10">
+        <div v-if="authStore.user.role !== 'admin'" class="flex items-center bg-secondary/50 rounded-lg px-2 md:px-4 py-1.5 md:py-2 border border-border">
+            <span class="text-green-500 font-medium mr-1 md:mr-2 font-outfit text-sm md:text-base">₹</span>
+            <span class="text-foreground font-outfit font-medium tracking-wide text-sm md:text-base">{{ Math.floor(authStore.user.balance) }}</span>
+            <Button variant="ghost" size="sm" class="hidden md:flex ml-3 h-6 text-xs uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10">
                 Wallet
             </Button>
         </div>
@@ -24,20 +24,20 @@
         <Button 
             variant="ghost" 
             @click="handleHistoryClick" 
-            class="hidden md:flex items-center space-x-2 text-muted-foreground hover:text-foreground"
+            class="flex items-center space-x-2 text-muted-foreground hover:text-foreground px-2 md:px-4"
         >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>HISTORY</span>
+            <span class="hidden md:inline">HISTORY</span>
         </Button>
 
         <!-- User Profile -->
-        <div class="flex items-center space-x-3 cursor-pointer hover:bg-secondary/50 p-2 rounded-lg transition-colors border border-transparent hover:border-border">
+        <div class="flex items-center space-x-3 cursor-pointer hover:bg-secondary/50 p-1 md:p-2 rounded-lg transition-colors border border-transparent hover:border-border">
             <div class="w-8 h-8 rounded bg-secondary flex items-center justify-center text-xs font-medium text-foreground border border-border">
                 {{ authStore.user.username?.substring(0, 2).toUpperCase() || 'US' }}
             </div>
-            <span class="hidden md:block text-sm font-medium text-foreground font-outfit">{{ authStore.user.username }}</span>
+            <span class="hidden lg:block text-sm font-medium text-foreground font-outfit">{{ authStore.user.username }}</span>
         </div>
 
         <!-- Logout Button -->
