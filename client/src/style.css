@@ -53,43 +53,10 @@ body {
 }
 
 /* Glassmorphism Utilities */
-.glass-panel {
-  background: rgba(19, 19, 31, 0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.glass-button {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.glass-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-}
+/* Removed unused glass classes */
 
 /* Component Classes */
-.btn-primary {
-  @apply bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-[0_4px_14px_rgba(255,62,62,0.4)] hover:shadow-[0_6px_20px_rgba(255,62,62,0.6)] active:transform active:scale-95 uppercase tracking-wider font-outfit;
-}
-
-.btn-secondary {
-  @apply bg-surface-light hover:bg-surface-lighter text-text-muted hover:text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 border border-white/5 hover:border-white/10 uppercase tracking-wider font-outfit;
-}
-
-.input-field {
-  @apply w-full bg-surface-light border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-muted focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all duration-300;
-}
-
-.chip {
-  @apply rounded-full flex items-center justify-center font-black shadow-[0_2px_5px_rgba(0,0,0,0.3)] relative select-none font-outfit border-2 border-dashed border-white/30;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), transparent);
-}
+/* Removed unused component classes */
 
 /* Animations */
 @keyframes spinSlow {

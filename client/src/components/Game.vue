@@ -7,8 +7,8 @@
         <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
         <div class="flex flex-col lg:flex-row gap-6 items-stretch">
             <!-- Left: Wheel -->
-            <div 
-                class="w-full lg:w-[60%] bg-secondary/50 rounded-2xl border border-glass-border p-4 relative min-h-[450px] flex items-center justify-center transition-all duration-500"
+            <Card 
+                class="w-full lg:w-[60%] p-4 relative min-h-[450px] flex items-center justify-center transition-all duration-500"
                 :class="{ 'ring-2 ring-yellow-500/20 shadow-[0_0_50px_rgba(255,215,0,0.1)]': isSpinning }"
             >
                 <RouletteWheel 
@@ -18,7 +18,7 @@
                     :time-left="timeLeft"
                     :last-result="lastResult"
                 />
-            </div>
+            </Card>
 
             <!-- Right: History & Betting Controls -->
             <div 
@@ -26,13 +26,13 @@
                 :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
             >
                 <!-- History Section -->
-                <div class="bg-secondary/50 rounded-2xl border border-glass-border p-4 flex-1 min-h-[200px]">
-                    <h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-3">History</h3>
+                <Card class="p-4 flex-1 min-h-[200px]">
+                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs mb-3">History</h3>
                     <HistoryBar :history="spinHistory" />
-                </div>
+                </Card>
 
                 <!-- Betting Controls Section -->
-                <div class="bg-secondary/50 rounded-2xl border border-glass-border p-4">
+                <Card class="p-4">
                      <BettingControls 
                         :balance="authStore.user?.balance || 0"
                         :is-logged-in="!!authStore.user"
@@ -43,7 +43,7 @@
                         @clear-bets="clearBets"
                         @spin="spin"
                     />
-                </div>
+                </Card>
             </div>
         </div>
         
@@ -73,6 +73,7 @@ import RouletteWheel from "./RouletteWheel.vue";
 import HistoryBar from "./HistoryBar.vue";
 import BettingControls from "./BettingControls.vue";
 import BettingBoard from "./BettingBoard.vue";
+import { Card } from "@/components/ui/card";
 import { useGameLogic } from "../composables/useGameLogic";
 import { useBetting } from "../composables/useBetting";
 

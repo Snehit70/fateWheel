@@ -33,10 +33,10 @@ const limitedHistory = computed(() => {
 
 const getColorClass = (color) => {
     switch(color) {
-        case 'red': return 'bg-primary border-white text-white shadow-[0_0_10px_rgba(229,9,20,0.3)]';
-        case 'black': return 'bg-[#252525] border-gray-500 text-gray-300';
+        case 'red': return 'bg-primary border-primary-foreground/20 text-primary-foreground shadow-[0_0_10px_rgba(229,9,20,0.3)]';
+        case 'black': return 'bg-muted border-muted-foreground/20 text-muted-foreground';
         case 'green': return 'bg-green-600 border-white text-white shadow-[0_0_10px_rgba(0,199,77,0.3)]';
-        default: return 'bg-gray-800';
+        default: return 'bg-secondary';
     }
 };
 </script>
