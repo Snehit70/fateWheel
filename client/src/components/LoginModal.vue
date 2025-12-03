@@ -1,37 +1,35 @@
 <template>
   <Dialog :open="isOpen" @update:open="handleOpenChange">
-    <DialogContent class="sm:max-w-md bg-[#1a1a1a] border-[#2a2a2a] text-white">
+    <DialogContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle class="text-3xl font-bold text-center mb-2">{{ isLogin ? 'Welcome Back' : 'Create Account' }}</DialogTitle>
-        <DialogDescription class="text-center text-gray-400">
+        <DialogDescription class="text-center">
           {{ isLogin ? 'Sign in to continue playing' : 'Join us and start winning today' }}
         </DialogDescription>
       </DialogHeader>
 
       <form @submit.prevent="handleSubmit" class="space-y-4 py-4">
         <div class="space-y-2">
-          <label class="text-xs font-bold text-gray-500 uppercase">Username</label>
+          <label class="text-xs font-bold text-muted-foreground uppercase">Username</label>
           <Input 
             v-model="username" 
             type="text" 
             placeholder="Enter your username"
             required
-            class="bg-[#0f0f13] border-[#2a2a2a] text-white focus-visible:ring-yellow-500"
           />
         </div>
         
         <div class="space-y-2">
-          <label class="text-xs font-bold text-gray-500 uppercase">Password</label>
+          <label class="text-xs font-bold text-muted-foreground uppercase">Password</label>
           <Input 
             v-model="password" 
             type="password" 
             placeholder="Enter your password"
             required
-            class="bg-[#0f0f13] border-[#2a2a2a] text-white focus-visible:ring-yellow-500"
           />
         </div>
 
-        <div v-if="error" class="text-red-500 text-sm text-center bg-red-500/10 py-2 rounded border border-red-500/20">
+        <div v-if="error" class="text-destructive text-sm text-center bg-destructive/10 py-2 rounded border border-destructive/20">
           {{ error }}
         </div>
 
@@ -41,7 +39,7 @@
           :class="[
             isSuccess 
               ? 'bg-green-500 hover:bg-green-600 text-white' 
-              : 'bg-yellow-500 hover:bg-yellow-600 text-black'
+              : ''
           ]"
           :disabled="loading || isSuccess"
         >
@@ -52,11 +50,11 @@
       </form>
 
       <DialogFooter class="sm:justify-center">
-        <div class="text-sm text-gray-400">
+        <div class="text-sm text-muted-foreground">
           {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
           <button 
             @click="toggleMode" 
-            class="text-yellow-500 hover:text-yellow-400 font-bold ml-1 hover:underline focus:outline-none"
+            class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
           >
             {{ isLogin ? 'Sign Up' : 'Sign In' }}
           </button>
