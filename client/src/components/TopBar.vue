@@ -1,9 +1,9 @@
 <template>
-  <header class="h-20 bg-background/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
+  <header class="h-20 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
     <!-- Left: Logo & Brand -->
     <router-link to="/" class="flex items-center space-x-3 group">
       <img src="@/assets/logo.svg" alt="Roulette Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_10px_rgba(255,62,62,0.5)]" />
-      <span class="text-2xl font-black tracking-widest text-white font-outfit group-hover:text-primary transition-colors duration-300">
+      <span class="text-2xl font-black tracking-widest text-foreground font-outfit group-hover:text-primary transition-colors duration-300">
         ROULETTE
       </span>
     </router-link>
@@ -12,53 +12,56 @@
     <div class="flex items-center space-x-4">
       <template v-if="authStore.user">
         <!-- Balance Display -->
-        <div v-if="authStore.user.role !== 'admin'" class="hidden md:flex items-center bg-surface-light rounded-lg px-4 py-2 border border-white/5 shadow-inner">
-            <span class="text-success font-medium mr-2 font-outfit">₹</span>
-            <span class="text-white font-outfit font-medium tracking-wide">{{ Math.floor(authStore.user.balance) }}</span>
-            <button class="ml-3 bg-primary/20 hover:bg-primary/30 text-primary text-xs px-2 py-1 rounded transition-colors uppercase font-medium tracking-wider border border-primary/20">
+        <div v-if="authStore.user.role !== 'admin'" class="hidden md:flex items-center bg-secondary/50 rounded-lg px-4 py-2 border border-border">
+            <span class="text-green-500 font-medium mr-2 font-outfit">₹</span>
+            <span class="text-foreground font-outfit font-medium tracking-wide">{{ Math.floor(authStore.user.balance) }}</span>
+            <Button variant="ghost" size="sm" class="ml-3 h-6 text-xs uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10">
                 Wallet
-            </button>
+            </Button>
         </div>
 
         <!-- History Button -->
-        <button 
+        <Button 
+            variant="ghost" 
             @click="handleHistoryClick" 
-            class="hidden md:flex items-center space-x-2 px-3 py-2 bg-surface-light hover:bg-surface-lighter rounded-lg border border-white/5 transition-colors text-sm font-medium text-text-muted hover:text-white font-outfit tracking-wide"
+            class="hidden md:flex items-center space-x-2 text-muted-foreground hover:text-foreground"
         >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>HISTORY</span>
-        </button>
+        </Button>
 
         <!-- User Profile -->
-        <div class="flex items-center space-x-3 cursor-pointer hover:bg-surface-light p-2 rounded-lg transition-colors border border-transparent hover:border-white/5">
-            <div class="w-8 h-8 rounded bg-surface flex items-center justify-center text-xs font-medium text-white border border-white/10">
+        <div class="flex items-center space-x-3 cursor-pointer hover:bg-secondary/50 p-2 rounded-lg transition-colors border border-transparent hover:border-border">
+            <div class="w-8 h-8 rounded bg-secondary flex items-center justify-center text-xs font-medium text-foreground border border-border">
                 {{ authStore.user.username?.substring(0, 2).toUpperCase() || 'US' }}
             </div>
-            <span class="hidden md:block text-sm font-medium text-white font-outfit">{{ authStore.user.username }}</span>
+            <span class="hidden md:block text-sm font-medium text-foreground font-outfit">{{ authStore.user.username }}</span>
         </div>
 
         <!-- Logout Button -->
-        <button 
+        <Button 
+            variant="ghost" 
+            size="icon"
             @click="handleLogout" 
-            class="p-2 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+            class="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             title="Logout"
         >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-        </button>
+        </Button>
         
       </template>
 
       <template v-else>
-        <button @click="authStore.openLoginModal()" class="btn-primary flex items-center space-x-2 text-sm py-2 px-4">
+        <Button @click="authStore.openLoginModal()" class="flex items-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd" />
             </svg>
             <span>LOG IN</span>
-        </button>
+        </Button>
       </template>
     </div>
 
@@ -68,7 +71,7 @@
 <script setup>
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { Button } from '@/components/ui/button';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -77,8 +80,6 @@ const handleLogout = () => {
     authStore.logout();
     router.push('/'); 
 };
-
-
 
 const handleHistoryClick = () => {
     if (authStore.user?.role === 'admin') {
