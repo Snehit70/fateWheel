@@ -1,21 +1,28 @@
 <template>
   <div class="w-full h-full flex flex-col gap-4">
     <!-- Input & Multipliers -->
-    <div class="flex items-center gap-2">
-        <div class="relative flex-1">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium z-10">₹</span>
-            <Input 
-                type="number" 
-                v-model.number="betAmount"
-                class="pl-8 pr-3 font-mono text-lg font-medium"
-                placeholder="0"
-            />
+    <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium z-10">₹</span>
+                <Input 
+                    type="number" 
+                    v-model.number="betAmount"
+                    class="pl-8 pr-3 font-mono text-lg font-medium"
+                    placeholder="0"
+                    :min="10"
+                    :max="201"
+                />
+            </div>
+            <div class="flex gap-1">
+                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-10 px-3 text-xs font-medium">1/2</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-10 px-3 text-xs font-medium">2x</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 px-3 text-xs font-medium">MAX</Button>
+            </div>
         </div>
-        <div class="flex gap-1">
-             <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-10 px-3 text-xs font-medium">1/2</Button>
-             <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-10 px-3 text-xs font-medium">2x</Button>
-             <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 px-3 text-xs font-medium">MAX</Button>
-        </div>
+        <span v-if="isOutOfRange" class="text-xs text-red-500 font-medium ml-1">
+            Correct range is 10-201
+        </span>
     </div>
 
     <!-- Quick Chips -->
@@ -56,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,31 +94,34 @@ const emit = defineEmits(['update:amount', 'clear-input', 'clear-bets', 'spin'])
 const betAmount = ref(0);
 
 const chips = [
-    { label: '10', value: 10 },
-    { label: '100', value: 100 },
-    { label: '500', value: 500 },
-    { label: '1k', value: 1000 },
-    { label: '5k', value: 5000 },
+    { label: '11', value: 11 },
+    { label: '21', value: 21 },
+    { label: '51', value: 51 },
+    { label: '101', value: 101 },
+    { label: '201', value: 201 },
 ];
+
+const isOutOfRange = computed(() => {
+    return betAmount.value > 0 && (betAmount.value < 10 || betAmount.value > 201);
+});
 
 watch(betAmount, (val) => {
     emit('update:amount', val);
 });
 
 const setAmount = (type) => {
-    if (type === 'min') betAmount.value = 0.1;
-    if (type === 'max') betAmount.value = props.balance;
-    if (type === 'half') betAmount.value = Math.max(0, Math.floor(betAmount.value / 2));
-    if (type === 'double') betAmount.value = Math.min(props.balance, betAmount.value * 2);
+    if (type === 'min') betAmount.value = 10;
+    if (type === 'max') betAmount.value = Math.min(props.balance, 201);
+    if (type === 'half') betAmount.value = Math.max(10, Math.floor(betAmount.value / 2));
+    if (type === 'double') betAmount.value = Math.min(201, Math.min(props.balance, betAmount.value * 2));
 };
 
 const addAmount = (amount) => {
     const newAmount = betAmount.value + amount;
-    // Allow going over balance? Usually no.
-    if (newAmount <= props.balance) {
+    if (newAmount <= 201) {
         betAmount.value = newAmount;
     } else {
-        betAmount.value = props.balance;
+        betAmount.value = 201;
     }
 };
 </script>

@@ -26,13 +26,13 @@
                 :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
             >
                 <!-- History Section -->
-                <Card class="p-4 flex-1 min-h-[200px]">
+                <Card class="p-4 flex-none">
                     <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs mb-3">History</h3>
-                    <HistoryBar :history="spinHistory" />
+                    <HistoryBar :history="spinHistory" class="h-14" />
                 </Card>
 
                 <!-- Betting Controls Section -->
-                <Card class="p-4">
+                <Card class="p-4 flex-1 flex flex-col">
                      <BettingControls 
                         :balance="authStore.user?.balance || 0"
                         :is-logged-in="!!authStore.user"

@@ -1,12 +1,12 @@
 <template>
   <div class="w-full h-full">
-    <div class="flex flex-wrap gap-2 content-start h-full overflow-y-auto scrollbar-hide">
+    <div class="flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide px-1">
         <transition-group name="list">
             <div 
                 v-for="(res, idx) in limitedHistory" 
                 :key="res.id || idx"
                 :class="[
-                    'w-8 h-8 rounded-md flex-shrink-0 flex items-center justify-center text-xs font-medium border border-opacity-20 transition-all duration-300',
+                    'w-8 h-12 rounded-md flex-shrink-0 flex items-center justify-center text-xs font-medium border border-opacity-20 transition-all duration-300',
                     getColorClass(res.color)
                 ]"
             >
@@ -28,7 +28,7 @@ const props = defineProps({
 });
 
 const limitedHistory = computed(() => {
-    return props.history.slice(0, 15);
+    return props.history.slice(0, 30);
 });
 
 const getColorClass = (color) => {
@@ -49,6 +49,6 @@ const getColorClass = (color) => {
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
-  transform: translateX(-20px);
+  transform: translateY(-20px);
 }
 </style>
