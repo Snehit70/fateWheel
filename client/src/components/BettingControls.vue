@@ -14,7 +14,7 @@
     </div>
 
     <!-- Input & Multipliers -->
-    <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn }">
+    <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <div class="flex items-center gap-2">
             <div class="relative flex-1">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-xl z-10">₹</span>
@@ -25,13 +25,13 @@
                     placeholder="0"
                     :min="10"
                     :max="201"
-                    :disabled="!isLoggedIn"
+                    :disabled="!isLoggedIn || isSpinning"
                 />
             </div>
             <div class="flex gap-1">
-                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn">1/2</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn">2x</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn">MAX</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn || isSpinning">1/2</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn || isSpinning">2x</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-14 px-4 text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MAX</Button>
             </div>
         </div>
         <span v-if="isOutOfRange" class="text-sm text-red-500 font-bold ml-1">
@@ -40,14 +40,14 @@
     </div>
 
     <!-- Quick Chips -->
-    <div class="grid grid-cols-5 gap-3" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn }">
+    <div class="grid grid-cols-5 gap-3" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <Button 
             v-for="chip in chips" 
             :key="chip.value" 
             variant="outline" 
             class="h-auto py-3 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
             @click="addAmount(chip.value)"
-            :disabled="!isLoggedIn"
+            :disabled="!isLoggedIn || isSpinning"
         >
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-xs font-bold text-white group-hover:border-primary transition-colors">
                 {{ chip.label }}
@@ -57,12 +57,12 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex gap-3 mt-auto" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn }">
+    <div class="flex gap-3 mt-auto" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <Button 
             variant="secondary" 
             class="flex-1 h-12 hover:bg-destructive/10 hover:text-destructive text-sm font-bold uppercase tracking-wider"
             @click="betAmount = 0" 
-            :disabled="!isLoggedIn"
+            :disabled="!isLoggedIn || isSpinning"
         >
             Reset Amount
         </Button>

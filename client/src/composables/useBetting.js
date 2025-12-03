@@ -44,7 +44,8 @@ export function useBetting(bets, isSpinning) {
         // Send bet to server
         socket.emit('placeBet', { type, value, amount: currentBetAmount.value }, (response) => {
             if (response.error) {
-                alert(response.error);
+                // alert(response.error); // Removed to prevent annoying popup
+
                 // Revert optimistic update
                 const index = bets.value.findIndex(b => b.type === type && b.value === value);
                 if (index !== -1) {
