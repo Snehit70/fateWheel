@@ -121,6 +121,14 @@
               class="col-span-3"
             />
           </div>
+          <div class="grid grid-cols-4 items-center gap-4">
+            <label class="text-right text-sm font-medium">Reason</label>
+            <textarea
+              v-model="reason"
+              class="col-span-3 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Required for audit logs"
+            ></textarea>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="editingUser = null">Cancel</Button>
@@ -180,6 +188,7 @@ const showPendingOnly = ref(false);
 const editingUser = ref(null);
 const deletingUser = ref(null);
 const newBalance = ref(0);
+const reason = ref('');
 
 const fetchStats = async () => {
   try {
@@ -230,14 +239,21 @@ const getStatusColor = (status) => {
 const openEditBalance = (user) => {
   editingUser.value = user;
   newBalance.value = user.balance;
+  reason.value = '';
 };
 
 const saveBalance = async () => {
   if (!editingUser.value) return;
   
+  if (!reason.value.trim()) {
+    alert('Please provide a reason for this change.');
+    return;
+  }
+  
   try {
     const res = await api.put(`/admin/users/${editingUser.value._id}/balance`, {
-      balance: newBalance.value
+      balance: newBalance.value,
+      reason: reason.value
     });
     
     // Update local state is handled by socket, but we can do optimistic update too

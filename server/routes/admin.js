@@ -107,7 +107,11 @@ router.get('/stats', auth, admin, async (req, res) => {
 // @access  Admin
 router.put('/users/:id/balance', auth, admin, async (req, res) => {
     try {
-        const { balance } = req.body;
+        const { balance, reason } = req.body;
+
+        if (!reason || reason.trim() === '') {
+            return res.status(400).json({ msg: 'Reason is required' });
+        }
 
         // Get old user to calculate difference
         const oldUser = await User.findById(req.params.id);
@@ -138,7 +142,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
                 action: 'update_balance',
                 targetUserId: user._id,
                 targetUsername: user.username,
-                details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference})`
+                details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference}). Reason: ${reason}`
             });
             await log.save();
 
