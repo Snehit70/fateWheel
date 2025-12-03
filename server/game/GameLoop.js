@@ -321,7 +321,7 @@ class GameLoop {
 
         this.broadcastState();
 
-        const dbUser = await User.findById(user.id);
+
         this.io.emit('admin:userUpdate', dbUser);
         return dbUser.balance;
     }
