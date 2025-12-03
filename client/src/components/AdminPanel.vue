@@ -12,15 +12,35 @@
             <CardTitle class="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">{{ totalUsersCount }}</div>
+            <div class="text-2xl font-bold">{{ stats.totalUsers }}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Total Balance</CardTitle>
+            <CardTitle class="text-sm font-medium">Pending Approval</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-green-500">₹{{ Math.floor(totalSystemBalance) }}</div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-bold text-yellow-500">{{ stats.pendingUsers }}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                @click="filterPending"
+                :class="{ 'bg-yellow-500/10 border-yellow-500/50 text-yellow-500': showPendingOnly }"
+              >
+                Filter
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Net Profit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-2xl font-bold" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
+              {{ stats.netProfit >= 0 ? '+' : '' }}₹{{ Math.floor(stats.netProfit) }}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -43,7 +63,6 @@
             <TableHeader>
               <TableRow>
                 <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Joined</TableHead>
@@ -54,27 +73,24 @@
               <TableRow v-for="user in filteredUsers" :key="user._id">
                 <TableCell class="font-medium">{{ user.username }}</TableCell>
                 <TableCell>
-                  <Badge :variant="user.role === 'admin' ? 'destructive' : 'secondary'">
-                    {{ user.role }}
-                  </Badge>
+                  <Select 
+                    :model-value="user.status || 'approved'" 
+                    @update:model-value="(val) => updateStatus(user, val)"
+                  >
+                    <SelectTrigger class="w-[130px]" :class="getStatusColor(user.status)">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </TableCell>
-                <TableCell>
-                  <Badge :variant="getStatusVariant(user.status)">
-                    {{ user.status || 'approved' }}
-                  </Badge>
-                </TableCell>
-                <TableCell class="font-mono text-green-500">₹{{ Math.floor(user.balance) }}</TableCell>
+                <TableCell class="font-mono text-green-500 font-bold">₹{{ Math.floor(user.balance) }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
                 <TableCell>
                   <div class="flex gap-2">
-                    <template v-if="user.status === 'pending'">
-                      <Button size="sm" variant="outline" class="text-green-500 hover:text-green-600 border-green-500/20 hover:bg-green-500/10" @click="updateStatus(user, 'approved')">
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="outline" class="text-red-500 hover:text-red-600 border-red-500/20 hover:bg-red-500/10" @click="updateStatus(user, 'rejected')">
-                        Reject
-                      </Button>
-                    </template>
                     <Button size="sm" variant="outline" @click="openEditBalance(user)">
                       Edit Balance
                     </Button>
@@ -135,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import api from '../services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,12 +159,36 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAuthStore } from '../stores/auth';
 
+const authStore = useAuthStore();
 const users = ref([]);
+const stats = ref({
+  totalUsers: 0,
+  pendingUsers: 0,
+  netProfit: 0
+});
 const searchQuery = ref('');
+const showPendingOnly = ref(false);
 const editingUser = ref(null);
 const deletingUser = ref(null);
 const newBalance = ref(0);
+
+const fetchStats = async () => {
+  try {
+    const res = await api.get('/admin/stats');
+    stats.value = res.data;
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 const fetchUsers = async () => {
   try {
@@ -162,28 +202,28 @@ const fetchUsers = async () => {
 
 const filteredUsers = computed(() => {
   let result = users.value.filter(u => u.role !== 'admin');
+  
+  if (showPendingOnly.value) {
+    result = result.filter(u => u.status === 'pending');
+  }
+  
   if (searchQuery.value) {
     result = result.filter(u => u.username.toLowerCase().includes(searchQuery.value.toLowerCase()));
   }
+  
   return result;
 });
 
-const totalSystemBalance = computed(() => {
-  return users.value
-    .filter(u => u.role !== 'admin')
-    .reduce((sum, u) => sum + u.balance, 0);
-});
+const filterPending = () => {
+  showPendingOnly.value = !showPendingOnly.value;
+};
 
-const totalUsersCount = computed(() => {
-  return users.value.filter(u => u.role !== 'admin').length;
-});
-
-const getStatusVariant = (status) => {
+const getStatusColor = (status) => {
   switch (status) {
-    case 'approved': return 'default'; // default is usually primary/black which looks good for approved
-    case 'rejected': return 'destructive';
-    case 'pending': return 'secondary'; // or outline
-    default: return 'default';
+    case 'approved': return 'text-green-500 border-green-500/20 bg-green-500/10';
+    case 'rejected': return 'text-red-500 border-red-500/20 bg-red-500/10';
+    case 'pending': return 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10';
+    default: return '';
   }
 };
 
@@ -200,13 +240,14 @@ const saveBalance = async () => {
       balance: newBalance.value
     });
     
-    // Update local state
-    const index = users.value.findIndex(u => u._id === editingUser.value._id);
-    if (index !== -1) {
-      users.value[index] = res.data;
-    }
+    // Update local state is handled by socket, but we can do optimistic update too
+    // const index = users.value.findIndex(u => u._id === editingUser.value._id);
+    // if (index !== -1) {
+    //   users.value[index] = res.data;
+    // }
     
     editingUser.value = null;
+    fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);
     alert('Failed to update balance');
@@ -216,12 +257,7 @@ const saveBalance = async () => {
 const updateStatus = async (user, status) => {
   try {
     const res = await api.put(`/admin/users/${user._id}/status`, { status });
-    
-    // Update local state
-    const index = users.value.findIndex(u => u._id === user._id);
-    if (index !== -1) {
-      users.value[index] = res.data;
-    }
+    fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);
     alert('Failed to update status');
@@ -239,13 +275,37 @@ const deleteUser = async () => {
     await api.delete(`/admin/users/${deletingUser.value._id}`);
     users.value = users.value.filter(u => u._id !== deletingUser.value._id);
     deletingUser.value = null;
+    fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);
     alert('Failed to delete user');
   }
 };
 
+// Realtime Updates
+const handleUserUpdate = (updatedUser) => {
+  const index = users.value.findIndex(u => u._id === updatedUser._id);
+  if (index !== -1) {
+    users.value[index] = updatedUser;
+  } else if (updatedUser.role !== 'admin') {
+    // New user?
+    users.value.unshift(updatedUser);
+  }
+  fetchStats(); // Refresh stats on any user update
+};
+
 onMounted(() => {
   fetchUsers();
+  fetchStats();
+  
+  if (authStore.socket) {
+    authStore.socket.on('admin:userUpdate', handleUserUpdate);
+  }
+});
+
+onUnmounted(() => {
+  if (authStore.socket) {
+    authStore.socket.off('admin:userUpdate', handleUserUpdate);
+  }
 });
 </script>

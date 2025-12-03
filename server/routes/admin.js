@@ -37,6 +37,71 @@ router.get('/logs', auth, admin, async (req, res) => {
     }
 });
 
+// @route   GET api/admin/stats
+// @desc    Get dashboard stats
+// @access  Admin
+router.get('/stats', auth, admin, async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
+        const pendingUsers = await User.countDocuments({ status: 'pending' });
+
+        // Calculate Net Profit (Total Deposits - Total Withdrawals)
+        // Or simpler: Total User Losses - Total User Wins
+        // For now, let's use: Total Deposits - Total Withdrawals based on Transactions
+        const transactions = await Transaction.aggregate([
+            {
+                $group: {
+                    _id: '$type',
+                    total: { $sum: '$amount' }
+                }
+            }
+        ]);
+
+        const stats = transactions.reduce((acc, curr) => {
+            acc[curr._id] = curr.total;
+            return acc;
+        }, {});
+
+        // Net Profit = (Deposits + User Losses) - (Withdrawals + User Wins)
+        // But we might not be tracking wins/losses in transactions yet, only balance adjustments.
+        // Let's assume 'deposit' is money IN, 'withdraw' is money OUT.
+        // And 'bet' is money IN, 'win' is money OUT.
+
+        // Let's use a simpler metric for now if transaction types are limited:
+        // House Balance = Sum of all user balances (Liability) vs Initial? 
+        // The user asked for "Net Profit". 
+        // Let's calculate it as: (Total Bets - Total Wins)
+
+        const gameTransactions = await Transaction.aggregate([
+            {
+                $match: { type: { $in: ['bet', 'win'] } }
+            },
+            {
+                $group: {
+                    _id: '$type',
+                    total: { $sum: '$amount' }
+                }
+            }
+        ]);
+
+        const gameStats = gameTransactions.reduce((acc, curr) => {
+            acc[curr._id] = curr.total;
+            return acc;
+        }, { bet: 0, win: 0 });
+
+        const netProfit = gameStats.bet - gameStats.win;
+
+        res.json({
+            totalUsers,
+            pendingUsers,
+            netProfit
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   PUT api/admin/users/:id/balance
 // @desc    Update user balance
 // @access  Admin
@@ -80,6 +145,9 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
         // Emit balance update to user
         req.io.to(`user:${user._id}`).emit('balanceUpdate', { balance: user.balance });
+
+        // Emit update to admin panel
+        req.io.emit('admin:userUpdate', user);
 
         res.json(user);
     } catch (err) {
@@ -136,6 +204,9 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
             details: `Updated status to ${status}`
         });
         await log.save();
+
+        // Emit update to admin panel
+        req.io.emit('admin:userUpdate', user);
 
         res.json(user);
     } catch (err) {
