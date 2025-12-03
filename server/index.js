@@ -8,6 +8,7 @@ const GameLoop = require('./game/GameLoop');
 const jwt = require('jsonwebtoken');
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Railway)
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
