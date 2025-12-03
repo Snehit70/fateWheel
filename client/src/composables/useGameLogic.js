@@ -1,7 +1,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import socket from '../services/socket';
 import { useAuthStore } from '../stores/auth';
-import { SEGMENTS, SEGMENT_ANGLE } from '../constants/game';
+import { SEGMENTS, SEGMENT_ANGLE, ANIMATION } from '../constants/game';
 
 export function useGameLogic() {
     const authStore = useAuthStore();
@@ -32,7 +32,7 @@ export function useGameLogic() {
         transitionDuration.value = 0;
 
         const animateSpin = () => {
-            rotation.value += 15;
+            rotation.value += ANIMATION.ROTATION_SPEED;
             spinInterval = requestAnimationFrame(animateSpin);
         };
         animateSpin();
@@ -52,7 +52,7 @@ export function useGameLogic() {
         const targetAngle = (resultIndex + randomOffset) * SEGMENT_ANGLE;
 
         const currentRot = rotation.value;
-        const extraSpins = 5 * 360;
+        const extraSpins = ANIMATION.EXTRA_SPINS * 360;
 
         const targetRotationMod = (180 - targetAngle);
         const currentMod = currentRot % 360;

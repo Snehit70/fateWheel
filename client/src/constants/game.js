@@ -39,3 +39,8 @@ export const getNumbersByColor = (color) => {
         .map(s => s.number)
         .sort((a, b) => a - b);
 };
+export const ANIMATION = {
+    ROTATION_SPEED: 15,
+    EXTRA_SPINS: 5,
+    MIN_DURATION: 3000
+};

@@ -283,7 +283,7 @@
 </template>
 
 <script setup>
-import { useAuthStore } from "../stores/auth";
+import { useBettingBoard } from "../composables/useBettingBoard";
 import { getNumbersByColor } from "../constants/game";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -301,85 +301,12 @@ const props = defineProps({
 
 const emit = defineEmits(["place-bet"]);
 
-const authStore = useAuthStore();
-
-const getBetAmount = (type, value) => {
-  const bet = props.bets.find((b) => b.type === type && b.value === value);
-  return bet ? bet.amount : 0;
-};
-
-const getBetsForColor = (color) => {
-  return props.bets.filter((bet) => {
-    if (color === "red") {
-      return (
-        (bet.type === "color" && bet.value === "red") ||
-        (bet.type === "number" && getNumbersByColor("red").includes(bet.value))
-      );
-    } else if (color === "green") {
-      return (
-        (bet.type === "number" && bet.value === 0) ||
-        (bet.type === "type" && ["even", "odd"].includes(bet.value))
-      );
-    } else if (color === "black") {
-      return (
-        (bet.type === "color" && bet.value === "black") ||
-        (bet.type === "number" && getNumbersByColor("black").includes(bet.value))
-      );
-    }
-    return false;
-  });
-};
-
-const getTotalBetForColor = (color) => {
-  return getBetsForColor(color).reduce((sum, b) => sum + b.amount, 0);
-};
-
-const getUserBetForColor = (color) => {
-  const userId = authStore.user?.id;
-  if (!userId) return 0;
-  return getBetsForColor(color)
-    .filter((b) => b.userId === userId)
-    .reduce((sum, b) => sum + b.amount, 0);
-};
-
-// Helper to determine section styling based on result
-const getSectionClass = (color) => {
-  if (!props.lastResult) return "border-border";
-
-  if (props.lastResult.color === color) {
-    // Winner
-    const borderColor =
-      color === "red"
-        ? "border-red-500"
-        : color === "green"
-        ? "border-green-500"
-        : "border-zinc-500";
-    const shadowColor =
-      color === "red"
-        ? "rgba(239,68,68,0.3)"
-        : color === "green"
-        ? "rgba(34,197,94,0.3)"
-        : "rgba(255,255,255,0.1)";
-
-    return `${borderColor} shadow-[0_0_40px_${shadowColor}] scale-[1.02] z-10`;
-  } else {
-    // Loser
-    return "border-transparent opacity-40 grayscale hover:opacity-100 hover:grayscale-0";
-  }
-};
-
-// Helper for number buttons
-const getNumberClass = (num) => {
-  if (!props.lastResult) {
-    if (num === 0) return "bg-[#00b300] hover:bg-[#009900] text-white border-[#008000]";
-    return "bg-secondary/50 hover:bg-secondary border-border";
-  }
-
-  if (props.lastResult.number === num) {
-    return "bg-yellow-500 text-black border-yellow-500 shadow-[0_0_20px_rgba(255,215,0,0.6)] scale-110 z-20";
-  } else {
-    // Loser
-    return "bg-secondary/30 border-transparent opacity-40 hover:opacity-100 hover:bg-secondary/50 hover:border-border";
-  }
-};
+const {
+    getBetAmount,
+    getBetsForColor,
+    getTotalBetForColor,
+    getUserBetForColor,
+    getSectionClass,
+    getNumberClass
+} = useBettingBoard(props, emit);
 </script>

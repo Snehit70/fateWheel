@@ -1,58 +1,58 @@
 <template>
   <div class="w-full h-full flex flex-col gap-4">
     <!-- Input & Multipliers -->
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-2">
         <div class="flex items-center gap-2">
             <div class="relative flex-1">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium z-10">₹</span>
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-xl z-10">₹</span>
                 <Input 
                     type="number" 
                     v-model.number="betAmount"
-                    class="pl-8 pr-3 font-mono text-lg font-medium"
+                    class="pl-10 pr-4 font-mono text-2xl font-bold h-14"
                     placeholder="0"
                     :min="10"
                     :max="201"
                 />
             </div>
             <div class="flex gap-1">
-                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-10 px-3 text-xs font-medium">1/2</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-10 px-3 text-xs font-medium">2x</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 px-3 text-xs font-medium">MAX</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-14 px-4 text-sm font-bold">1/2</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-14 px-4 text-sm font-bold">2x</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-14 px-4 text-sm font-bold">MAX</Button>
             </div>
         </div>
-        <span v-if="isOutOfRange" class="text-xs text-red-500 font-medium ml-1">
+        <span v-if="isOutOfRange" class="text-sm text-red-500 font-bold ml-1">
             Correct range is 10-201
         </span>
     </div>
 
     <!-- Quick Chips -->
-    <div class="grid grid-cols-5 gap-2">
+    <div class="grid grid-cols-5 gap-3">
         <Button 
             v-for="chip in chips" 
             :key="chip.value" 
             variant="outline" 
-            class="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
+            class="h-auto py-3 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
             @click="addAmount(chip.value)"
         >
-            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-black border border-gray-600 shadow-lg flex items-center justify-center text-[8px] font-medium text-white group-hover:border-primary transition-colors">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-xs font-bold text-white group-hover:border-primary transition-colors">
                 {{ chip.label }}
             </div>
-            <span class="text-[10px] text-muted-foreground font-medium group-hover:text-foreground">+{{ chip.label }}</span>
+            <span class="text-xs text-muted-foreground font-bold group-hover:text-foreground">+{{ chip.label }}</span>
         </Button>
     </div>
 
     <!-- Actions -->
-    <div class="flex gap-2 mt-auto">
+    <div class="flex gap-3 mt-auto">
         <Button 
             variant="secondary" 
-            class="flex-1 hover:bg-destructive/10 hover:text-destructive text-xs uppercase tracking-wider"
+            class="flex-1 h-12 hover:bg-destructive/10 hover:text-destructive text-sm font-bold uppercase tracking-wider"
             @click="betAmount = 0" 
         >
             Reset Amount
         </Button>
         <Button 
             variant="secondary"
-            class="flex-1 text-xs uppercase tracking-wider"
+            class="flex-1 h-12 text-sm font-bold uppercase tracking-wider"
             @click="$emit('clear-bets')"
             :disabled="isSpinning"
         >

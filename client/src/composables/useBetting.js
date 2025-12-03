@@ -53,6 +53,7 @@ export function useBetting(bets, isSpinning) {
                         bets.value.splice(index, 1);
                     }
                 }
+                // Also revert balance if we optimistically updated it (we didn't, but good to know)
             } else if (response.newBalance !== undefined) {
                 // Update balance from server response
                 if (authStore.user) {
