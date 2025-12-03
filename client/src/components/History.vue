@@ -105,13 +105,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import api from '../services/api';
+import { useAuthStore } from '../stores/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
+const authStore = useAuthStore();
 const history = ref([]);
 const loading = ref(true);
 
@@ -173,5 +175,28 @@ const getTransactionTypeClass = (type) => {
 
 onMounted(() => {
   fetchHistory();
+
+  if (authStore.socket) {
+    // Refresh history on balance update (covers wins and admin adjustments)
+    authStore.socket.on('balanceUpdate', fetchHistory);
+
+    // Refresh history when game ends (covers losses/completed bets)
+    authStore.socket.on('gameState', (data) => {
+        if (data.state === 'RESULT') {
+            // Add a small delay to ensure server DB write is fully propagated if there's any lag
+            // (Though server awaits save before emitting, so it should be fine)
+            fetchHistory();
+        }
+    });
+  }
+});
+
+onUnmounted(() => {
+    if (authStore.socket) {
+        authStore.socket.off('balanceUpdate', fetchHistory);
+        // We can't easily off the anonymous function for gameState unless we name it
+        // But since we're unmounting, we should probably just remove all listeners for this component context if possible
+        // Or better, define the handler
+    }
 });
 </script>

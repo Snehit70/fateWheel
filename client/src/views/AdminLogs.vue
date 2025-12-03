@@ -52,13 +52,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import api from '../services/api';
+import { useAuthStore } from '../stores/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
+const authStore = useAuthStore();
 const logs = ref([]);
 const logsLoading = ref(false);
 
@@ -86,5 +88,20 @@ const getActionVariant = (action) => {
 
 onMounted(() => {
     fetchLogs();
+    
+    if (authStore.socket) {
+        authStore.socket.on('admin:newLog', (log) => {
+            logs.value.unshift(log);
+            if (logs.value.length > 100) {
+                logs.value.pop();
+            }
+        });
+    }
+});
+
+onUnmounted(() => {
+    if (authStore.socket) {
+        authStore.socket.off('admin:newLog');
+    }
 });
 </script>

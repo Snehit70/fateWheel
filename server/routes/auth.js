@@ -31,6 +31,14 @@ router.post('/register', async (req, res) => {
 
         await user.save();
 
+        // Emit new user event to admin
+        // We need to attach io to req in auth routes too. 
+        // server/index.js does `app.use((req, res, next) => { req.io = io; next(); });` before routes, so it should be available.
+        if (req.io) {
+            req.io.emit('admin:newUser', user);
+            req.io.emit('admin:statsUpdate');
+        }
+
         res.json({ message: 'Registration successful. Please wait for admin approval.' });
     } catch (err) {
         console.error(err.message);

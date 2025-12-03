@@ -300,12 +300,24 @@ onMounted(() => {
   
   if (authStore.socket) {
     authStore.socket.on('admin:userUpdate', handleUserUpdate);
+    authStore.socket.on('admin:newUser', (user) => {
+      users.value.unshift(user);
+      fetchStats();
+    });
+    authStore.socket.on('admin:userDeleted', (userId) => {
+      users.value = users.value.filter(u => u._id !== userId);
+      fetchStats();
+    });
+    authStore.socket.on('admin:statsUpdate', fetchStats);
   }
 });
 
 onUnmounted(() => {
   if (authStore.socket) {
     authStore.socket.off('admin:userUpdate', handleUserUpdate);
+    authStore.socket.off('admin:newUser');
+    authStore.socket.off('admin:userDeleted');
+    authStore.socket.off('admin:statsUpdate');
   }
 });
 </script>
