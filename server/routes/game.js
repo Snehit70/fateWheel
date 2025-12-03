@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Bet = require('../models/Bet');
 const crypto = require('crypto');
+const { secureRandomInt } = require('../utils/random');
 
 const SEGMENTS = [
     { number: 0, color: "green" },
@@ -23,26 +24,7 @@ const SEGMENTS = [
     { number: 14, color: "black" },
 ];
 
-/**
- * Securely generates a random integer between min (inclusive) and max (exclusive).
- */
-function secureRandomInt(min, max) {
-    const range = max - min;
-    const bytesNeeded = Math.ceil(Math.log2(range) / 8);
-    const maxBytes = Math.pow(256, bytesNeeded);
-    const keep = maxBytes - (maxBytes % range);
-
-    while (true) {
-        const buffer = crypto.randomBytes(bytesNeeded);
-        let value = 0;
-        for (let i = 0; i < bytesNeeded; i++) {
-            value = (value << 8) + buffer[i];
-        }
-        if (value < keep) {
-            return min + (value % range);
-        }
-    }
-}
+// secureRandomInt moved to utils/random.js
 
 const Transaction = require('../models/Transaction');
 

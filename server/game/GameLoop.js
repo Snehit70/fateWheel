@@ -4,6 +4,7 @@ const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
 const { STATES, SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
 const logger = require('../utils/logger');
+const { secureRandomInt } = require('../utils/random');
 
 // Map constants to local variables for easier usage if needed, or use directly
 const GAME_STATES = {
@@ -90,30 +91,14 @@ class GameLoop {
         });
     }
 
-    secureRandomInt(min, max) {
-        const range = max - min;
-        const bytesNeeded = Math.ceil(Math.log2(range) / 8);
-        const maxBytes = Math.pow(256, bytesNeeded);
-        const keep = maxBytes - (maxBytes % range);
-
-        while (true) {
-            const buffer = crypto.randomBytes(bytesNeeded);
-            let value = 0;
-            for (let i = 0; i < bytesNeeded; i++) {
-                value = (value << 8) + buffer[i];
-            }
-            if (value < keep) {
-                return min + (value % range);
-            }
-        }
-    }
+    // secureRandomInt moved to utils/random.js
 
     spin() {
         this.state = GAME_STATES.SPINNING;
         this.endTime = Date.now() + TIMING.SPIN_DURATION * 1000;
 
         // Generate Result
-        const resultIndex = this.secureRandomInt(0, 15);
+        const resultIndex = secureRandomInt(0, 15);
         this.result = SEGMENTS[resultIndex];
 
         // Broadcast immediately so clients start animation

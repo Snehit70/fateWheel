@@ -49,4 +49,8 @@ const betSchema = new mongoose.Schema({
     }
 });
 
+betSchema.index({ user: 1, createdAt: -1 });
+betSchema.index({ roundId: 1 });
+betSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Bet', betSchema);

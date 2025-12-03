@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // Allow all origins for now, restrict in production
+        origin: process.env.CLIENT_URL || "http://localhost:5173",
         methods: ["GET", "POST"]
     }
 });
@@ -21,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 // Rate Limiting
+// TODO: Implement rate limiting in the future.
 // const rateLimit = require('express-rate-limit');
 // const limiter = rateLimit({
 //     windowMs: 15 * 60 * 1000, // 15 minutes

@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Game from '../components/Game.vue';
+import Game from '../views/Game.vue';
 import History from '../components/History.vue';
 import { useAuthStore } from '../stores/auth';
 

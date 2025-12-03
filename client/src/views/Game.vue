@@ -70,10 +70,10 @@
 <script setup>
 import { computed } from "vue";
 import { useAuthStore } from "../stores/auth";
-import RouletteWheel from "./RouletteWheel.vue";
-import HistoryBar from "./HistoryBar.vue";
-import BettingControls from "./BettingControls.vue";
-import BettingBoard from "./BettingBoard.vue";
+import RouletteWheel from "../components/RouletteWheel.vue";
+import HistoryBar from "../components/HistoryBar.vue";
+import BettingControls from "../components/BettingControls.vue";
+import BettingBoard from "../components/BettingBoard.vue";
 import { Card } from "@/components/ui/card";
 import { useGameLogic } from "../composables/useGameLogic";
 import { useBetting } from "../composables/useBetting";
