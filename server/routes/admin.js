@@ -52,6 +52,9 @@ router.get('/stats', auth, admin, async (req, res) => {
         // Net Profit = Total Bets Amount - Total Payouts
         const betStats = await Bet.aggregate([
             {
+                $match: { status: { $ne: 'refunded' } }
+            },
+            {
                 $group: {
                     _id: null,
                     totalBets: { $sum: '$amount' },

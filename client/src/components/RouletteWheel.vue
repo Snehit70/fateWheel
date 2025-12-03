@@ -43,21 +43,21 @@
     </div>
 
     <!-- Center Display (Positioned in the hollow space of the arc) -->
-    <div class="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center pointer-events-none">
+    <div class="absolute top-[30%] md:top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center pointer-events-none">
         
         <!-- Timer State -->
         <div v-if="status.includes('ROLLING IN')" class="text-center">
-            <div class="text-6xl font-outfit font-thin bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
+            <div class="text-6xl font-outfit font-thin md:font-light bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
                 {{ timeLeft.toFixed(2) }}
             </div>
-            <div class="text-text-muted text-sm font-thin tracking-[0.3em] uppercase">Rolling In</div>
+            <div class="text-text-muted text-sm font-thin md:font-light tracking-[0.3em] uppercase">Rolling In</div>
         </div>
 
         <!-- Result State -->
         <div v-else-if="lastResult" class="text-center animate-fade-in">
-            <div class="text-text-muted text-xs font-thin tracking-[0.3em] uppercase mb-4">Winning Number</div>
+            <div class="text-text-muted text-xs font-thin md:font-light tracking-[0.3em] uppercase mb-4">Winning Number</div>
             <div :class="[
-                'text-7xl font-outfit font-thin mb-4 drop-shadow-2xl',
+                'text-7xl font-outfit font-thin md:font-light mb-4 drop-shadow-2xl',
                 lastResult.color === COLORS.RED ? 'text-primary' : lastResult.color === COLORS.GREEN ? 'text-success' : 'text-white'
             ]">
                 {{ lastResult.number }}
@@ -72,7 +72,7 @@
 
         <!-- Rolling State -->
         <div v-else class="text-center pt-8">
-            <div class="text-3xl font-outfit font-thin tracking-[0.3em] text-white uppercase animate-pulse">Rolling</div>
+            <div class="text-3xl font-outfit font-thin md:font-light tracking-[0.3em] text-white uppercase animate-pulse">Rolling</div>
             <div class="flex justify-center mt-4 space-x-2">
                 <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0s"></div>
                 <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
@@ -82,7 +82,7 @@
     </div>
 
     <!-- Pointer -->
-    <div class="absolute bottom-[-15px] left-1/2 -translate-x-1/2 z-30">
+    <div class="absolute bottom-[-15px] md:bottom-[10px] left-1/2 -translate-x-1/2 z-30">
         <div class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[24px] border-b-accent filter drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"></div>
     </div>
 

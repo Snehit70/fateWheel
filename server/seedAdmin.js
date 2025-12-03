@@ -28,6 +28,7 @@ const createAdmin = async () => {
             username: adminUsername,
             password: hashedPassword,
             role: 'admin',
+            status: 'approved',
             balance: 1000000 // High balance for testing
         });
 

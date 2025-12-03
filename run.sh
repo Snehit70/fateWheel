@@ -53,6 +53,18 @@ if ! podman ps | grep -q mongodb; then
   sleep 2
 fi
 
+# Seed Admin User
+echo "Checking/Seeding Admin User..."
+cd server
+node seedAdmin.js
+if [ $? -eq 0 ]; then
+    echo "Admin user check completed."
+else
+    echo "Error seeding admin user."
+    # We don't exit here because the app might still work, but it's good to know
+fi
+cd ..
+
 echo "Starting backend..."
 cd server
 # Start backend in background, redirect output to log

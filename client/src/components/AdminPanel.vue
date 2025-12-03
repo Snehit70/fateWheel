@@ -309,7 +309,14 @@ const deleteUser = async () => {
 const handleUserUpdate = (updatedUser) => {
   const index = users.value.findIndex(u => u._id === updatedUser._id);
   if (index !== -1) {
-    users.value[index] = updatedUser;
+    // Check timestamps to avoid race conditions (out of order updates)
+    const currentUpdate = new Date(users.value[index].updatedAt).getTime();
+    const newUpdate = new Date(updatedUser.updatedAt).getTime();
+    
+    // Only update if the new data is actually newer (or if we don't have a timestamp yet)
+    if (isNaN(currentUpdate) || newUpdate > currentUpdate) {
+      users.value[index] = updatedUser;
+    }
   } else if (updatedUser.role !== 'admin') {
     // New user?
     users.value.unshift(updatedUser);
@@ -332,6 +339,12 @@ onMounted(() => {
       fetchStats();
     });
     authStore.socket.on('admin:statsUpdate', fetchStats);
+    
+    // Refresh data on reconnection
+    authStore.socket.on('connect', () => {
+      fetchUsers();
+      fetchStats();
+    });
   }
 });
 

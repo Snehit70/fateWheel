@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
+const Transaction = require('../models/Transaction');
 const { STATES, SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
 const logger = require('../utils/logger');
 const { secureRandomInt } = require('../utils/random');
@@ -45,9 +46,21 @@ class GameLoop {
             logger.info(`Found ${activeBets.length} active bets to refund from crash`);
 
             for (const bet of activeBets) {
-                await User.findByIdAndUpdate(bet.user, { $inc: { balance: bet.amount } });
+                const updatedUser = await User.findByIdAndUpdate(bet.user, { $inc: { balance: bet.amount } }, { new: true });
                 bet.status = 'refunded';
                 await bet.save();
+
+                // Log Transaction
+                const transaction = new Transaction({
+                    user: bet.user,
+                    type: 'adjustment',
+                    amount: bet.amount,
+                    balanceAfter: updatedUser.balance,
+                    description: 'Refund: Server Restart'
+                });
+                await transaction.save();
+
+                this.io.emit('admin:userUpdate', updatedUser);
             }
             logger.info("Refunded all active bets");
         } catch (err) {
@@ -145,6 +158,7 @@ class GameLoop {
                     // Notify individual user of win
                     const updatedUser = await User.findById(bet.userId);
                     this.io.to(`user:${bet.userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
+                    this.io.emit('admin:userUpdate', updatedUser);
                 }
 
                 // 2. Update Bet Status in DB
@@ -267,6 +281,7 @@ class GameLoop {
         }
 
         this.broadcastState();
+        this.io.emit('admin:userUpdate', dbUser);
         return dbUser.balance;
     }
 
@@ -290,12 +305,24 @@ class GameLoop {
             { status: 'refunded' }
         );
 
+        // Log Transaction
+        const dbUser = await User.findById(user.id);
+        const transaction = new Transaction({
+            user: user.id,
+            type: 'adjustment',
+            amount: totalRefund,
+            balanceAfter: dbUser.balance,
+            description: 'Refund: Bets Cleared'
+        });
+        await transaction.save();
+
         // Remove bets from memory
         this.bets = this.bets.filter(b => b.userId !== user.id);
 
         this.broadcastState();
 
         const dbUser = await User.findById(user.id);
+        this.io.emit('admin:userUpdate', dbUser);
         return dbUser.balance;
     }
 }

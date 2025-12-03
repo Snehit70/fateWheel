@@ -27,6 +27,18 @@ export const useAuthStore = defineStore('auth', {
                             this.user.balance = payload.balance;
                         }
                     });
+
+                    // Refresh user data on reconnection (fixes sync issues after server restart)
+                    socket.on('connect', async () => {
+                        if (this.token) {
+                            try {
+                                const res = await api.get('/auth/me');
+                                this.user = res.data;
+                            } catch (err) {
+                                console.error("Failed to refresh user on reconnect:", err);
+                            }
+                        }
+                    });
                 } catch (err) {
                     console.error("Failed to fetch user:", err);
                     this.logout();
