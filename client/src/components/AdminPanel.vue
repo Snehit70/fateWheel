@@ -257,6 +257,13 @@ const saveBalance = async () => {
 const updateStatus = async (user, status) => {
   try {
     const res = await api.put(`/admin/users/${user._id}/status`, { status });
+    
+    // Update local state immediately
+    const index = users.value.findIndex(u => u._id === user._id);
+    if (index !== -1) {
+      users.value[index] = res.data;
+    }
+    
     fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);

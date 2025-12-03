@@ -17,6 +17,16 @@ export const useAuthStore = defineStore('auth', {
                     const response = await api.get('/auth/me');
                     this.user = response.data;
                     this.isInitialized = true;
+
+                    // Initialize socket with token
+                    socket.setToken(this.token);
+
+                    // Listen for balance updates
+                    socket.on('balanceUpdate', (payload) => {
+                        if (this.user) {
+                            this.user.balance = payload.balance;
+                        }
+                    });
                 } catch (err) {
                     console.error("Failed to fetch user:", err);
                     this.logout();
