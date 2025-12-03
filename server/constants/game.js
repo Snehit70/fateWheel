@@ -1,10 +1,10 @@
-export const COLORS = {
+const COLORS = {
     GREEN: 'green',
     RED: 'red',
     BLACK: 'black'
 };
 
-export const SEGMENTS = [
+const SEGMENTS = [
     { number: 0, color: COLORS.GREEN },
     { number: 1, color: COLORS.RED },
     { number: 8, color: COLORS.BLACK },
@@ -22,25 +22,21 @@ export const SEGMENTS = [
     { number: 14, color: COLORS.BLACK },
 ];
 
-export const PAYOUTS = {
+const PAYOUTS = {
     NUMBER: 14,
     COLOR: 2,
     TYPE: 2 // Even/Odd
 };
 
-export const TIMING = {
+const TIMING = {
     WAITING_TIME: 20, // seconds
     SPIN_DURATION: 5, // seconds
     RESULT_DURATION: 5 // seconds
 };
 
-export const SEGMENT_ANGLE = 360 / SEGMENTS.length;
-
-export const ANIMATION = {
-    ROTATION_SPEED: 15,
-    EXTRA_SPINS: 5
-};
-
-export const getNumbersByColor = (color) => {
-    return SEGMENTS.filter(s => s.color === color).map(s => s.number);
+module.exports = {
+    COLORS,
+    SEGMENTS,
+    PAYOUTS,
+    TIMING
 };

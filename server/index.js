@@ -53,6 +53,9 @@ app.get('/', (req, res) => {
 // Initialize Game Loop
 const gameLoop = new GameLoop(io);
 
+// Crash Recovery: Refund any active bets from previous session
+gameLoop.refundActiveBets();
+
 // Socket.io Middleware for Auth (Optional for connection, required for betting)
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
@@ -115,6 +118,14 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const logger = require('./utils/logger');
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    logger.error('Unhandled Error', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+});
+
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    logger.info(`Server running on port ${PORT}`);
 });

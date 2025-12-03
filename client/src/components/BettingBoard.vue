@@ -8,7 +8,7 @@
       <!-- Header Row -->
       <div class="flex gap-2 h-14">
         <Button
-          @click="$emit('place-bet', 'color', 'red')"
+          @click="$emit('place-bet', 'color', COLORS.RED)"
           class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1"
         >
           RED
@@ -21,7 +21,7 @@
         </Button>
         <div class="flex-[2] grid grid-cols-7 gap-1">
           <Button
-            v-for="num in getNumbersByColor('red')"
+            v-for="num in getNumbersByColor(COLORS.RED)"
             :key="num"
             @click="$emit('place-bet', 'number', num)"
             variant="outline"
@@ -195,7 +195,7 @@
       <!-- Header Row -->
       <div class="flex gap-2 h-14">
         <Button
-          @click="$emit('place-bet', 'color', 'black')"
+          @click="$emit('place-bet', 'color', COLORS.BLACK)"
           class="flex-1 bg-[#1a1a1a] hover:bg-black text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-black active:border-b-0 active:translate-y-1"
         >
           BLACK
@@ -208,7 +208,7 @@
         </Button>
         <div class="flex-[2] grid grid-cols-7 gap-1">
           <Button
-            v-for="num in getNumbersByColor('black')"
+            v-for="num in getNumbersByColor(COLORS.BLACK)"
             :key="num"
             @click="$emit('place-bet', 'number', num)"
             variant="outline"
@@ -284,7 +284,7 @@
 
 <script setup>
 import { useBettingBoard } from "../composables/useBettingBoard";
-import { getNumbersByColor } from "../constants/game";
+import { getNumbersByColor, COLORS } from "../constants/game";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 

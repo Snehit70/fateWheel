@@ -58,13 +58,13 @@
             <div class="text-text-muted text-xs font-light tracking-[0.3em] uppercase mb-4">Winning Number</div>
             <div :class="[
                 'text-7xl font-outfit font-light mb-4 drop-shadow-2xl',
-                lastResult.color === 'red' ? 'text-primary' : lastResult.color === 'green' ? 'text-success' : 'text-white'
+                lastResult.color === COLORS.RED ? 'text-primary' : lastResult.color === COLORS.GREEN ? 'text-success' : 'text-white'
             ]">
                 {{ lastResult.number }}
             </div>
             <div :class="[
                 'text-sm font-bold uppercase tracking-widest px-4 py-1.5 rounded-full inline-block border font-outfit',
-                lastResult.color === 'red' ? 'bg-primary/20 text-primary border-primary/30' : lastResult.color === 'green' ? 'bg-success/20 text-success border-success/30' : 'bg-surface-light text-text-muted border-white/10'
+                lastResult.color === COLORS.RED ? 'bg-primary/20 text-primary border-primary/30' : lastResult.color === COLORS.GREEN ? 'bg-success/20 text-success border-success/30' : 'bg-surface-light text-text-muted border-white/10'
             ]">
                 {{ lastResult.color }}
             </div>
@@ -92,7 +92,16 @@
 </template>
 
 <script setup>
-import { SEGMENTS, SEGMENT_ANGLE, getSegmentColor } from '../constants/game';
+import { SEGMENTS, SEGMENT_ANGLE, COLORS } from '../constants/game';
+
+const getSegmentColor = (color) => {
+    switch(color) {
+        case COLORS.RED: return '#ff4d4d';
+        case COLORS.BLACK: return '#1a1a1a';
+        case COLORS.GREEN: return '#22c55e';
+        default: return color;
+    }
+};
 
 const props = defineProps({
   rotation: {

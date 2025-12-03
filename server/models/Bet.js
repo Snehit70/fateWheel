@@ -36,6 +36,14 @@ const betSchema = new mongoose.Schema({
         number: Number,
         color: String
     },
+    status: {
+        type: String,
+        enum: ['active', 'completed', 'refunded'],
+        default: 'active'
+    },
+    roundId: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now
