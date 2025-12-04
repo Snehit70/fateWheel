@@ -58,6 +58,11 @@ if (!process.env.JWT_SECRET) {
     logger.error('Critical Error: JWT_SECRET must be defined in environment variables.');
     process.exit(1);
 }
+
+if (!process.env.CLIENT_URL) {
+    logger.error('Critical Error: CLIENT_URL must be defined in environment variables for CORS.');
+    process.exit(1);
+}
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
