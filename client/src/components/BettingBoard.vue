@@ -59,7 +59,7 @@
             @click="handlePlaceBet('number', num)"
             variant="outline"
             class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn }]"
+            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
           >
             <span class="text-sm font-medium">{{ num }}</span>
             <span
@@ -139,7 +139,7 @@
           @click="handlePlaceBet('type', 'even')"
           variant="outline"
           class="h-full bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500 text-xs uppercase tracking-wider font-outfit font-bold"
-          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn }"
+          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
           EVEN
         </Button>
@@ -160,7 +160,7 @@
           @click="handlePlaceBet('type', 'odd')"
           variant="outline"
           class="h-full bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500 text-xs uppercase tracking-wider font-outfit font-bold"
-          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn }"
+          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
           ODD
         </Button>
@@ -249,7 +249,7 @@
             @click="handlePlaceBet('number', num)"
             variant="outline"
             class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn }]"
+            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
           >
             <span class="text-sm font-medium">{{ num }}</span>
             <span
