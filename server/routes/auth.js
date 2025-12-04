@@ -10,8 +10,9 @@ router.post('/register', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        if (!password || password.length < 6) {
-            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters and include at least one number and one special character' });
         }
 
         // Check if user exists
