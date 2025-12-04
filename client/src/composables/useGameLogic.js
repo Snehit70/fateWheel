@@ -118,6 +118,10 @@ export function useGameLogic() {
                     clearInterval(spinInterval);
                     spinInterval = null;
                 }
+                // Late join handling
+                if (data.targetResult && !isAnimating.value) {
+                    handleSpin(data.targetResult, endTime);
+                }
             } else if (data.state === 'RESULT') {
                 if (!isAnimating.value) {
                     status.value = 'RESULT';
