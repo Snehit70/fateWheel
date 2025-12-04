@@ -34,6 +34,7 @@ if (process.env.REDIS_URL) {
 }
 
 // Middleware
+app.use(require('helmet')());
 app.use(cors());
 app.use(express.json());
 
