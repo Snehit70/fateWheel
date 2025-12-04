@@ -92,9 +92,34 @@ io.on('connection', (socket) => {
         result: gameLoop.result
     });
 
+    // Rate Limiter
+    const rateLimiter = new Map();
+    const RATE_LIMIT_WINDOW = 1000; // 1 second
+    const MAX_REQUESTS = 5; // 5 requests per second
+
+    const checkRateLimit = (eventName) => {
+        const now = Date.now();
+        const key = `${socket.id}:${eventName}`;
+        const userRequests = rateLimiter.get(key) || [];
+
+        // Filter out old requests
+        const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW);
+
+        if (recentRequests.length >= MAX_REQUESTS) {
+            return false;
+        }
+
+        recentRequests.push(now);
+        rateLimiter.set(key, recentRequests);
+        return true;
+    };
+
     socket.on('placeBet', async (betData, callback) => {
         if (!socket.user) {
             return callback({ error: "Please login to bet" });
+        }
+        if (!checkRateLimit('placeBet')) {
+            return callback({ error: "Rate limit exceeded. Please slow down." });
         }
         try {
             const newBalance = await gameLoop.placeBet(socket.user, betData);
@@ -108,6 +133,9 @@ io.on('connection', (socket) => {
         if (!socket.user) {
             return callback({ error: "Please login" });
         }
+        if (!checkRateLimit('clearBets')) {
+            return callback({ error: "Rate limit exceeded. Please slow down." });
+        }
         try {
             const newBalance = await gameLoop.clearBets(socket.user);
             callback({ success: true, newBalance });
@@ -118,6 +146,9 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+        // Clean up rate limiter
+        rateLimiter.delete(`${socket.id}:placeBet`);
+        rateLimiter.delete(`${socket.id}:clearBets`);
     });
 });
 
