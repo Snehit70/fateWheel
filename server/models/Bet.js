@@ -52,5 +52,6 @@ const betSchema = new mongoose.Schema({
 betSchema.index({ user: 1, createdAt: -1 });
 betSchema.index({ roundId: 1 });
 betSchema.index({ createdAt: -1 });
+betSchema.index({ status: 1, roundId: 1 }); // Optimized for processing active bets
 
 module.exports = mongoose.model('Bet', betSchema);
