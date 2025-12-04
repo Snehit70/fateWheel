@@ -28,7 +28,7 @@ export function useGameLogic() {
         winnings.value = 0;
 
         // Calculate duration based on server timestamp
-        const now = Date.now();
+        const now = socket.getServerTime();
         // Add a small buffer for network latency if needed, but ideally we trust server time
         // If spinEndTime is in the past, we just snap to result? 
         // No, usually spinEndTime is in the future (5 seconds from start).
@@ -103,7 +103,7 @@ export function useGameLogic() {
 
                 if (!spinInterval) {
                     spinInterval = setInterval(() => {
-                        const remaining = Math.max(0, (endTime - Date.now()) / 1000);
+                        const remaining = Math.max(0, (endTime - socket.getServerTime()) / 1000);
                         timeLeft.value = remaining;
                         if (remaining <= 0) {
                             // Timer finished
