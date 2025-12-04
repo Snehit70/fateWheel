@@ -134,61 +134,51 @@ class GameLoop {
         if (this.history.length > 20) this.history.pop();
 
         // Process Bets
-        // We iterate through our memory cache of bets for this round
-        // But we update DB atomically
-        for (const bet of this.bets) {
-            let winnings = 0;
-            if (bet.type === "number" && bet.value === this.result.number) {
-                winnings = Math.floor(bet.amount * PAYOUTS.NUMBER);
-            } else if (bet.type === "color" && bet.value === this.result.color) {
-                winnings = Math.floor(bet.amount * PAYOUTS.COLOR);
-            } else if (bet.type === "type") {
-                if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
-                    winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
-                } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
-                    winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
-                }
-            }
+        // We iterate through DB records to ensure we process every active bet for this round
+        try {
+            const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
 
-            try {
-                // 1. Update User Balance (Atomic)
+            for (const bet of activeBets) {
+                let winnings = 0;
+                if (bet.type === "number" && bet.value === this.result.number) {
+                    winnings = Math.floor(bet.amount * PAYOUTS.NUMBER);
+                } else if (bet.type === "color" && bet.value === this.result.color) {
+                    winnings = Math.floor(bet.amount * PAYOUTS.COLOR);
+                } else if (bet.type === "type") {
+                    if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
+                        winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                    } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
+                        winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                    }
+                }
+
+                // 1. Update Bet Status to 'completed' FIRST to prevent double payout on crash
+                // If we crash after this but before balance update, user loses win (better than double payout)
+                // In a real system, we'd use transactions or a 'payout_pending' state with a recovery worker.
+                bet.status = 'completed';
+                bet.result = winnings > 0 ? 'win' : 'loss';
+                bet.payout = winnings;
+                bet.gameResult = {
+                    number: this.result.number,
+                    color: this.result.color
+                };
+                await bet.save();
+
+                // 2. Update User Balance
                 if (winnings > 0) {
-                    await User.findByIdAndUpdate(bet.userId, { $inc: { balance: winnings } });
+                    const updatedUser = await User.findByIdAndUpdate(
+                        bet.user,
+                        { $inc: { balance: winnings } },
+                        { new: true }
+                    );
 
                     // Notify individual user of win
-                    const updatedUser = await User.findById(bet.userId);
-                    this.io.to(`user:${bet.userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
+                    this.io.to(`user:${bet.user}`).emit('balanceUpdate', { balance: updatedUser.balance });
                     this.io.emit('admin:userUpdate', updatedUser);
                 }
-
-                // 2. Update Bet Status in DB
-                // We need to find the specific bet document. 
-                // Since we didn't store the bet ID in memory (my bad in previous design), 
-                // we should have returned it. 
-                // FIX: We will update all 'active' bets for this user/round to 'completed'.
-                // Ideally we should have stored the bet ID. 
-                // For now, let's update based on user and roundId.
-
-                // Actually, let's just update the specific bet if we had the ID.
-                // Since we don't have the ID in the memory object `this.bets` (it just has userId, type, etc),
-                // we should update the DB query.
-
-                // Better approach: We created the bet in placeBet. We should store the _id in this.bets.
-                if (bet._id) {
-                    await Bet.findByIdAndUpdate(bet._id, {
-                        status: 'completed',
-                        result: winnings > 0 ? 'win' : 'loss',
-                        payout: winnings,
-                        gameResult: {
-                            number: this.result.number,
-                            color: this.result.color
-                        }
-                    });
-                }
-
-            } catch (err) {
-                logger.error("Payout error:", err);
             }
+        } catch (err) {
+            logger.error("Error processing bets:", err);
         }
 
         // Save Game Result
