@@ -109,32 +109,43 @@ io.on('connection', (socket) => {
     });
 
     // Rate Limiter
-    const rateLimiter = new Map();
-    const RATE_LIMIT_WINDOW = 1000; // 1 second
-    const MAX_REQUESTS = 5; // 5 requests per second
+    const { RateLimiterMemory, RateLimiterRedis } = require('rate-limiter-flexible');
 
-    const checkRateLimit = (eventName) => {
-        const now = Date.now();
-        const key = `${socket.id}:${eventName}`;
-        const userRequests = rateLimiter.get(key) || [];
+    let rateLimiter;
+    if (process.env.REDIS_URL) {
+        // Use Redis for distributed rate limiting
+        const { createClient } = require('redis');
+        const redisClient = createClient({ url: process.env.REDIS_URL });
+        redisClient.connect().catch(console.error);
 
-        // Filter out old requests
-        const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW);
+        rateLimiter = new RateLimiterRedis({
+            storeClient: redisClient,
+            points: 5, // 5 requests
+            duration: 1, // per 1 second
+            keyPrefix: 'rate_limit'
+        });
+    } else {
+        // Fallback to Memory
+        rateLimiter = new RateLimiterMemory({
+            points: 5, // 5 requests
+            duration: 1, // per 1 second
+        });
+    }
 
-        if (recentRequests.length >= MAX_REQUESTS) {
+    const checkRateLimit = async (eventName) => {
+        try {
+            await rateLimiter.consume(`${socket.id}:${eventName}`);
+            return true;
+        } catch (rejRes) {
             return false;
         }
-
-        recentRequests.push(now);
-        rateLimiter.set(key, recentRequests);
-        return true;
     };
 
     socket.on('placeBet', async (betData, callback) => {
         if (!socket.user) {
             return callback({ error: "Please login to bet" });
         }
-        if (!checkRateLimit('placeBet')) {
+        if (!await checkRateLimit('placeBet')) {
             return callback({ error: "Rate limit exceeded. Please slow down." });
         }
         try {
@@ -149,7 +160,7 @@ io.on('connection', (socket) => {
         if (!socket.user) {
             return callback({ error: "Please login" });
         }
-        if (!checkRateLimit('clearBets')) {
+        if (!await checkRateLimit('clearBets')) {
             return callback({ error: "Rate limit exceeded. Please slow down." });
         }
         try {
@@ -162,9 +173,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
-        // Clean up rate limiter
-        rateLimiter.delete(`${socket.id}:placeBet`);
-        rateLimiter.delete(`${socket.id}:clearBets`);
+        // Clean up rate limiter (not needed for flexible-rate-limiter as it handles expiration)
     });
 
     socket.on('timeSync', (callback) => {
