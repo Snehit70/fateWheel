@@ -42,7 +42,7 @@
         <Button
           @click="handlePlaceBet('color', COLORS.RED)"
           class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1"
-          :class="{ 'opacity-80 hover:bg-[#ff4d4d] cursor-not-allowed': !isLoggedIn }"
+          :class="{ 'opacity-80 hover:bg-[#ff4d4d] cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
           RED
           <span
@@ -146,7 +146,7 @@
         <Button
           @click="handlePlaceBet('number', 0)"
           class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-          :class="[getNumberClass(0), { 'opacity-80 cursor-not-allowed': !isLoggedIn }]"
+          :class="[getNumberClass(0), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
         >
           <span class="text-sm font-medium">0</span>
           <span
@@ -232,7 +232,7 @@
         <Button
           @click="handlePlaceBet('color', COLORS.BLACK)"
           class="flex-1 bg-[#1a1a1a] hover:bg-black text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-black active:border-b-0 active:translate-y-1"
-          :class="{ 'opacity-80 hover:bg-[#1a1a1a] cursor-not-allowed': !isLoggedIn }"
+          :class="{ 'opacity-80 hover:bg-[#1a1a1a] cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
           BLACK
           <span
@@ -324,12 +324,15 @@ import { useBettingBoard } from "../composables/useBettingBoard";
 import { getNumbersByColor, COLORS } from "../constants/game";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
-
-import { ref } from 'vue';
 
 const authStore = useAuthStore();
 const activeTab = ref('red');
+
+const isAdmin = computed(() => {
+    return authStore.user && authStore.user.role === 'admin';
+});
 
 const props = defineProps({
   bets: {
@@ -353,6 +356,7 @@ const handlePlaceBet = (type, value) => {
         authStore.openLoginModal();
         return;
     }
+    if (isAdmin.value) return;
     emit('place-bet', type, value);
 };
 
