@@ -100,7 +100,10 @@ class GameLoop {
             endTime: this.endTime, // Send timestamp instead of duration
             bets: this.bets,
             history: this.history,
-            result: this.result
+            bets: this.bets,
+            history: this.history,
+            result: this.state === GAME_STATES.RESULT ? this.result : null,
+            targetResult: this.state === GAME_STATES.SPINNING ? this.result : null
         });
     }
 
