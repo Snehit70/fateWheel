@@ -227,7 +227,24 @@ class GameLoop {
         }
 
         // Validate type and value against constants
-        // (Simplified validation for brevity, but should check if value exists in SEGMENTS/COLORS)
+        const VALID_TYPES = ['number', 'color', 'type'];
+        if (!VALID_TYPES.includes(type)) {
+            throw new Error("Invalid bet type");
+        }
+
+        if (type === 'number') {
+            if (!Number.isInteger(value) || value < 0 || value > 14) {
+                throw new Error("Invalid number bet (must be 0-14)");
+            }
+        } else if (type === 'color') {
+            if (!['red', 'black', 'green'].includes(value)) {
+                throw new Error("Invalid color bet");
+            }
+        } else if (type === 'type') {
+            if (!['even', 'odd'].includes(value)) {
+                throw new Error("Invalid type bet (must be even or odd)");
+            }
+        }
 
         // Atomic check and deduct
         const dbUser = await User.findOneAndUpdate(
