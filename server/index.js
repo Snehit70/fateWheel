@@ -150,6 +150,10 @@ io.on('connection', (socket) => {
         rateLimiter.delete(`${socket.id}:placeBet`);
         rateLimiter.delete(`${socket.id}:clearBets`);
     });
+
+    socket.on('timeSync', (callback) => {
+        callback(Date.now());
+    });
 });
 
 const PORT = process.env.PORT || 3000;

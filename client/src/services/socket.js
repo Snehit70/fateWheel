@@ -20,7 +20,8 @@ class SocketService {
         });
 
         this.socket.on('connect', () => {
-            console.log('Connected to WebSocket');
+            console.log('Socket connected');
+            this.syncTime();
         });
 
         this.socket.on('disconnect', () => {
@@ -51,11 +52,28 @@ class SocketService {
     }
 
     setToken(token) {
+        this.token = token;
         if (this.socket) {
-            this.socket.disconnect();
-            this.socket = null;
+            this.socket.auth = { token };
+            if (this.socket.connected) {
+                this.socket.disconnect().connect();
+            }
         }
-        this.connect(token);
+    }
+
+    async syncTime() {
+        if (!this.socket) return;
+        const start = Date.now();
+        this.socket.emit('timeSync', (serverTime) => {
+            const end = Date.now();
+            const latency = (end - start) / 2;
+            this.serverTimeOffset = serverTime - (end - latency);
+            console.log('Time synced. Offset:', this.serverTimeOffset, 'ms');
+        });
+    }
+
+    getServerTime() {
+        return Date.now() + this.serverTimeOffset;
     }
 }
 
