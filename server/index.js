@@ -33,7 +33,13 @@ app.use((req, res, next) => {
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/roulette';
 
 if (!process.env.MONGODB_URI && !process.env.MONGO_URL && !process.env.DATABASE_URL) {
-    console.warn('Warning: MONGODB_URI not found in environment, defaulting to localhost');
+    logger.error('Critical Error: MONGODB_URI, MONGO_URL, or DATABASE_URL must be defined in environment variables.');
+    process.exit(1);
+}
+
+if (!process.env.JWT_SECRET) {
+    logger.error('Critical Error: JWT_SECRET must be defined in environment variables.');
+    process.exit(1);
 }
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
