@@ -46,8 +46,9 @@ if ! podman ps | grep -q mongodb; then
     podman start mongodb
     echo "MongoDB started."
   else
-    echo "Error: MongoDB container 'mongodb' not found. Please create it first."
-    exit 1
+    echo "MongoDB container not found. Creating and starting..."
+    podman run -d --name mongodb -p 27017:27017 mongo:latest
+    echo "MongoDB created and started."
   fi
   # Wait a moment for DB to be ready
   sleep 2
