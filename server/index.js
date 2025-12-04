@@ -17,6 +17,22 @@ const io = new Server(server, {
     }
 });
 
+// Redis Adapter for Scalability
+if (process.env.REDIS_URL) {
+    const { createClient } = require('redis');
+    const { createAdapter } = require('@socket.io/redis-adapter');
+
+    const pubClient = createClient({ url: process.env.REDIS_URL });
+    const subClient = pubClient.duplicate();
+
+    Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+        io.adapter(createAdapter(pubClient, subClient));
+        console.log('Redis Adapter connected');
+    }).catch(err => {
+        console.error('Redis Adapter error:', err);
+    });
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
