@@ -13,6 +13,16 @@
         </Button>
     </div>
 
+    <!-- Admin Overlay -->
+    <div 
+        v-if="isAdmin" 
+        class="absolute inset-0 z-20 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg border border-white/10"
+    >
+        <div class="font-bold text-lg px-8 py-6 text-destructive border border-destructive/50 bg-destructive/10 rounded-md">
+            BETTING DISABLED FOR ADMINS
+        </div>
+    </div>
+
     <!-- Input & Multipliers -->
     <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <div class="flex items-center gap-2">
@@ -119,6 +129,10 @@ const chips = [
 
 const isOutOfRange = computed(() => {
     return betAmount.value > 0 && (betAmount.value < 10 || betAmount.value > 201);
+});
+
+const isAdmin = computed(() => {
+    return authStore.user && authStore.user.role === 'admin';
 });
 
 watch(betAmount, (val) => {
