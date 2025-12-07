@@ -8,8 +8,12 @@ A full-stack Roulette application built with Vue.js (Frontend) and Node.js/Expre
     ```bash
     ./run.sh
     ```
+    **Windows (PowerShell)**:
+    ```powershell
+    .\run.ps1
+    ```
     This will:
-    -   Check/Start MongoDB
+    -   Check/Start MongoDB (requires Docker Desktop on Windows)
     -   Start the Backend (Port 3000)
     -   Start the Frontend (Port 5173)
     -   Show a status report with URLs
