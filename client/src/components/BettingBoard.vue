@@ -81,7 +81,7 @@
             >Users</span
           >
           <span class="text-sm font-medium text-foreground font-outfit">{{
-            getBetsForColor("red").length
+            getUniqueUsersCountForColor("red")
           }}</span>
         </div>
         <div
@@ -109,8 +109,8 @@
       <!-- User Cards -->
       <div class="grid grid-cols-4 gap-2">
         <div
-          v-for="(bet, i) in getBetsForColor('red')"
-          :key="i"
+          v-for="(user, i) in getAggregatedBetsForColor('red')"
+          :key="user.userId || i"
           class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-red-500/30 transition-colors"
         >
           <img
@@ -119,10 +119,10 @@
           />
           <span
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
-            >{{ bet.username || "User" }}</span
+            >{{ user.username || "User" }}</span
           >
           <span class="text-xs font-medium text-red-500 font-outfit">{{
-            bet.amount
+            user.amount
           }}</span>
         </div>
       </div>
@@ -175,7 +175,7 @@
             >Users</span
           >
           <span class="text-sm font-medium text-foreground font-outfit">{{
-            getBetsForColor("green").length
+            getUniqueUsersCountForColor("green")
           }}</span>
         </div>
         <div
@@ -203,8 +203,8 @@
       <!-- User Cards -->
       <div class="grid grid-cols-4 gap-2">
         <div
-          v-for="(bet, i) in getBetsForColor('green')"
-          :key="i"
+          v-for="(user, i) in getAggregatedBetsForColor('green')"
+          :key="user.userId || i"
           class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-green-500/30 transition-colors"
         >
           <img
@@ -213,10 +213,10 @@
           />
           <span
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
-            >{{ bet.username || "User" }}</span
+            >{{ user.username || "User" }}</span
           >
           <span class="text-xs font-medium text-green-500 font-outfit">{{
-            bet.amount
+            user.amount
           }}</span>
         </div>
       </div>
@@ -271,7 +271,7 @@
             >Users</span
           >
           <span class="text-sm font-medium text-foreground font-outfit">{{
-            getBetsForColor("black").length
+            getUniqueUsersCountForColor("black")
           }}</span>
         </div>
         <div
@@ -299,8 +299,8 @@
       <!-- User Cards -->
       <div class="grid grid-cols-4 gap-2">
         <div
-          v-for="(bet, i) in getBetsForColor('black')"
-          :key="i"
+          v-for="(user, i) in getAggregatedBetsForColor('black')"
+          :key="user.userId || i"
           class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-white/20 transition-colors"
         >
           <img
@@ -309,9 +309,9 @@
           />
           <span
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
-            >{{ bet.username || "User" }}</span
+            >{{ user.username || "User" }}</span
           >
-          <span class="text-xs font-medium text-foreground font-outfit">{{ bet.amount }}</span>
+          <span class="text-xs font-medium text-foreground font-outfit">{{ user.amount }}</span>
         </div>
       </div>
     </Card>
@@ -364,6 +364,8 @@ const {
     getBetAmount,
     getBetsForColor,
     getTotalBetForColor,
+    getUniqueUsersCountForColor,
+    getAggregatedBetsForColor,
     getUserBetForColor,
     getSectionClass,
     getNumberClass

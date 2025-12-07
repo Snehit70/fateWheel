@@ -37,6 +37,33 @@ export function useBettingBoard(props, emit) {
         return getBetsForColor(color).reduce((sum, b) => sum + b.amount, 0);
     };
 
+    // Count unique users who have bet in this color section
+    const getUniqueUsersCountForColor = (color) => {
+        const bets = getBetsForColor(color);
+        const uniqueUserIds = new Set(bets.map(b => b.userId));
+        return uniqueUserIds.size;
+    };
+
+    // Aggregate bets by user - returns array of { userId, username, totalAmount }
+    const getAggregatedBetsForColor = (color) => {
+        const bets = getBetsForColor(color);
+        const userMap = new Map();
+
+        for (const bet of bets) {
+            if (userMap.has(bet.userId)) {
+                userMap.get(bet.userId).amount += bet.amount;
+            } else {
+                userMap.set(bet.userId, {
+                    userId: bet.userId,
+                    username: bet.username,
+                    amount: bet.amount
+                });
+            }
+        }
+
+        return Array.from(userMap.values());
+    };
+
     const getUserBetForColor = (color) => {
         const userId = authStore.user?.id;
         if (!userId) return 0;
@@ -90,6 +117,8 @@ export function useBettingBoard(props, emit) {
         getBetAmount,
         getBetsForColor,
         getTotalBetForColor,
+        getUniqueUsersCountForColor,
+        getAggregatedBetsForColor,
         getUserBetForColor,
         getSectionClass,
         getNumberClass
