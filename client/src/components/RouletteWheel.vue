@@ -47,23 +47,23 @@
         
         <!-- Timer State -->
         <div v-if="status.includes('ROLLING IN')" class="text-center">
-            <div class="text-6xl font-outfit font-thin md:font-light bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
+            <div class="text-4xl sm:text-5xl md:text-6xl font-outfit font-thin md:font-light bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
                 {{ timeLeft.toFixed(2) }}
             </div>
-            <div class="text-text-muted text-sm font-thin md:font-light tracking-[0.3em] uppercase">Rolling In</div>
+            <div class="text-text-muted text-xs sm:text-sm font-thin md:font-light tracking-[0.3em] uppercase">Rolling In</div>
         </div>
 
         <!-- Result State -->
         <div v-else-if="lastResult" class="text-center animate-fade-in">
-            <div class="text-text-muted text-xs font-thin md:font-light tracking-[0.3em] uppercase mb-4">Winning Number</div>
+            <div class="text-text-muted text-[10px] sm:text-xs font-thin md:font-light tracking-[0.3em] uppercase mb-2 sm:mb-4">Winning Number</div>
             <div :class="[
-                'text-7xl font-outfit font-thin md:font-light mb-4 drop-shadow-2xl',
+                'text-5xl sm:text-6xl md:text-7xl font-outfit font-thin md:font-light mb-2 sm:mb-4 drop-shadow-2xl',
                 lastResult.color === COLORS.RED ? 'text-primary' : lastResult.color === COLORS.GREEN ? 'text-success' : 'text-white'
             ]">
                 {{ lastResult.number }}
             </div>
             <div :class="[
-                'text-sm font-bold uppercase tracking-widest px-4 py-1.5 rounded-full inline-block border font-outfit',
+                'text-xs sm:text-sm font-bold uppercase tracking-widest px-3 sm:px-4 py-1 sm:py-1.5 rounded-full inline-block border font-outfit',
                 lastResult.color === COLORS.RED ? 'bg-primary/20 text-primary border-primary/30' : lastResult.color === COLORS.GREEN ? 'bg-success/20 text-success border-success/30' : 'bg-surface-light text-text-muted border-white/10'
             ]">
                 {{ lastResult.color }}
@@ -72,7 +72,7 @@
 
         <!-- Rolling State -->
         <div v-else class="text-center pt-8">
-            <div class="text-3xl font-outfit font-thin md:font-light tracking-[0.3em] text-white uppercase animate-pulse">Rolling</div>
+            <div class="text-2xl sm:text-3xl font-outfit font-thin md:font-light tracking-[0.3em] text-white uppercase animate-pulse">Rolling</div>
             <div class="flex justify-center mt-4 space-x-2">
                 <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0s"></div>
                 <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
