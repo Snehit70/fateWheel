@@ -29,9 +29,9 @@ const PAYOUTS = {
 };
 
 const TIMING = {
-    WAITING_TIME: 60, // seconds
-    SPIN_DURATION: 5, // seconds
-    RESULT_DURATION: 5 // seconds
+    WAITING_TIME: parseInt(process.env.GAME_WAITING_TIME, 10) || 60, // seconds
+    SPIN_DURATION: parseInt(process.env.GAME_SPIN_DURATION, 10) || 5, // seconds
+    RESULT_DURATION: parseInt(process.env.GAME_RESULT_DURATION, 10) || 5 // seconds
 };
 
 module.exports = {
