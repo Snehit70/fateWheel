@@ -57,7 +57,6 @@
             v-for="num in getNumbersByColor(COLORS.RED)"
             :key="num"
             @click="handlePlaceBet('number', num)"
-            variant="outline"
             class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
             :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
           >
@@ -247,7 +246,6 @@
             v-for="num in getNumbersByColor(COLORS.BLACK)"
             :key="num"
             @click="handlePlaceBet('number', num)"
-            variant="outline"
             class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
             :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
           >
