@@ -5,18 +5,22 @@ A full-stack Roulette application built with Vue.js (Frontend) and Node.js/Expre
 ## Quick Start
 
 1.  **Start the Application**:
+
     ```bash
     ./run.sh
     ```
+
     **Windows (PowerShell)**:
+
     ```powershell
     .\run.ps1
     ```
+
     This will:
-    -   Check/Start MongoDB (requires Docker Desktop on Windows)
-    -   Start the Backend (Port 3000)
-    -   Start the Frontend (Port 5173)
-    -   Show a status report with URLs
+    - Check/Start MongoDB (requires Docker Desktop on Windows)
+    - Start the Backend (Port 3000)
+    - Start the Frontend (Port 5173)
+    - Show a status report with URLs
 
 2.  **Stop the Application**:
     ```bash
@@ -24,11 +28,13 @@ A full-stack Roulette application built with Vue.js (Frontend) and Node.js/Expre
     ```
 
 ## Features
--   Real-time betting and game loop
--   User authentication
--   Admin panel for user management
--   Secure random number generation
+
+- Real-time betting and game loop
+- User authentication
+- Admin panel for user management
+- Secure random number generation
 
 ## Requirements
--   Node.js & npm
--   Podman (for MongoDB)
+
+- Node.js & npm
+- Podman (for MongoDB)
