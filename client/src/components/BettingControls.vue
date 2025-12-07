@@ -55,14 +55,13 @@
             v-for="chip in chips" 
             :key="chip.value" 
             variant="outline" 
-            class="h-auto py-2 sm:py-3 flex flex-col items-center justify-center gap-1 hover:border-primary/50"
+            class="h-auto py-2 sm:py-3 flex items-center justify-center hover:border-primary/50"
             @click="addAmount(chip.value)"
             :disabled="!isLoggedIn || isSpinning"
         >
-            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-[10px] sm:text-xs font-bold text-white group-hover:border-primary transition-colors">
-                {{ chip.label }}
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-xs sm:text-sm font-bold text-white group-hover:border-primary transition-colors">
+                +{{ chip.label }}
             </div>
-            <span class="text-xs text-muted-foreground font-bold group-hover:text-foreground">+{{ chip.label }}</span>
         </Button>
     </div>
 
