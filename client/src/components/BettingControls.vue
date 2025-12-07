@@ -39,8 +39,9 @@
                 />
             </div>
             <div class="flex gap-1">
-                 <Button variant="secondary" size="sm" @click="setAmount('half')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">1/2</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('double')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">2x</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('10')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">10</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('1000')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">1000</Button>
+                 <Button variant="secondary" size="sm" @click="setAmount('min')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MIN</Button>
                  <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MAX</Button>
             </div>
         </div>
@@ -139,10 +140,10 @@ watch(betAmount, (val) => {
 });
 
 const setAmount = (type) => {
+    if (type === '10') betAmount.value = 10;
+    if (type === '1000') betAmount.value = Math.min(props.balance, 1000);
     if (type === 'min') betAmount.value = 10;
-    if (type === 'max') betAmount.value = Math.min(props.balance, 201);
-    if (type === 'half') betAmount.value = Math.max(10, Math.floor(betAmount.value / 2));
-    if (type === 'double') betAmount.value = Math.min(201, Math.min(props.balance, betAmount.value * 2));
+    if (type === 'max') betAmount.value = props.balance;
 };
 
 const addAmount = (amount) => {
