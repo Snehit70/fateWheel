@@ -101,7 +101,10 @@ export function useBettingBoard(props, emit) {
 
     const getNumberClass = (num) => {
         if (!props.lastResult) {
+            // Default state - color based on number
             if (num === 0) return "bg-[#00b300] hover:bg-[#009900] text-white border-[#008000]";
+            if (num >= 1 && num <= 7) return "bg-[#b91c1c] hover:bg-[#991b1b] text-white border-[#7f1d1d]";
+            if (num >= 8 && num <= 14) return "bg-[#0a0a0a] hover:bg-[#000000] text-white border-[#171717]";
             return "bg-secondary/50 hover:bg-secondary border-border";
         }
 
