@@ -29,7 +29,7 @@ const PAYOUTS = {
 };
 
 const TIMING = {
-    WAITING_TIME: 20, // seconds
+    WAITING_TIME: 60, // seconds
     SPIN_DURATION: 5, // seconds
     RESULT_DURATION: 5 // seconds
 };
