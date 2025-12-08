@@ -2,9 +2,9 @@
   <header class="h-20 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
     <!-- Left: Logo & Brand -->
     <router-link to="/" class="flex items-center space-x-3 group">
-      <img src="@/assets/logo.svg" alt="Roulette Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_10px_rgba(255,62,62,0.5)]" />
+      <img src="@/assets/logo.svg" alt="Probability Game Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_10px_rgba(255,62,62,0.5)]" />
       <span class="hidden md:block text-2xl font-black tracking-widest text-foreground font-outfit group-hover:text-primary transition-colors duration-300">
-        ROULETTE
+        PROBABILITY
       </span>
     </router-link>
 
