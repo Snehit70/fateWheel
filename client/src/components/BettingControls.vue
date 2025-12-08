@@ -34,7 +34,7 @@
                     class="pl-10 pr-4 font-mono text-xl sm:text-2xl font-bold h-10 sm:h-14"
                     placeholder="0"
                     :min="10"
-                    :max="201"
+                    :max="1000"
                     :disabled="!isLoggedIn || isSpinning"
                 />
             </div>
@@ -46,7 +46,7 @@
             </div>
         </div>
         <span v-if="isOutOfRange" class="text-sm text-red-500 font-bold ml-1">
-            Correct range is 10-201
+            Correct range is 10-1000
         </span>
     </div>
 
@@ -128,7 +128,7 @@ const chips = [
 ];
 
 const isOutOfRange = computed(() => {
-    return betAmount.value > 0 && (betAmount.value < 10 || betAmount.value > 201);
+    return betAmount.value > 0 && (betAmount.value < 10 || betAmount.value > 1000);
 });
 
 const isAdmin = computed(() => {
@@ -148,10 +148,10 @@ const setAmount = (type) => {
 
 const addAmount = (amount) => {
     const newAmount = betAmount.value + amount;
-    if (newAmount <= 201) {
+    if (newAmount <= 1000) {
         betAmount.value = newAmount;
     } else {
-        betAmount.value = 201;
+        betAmount.value = 1000;
     }
 };
 </script>
