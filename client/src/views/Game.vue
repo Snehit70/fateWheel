@@ -32,9 +32,9 @@
                 </div>
 
                 <!-- History Section (Desktop) -->
-                <Card class="hidden lg:block p-4 flex-none">
-                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs mb-3">History</h3>
-                    <HistoryBar :history="spinHistory" class="h-14" />
+                <Card class="hidden lg:flex items-center gap-4 p-4 flex-none overflow-hidden">
+                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs whitespace-nowrap">History</h3>
+                    <HistoryBar :history="spinHistory" class="h-14 flex-1" />
                 </Card>
 
                 <!-- Betting Controls Section -->
