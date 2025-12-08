@@ -4,11 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Colors */
-  --color-background: #0a0a0f;
-  --color-surface: #13131f;
-  --color-surface-light: #1c1c2e;
-  --color-surface-lighter: #2a2a3f;
+  /* Colors - Dark Pink Theme */
+  --color-background: #0f0a0c;
+  --color-surface: #1a1215;
+  --color-surface-light: #2a1e22;
+  --color-surface-lighter: #3d2a30;
 
   --color-primary: #ff3e3e;
   --color-primary-hover: #ff5c5c;
@@ -22,7 +22,7 @@
   --color-error: #ff1744;
 
   --color-text-main: #ffffff;
-  --color-text-muted: #8f9bb3;
+  --color-text-muted: #b39fa8;
 
   /* Fonts */
   --font-inter: "Inter", sans-serif;
@@ -43,8 +43,8 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   background-image:
-    radial-gradient(circle at 15% 50%, rgba(255, 62, 62, 0.08) 0%, transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.05) 0%, transparent 25%);
+    radial-gradient(circle at 15% 50%, rgba(255, 62, 98, 0.1) 0%, transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(255, 105, 135, 0.06) 0%, transparent 25%);
 }
 
 /* Typography Utilities */
@@ -201,47 +201,47 @@ body {
 }
 
 .dark {
-  --background: hsl(240 10% 3.9%);
-  /* #0a0a0f */
+  --background: hsl(340 20% 4%);
+  /* Dark pink background */
   --foreground: hsl(0 0% 98%);
-  --card: hsl(240 10% 10%);
-  /* #13131f */
+  --card: hsl(340 15% 9%);
+  /* Pinkish dark card */
   --card-foreground: hsl(0 0% 98%);
-  --popover: hsl(240 10% 10%);
-  /* #13131f */
+  --popover: hsl(340 15% 9%);
+  /* Pinkish dark popover */
   --popover-foreground: hsl(0 0% 98%);
   --primary: hsl(0 100% 62%);
   /* #ff3e3e */
   --primary-foreground: hsl(0 0% 98%);
-  --secondary: hsl(240 10% 14%);
-  /* #1c1c2e */
+  --secondary: hsl(340 12% 13%);
+  /* Pinkish secondary */
   --secondary-foreground: hsl(0 0% 98%);
-  --muted: hsl(240 10% 14%);
-  /* #1c1c2e */
-  --muted-foreground: hsl(240 5% 64.9%);
+  --muted: hsl(340 12% 13%);
+  /* Pinkish muted */
+  --muted-foreground: hsl(340 8% 65%);
   --accent: hsl(48 100% 50%);
   /* #ffd700 */
-  --accent-foreground: hsl(240 10% 3.9%);
+  --accent-foreground: hsl(340 20% 4%);
   --destructive: hsl(0 100% 50%);
   /* #ff1744 */
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 10% 20%);
-  --input: hsl(240 10% 20%);
-  --ring: hsl(0 100% 62%);
-  /* #ff3e3e */
+  --border: hsl(340 12% 18%);
+  --input: hsl(340 12% 18%);
+  --ring: hsl(340 80% 55%);
+  /* Pink ring */
   --chart-1: hsl(0 100% 62%);
   --chart-2: hsl(48 100% 50%);
   --chart-3: hsl(142 100% 45%);
   --chart-4: hsl(280 65% 60%);
   --chart-5: hsl(340 75% 55%);
-  --sidebar: hsl(240 10% 3.9%);
+  --sidebar: hsl(340 20% 4%);
   --sidebar-foreground: hsl(0 0% 98%);
-  --sidebar-primary: hsl(0 100% 62%);
+  --sidebar-primary: hsl(340 80% 55%);
   --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 10% 14%);
+  --sidebar-accent: hsl(340 12% 13%);
   --sidebar-accent-foreground: hsl(0 0% 98%);
-  --sidebar-border: hsl(240 10% 20%);
-  --sidebar-ring: hsl(0 100% 62%);
+  --sidebar-border: hsl(340 12% 18%);
+  --sidebar-ring: hsl(340 80% 55%);
 }
 
 @layer base {

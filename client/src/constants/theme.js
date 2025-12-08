@@ -8,11 +8,11 @@ export const THEME = {
             text: '#ef4444' // red-500
         },
         black: {
-            main: '#1a1a1a',
-            hover: '#000000',
-            border: '#000000',
-            shadow: 'rgba(255,255,255,0.1)',
-            text: '#ffffff'
+            main: '#2d1f3d',
+            hover: '#3d2a52',
+            border: '#4a3366',
+            shadow: 'rgba(138,43,226,0.35)',
+            text: '#c4b5fd'
         },
         green: {
             main: '#00b300',

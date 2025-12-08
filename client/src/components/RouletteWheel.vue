@@ -58,13 +58,13 @@
             <div class="text-text-muted text-[10px] sm:text-xs font-thin md:font-light tracking-[0.3em] uppercase mb-2 sm:mb-4">Winning Number</div>
             <div :class="[
                 'text-5xl sm:text-6xl md:text-7xl font-outfit font-thin md:font-light mb-2 sm:mb-4 drop-shadow-2xl',
-                lastResult.color === COLORS.RED ? 'text-primary' : lastResult.color === COLORS.GREEN ? 'text-success' : 'text-white'
+                lastResult.color === COLORS.RED ? 'text-primary' : lastResult.color === COLORS.GREEN ? 'text-success' : 'text-purple-300'
             ]">
                 {{ lastResult.number }}
             </div>
             <div :class="[
                 'text-xs sm:text-sm font-bold uppercase tracking-widest px-3 sm:px-4 py-1 sm:py-1.5 rounded-full inline-block border font-outfit',
-                lastResult.color === COLORS.RED ? 'bg-primary/20 text-primary border-primary/30' : lastResult.color === COLORS.GREEN ? 'bg-success/20 text-success border-success/30' : 'bg-surface-light text-text-muted border-white/10'
+                lastResult.color === COLORS.RED ? 'bg-primary/20 text-primary border-primary/30' : lastResult.color === COLORS.GREEN ? 'bg-success/20 text-success border-success/30' : 'bg-purple-900/40 text-purple-300 border-purple-400/30'
             ]">
                 {{ lastResult.color }}
             </div>
@@ -97,7 +97,7 @@ import { SEGMENTS, SEGMENT_ANGLE, COLORS } from '../constants/game';
 const getSegmentColor = (color) => {
     switch(color) {
         case COLORS.RED: return '#ff4d4d';
-        case COLORS.BLACK: return '#1a1a1a';
+        case COLORS.BLACK: return '#2d1f3d';
         case COLORS.GREEN: return '#22c55e';
         default: return color;
     }

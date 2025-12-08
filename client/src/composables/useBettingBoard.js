@@ -91,7 +91,7 @@ export function useBettingBoard(props, emit) {
             } else if (color === 'green') {
                 return `border-green-500 shadow-[0_0_40px_${THEME.colors.green.shadow}] scale-[1.02] z-10`;
             } else {
-                return `border-zinc-500 shadow-[0_0_40px_${THEME.colors.black.shadow}] scale-[1.02] z-10`;
+                return `border-purple-500 shadow-[0_0_40px_${THEME.colors.black.shadow}] scale-[1.02] z-10`;
             }
         } else {
             // Loser
@@ -104,7 +104,7 @@ export function useBettingBoard(props, emit) {
             // Default state - color based on number
             if (num === 0) return "bg-[#00b300] hover:bg-[#009900] text-white border-[#008000]";
             if (num >= 1 && num <= 7) return "bg-[#b91c1c] hover:bg-[#991b1b] text-white border-[#7f1d1d]";
-            if (num >= 8 && num <= 14) return "bg-[#0a0a0a] hover:bg-[#000000] text-white border-[#171717]";
+            if (num >= 8 && num <= 14) return "bg-[#2d1f3d] hover:bg-[#3d2a52] text-purple-200 border-[#4a3366]";
             return "bg-secondary/50 hover:bg-secondary border-border";
         }
 

@@ -154,7 +154,7 @@ const formatValue = (bet) => {
 
 const getValueClass = (bet) => {
     if (bet.type === 'color') {
-        return bet.value === 'red' ? 'text-red-500 font-bold' : bet.value === 'black' ? 'text-gray-400 font-bold' : 'text-green-500 font-bold';
+        return bet.value === 'red' ? 'text-red-500 font-bold' : bet.value === 'black' ? 'text-purple-400 font-bold' : 'text-green-500 font-bold';
     }
     if (bet.type === 'number') {
         return 'text-foreground font-bold';
@@ -165,7 +165,7 @@ const getValueClass = (bet) => {
 const getGameResultColor = (color) => {
     switch(color) {
         case 'red': return 'bg-red-500';
-        case 'black': return 'bg-gray-800';
+        case 'black': return 'bg-[#2d1f3d] shadow-[0_0_6px_rgba(138,43,226,0.3)]';
         case 'green': return 'bg-green-500';
         default: return 'bg-gray-500';
     }

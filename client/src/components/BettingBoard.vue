@@ -24,7 +24,7 @@
       <button 
         @click="activeTab = 'black'"
         class="flex flex-col items-center justify-center py-2 rounded transition-all duration-300"
-        :class="activeTab === 'black' ? 'bg-white/10 text-white border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)]' : 'text-muted-foreground hover:bg-white/5'"
+        :class="activeTab === 'black' ? 'bg-[#2d1f3d]/30 text-purple-300 border border-purple-400/50 shadow-[0_0_10px_rgba(138,43,226,0.3)]' : 'text-muted-foreground hover:bg-white/5'"
       >
         <span class="text-xs font-bold tracking-wider">BLACK</span>
         <span class="text-[10px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("black") }}</span>
@@ -230,13 +230,13 @@
       <div class="flex gap-2 h-14">
         <Button
           @click="handlePlaceBet('color', COLORS.BLACK)"
-          class="flex-1 bg-[#1a1a1a] hover:bg-black text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-black active:border-b-0 active:translate-y-1"
-          :class="{ 'opacity-80 hover:bg-[#1a1a1a] cursor-not-allowed': !isLoggedIn || isAdmin }"
+          class="flex-1 bg-[#2d1f3d] hover:bg-[#3d2a52] text-purple-200 relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#4a3366] active:border-b-0 active:translate-y-1 shadow-[0_0_15px_rgba(138,43,226,0.2)]"
+          :class="{ 'opacity-80 hover:bg-[#2d1f3d] cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
           BLACK
           <span
             v-if="getBetAmount('color', 'black')"
-            class="absolute -top-2 -right-2 bg-white text-black text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-black"
+            class="absolute -top-2 -right-2 bg-white text-purple-900 text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-purple-600"
           >
             {{ getBetAmount("color", "black") }}
           </span>
@@ -288,7 +288,7 @@
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >You</span
           >
-          <span class="text-sm font-medium text-muted-foreground font-outfit">{{
+          <span class="text-sm font-medium text-purple-400 font-outfit">{{
             getUserBetForColor("black")
           }}</span>
         </div>
@@ -299,7 +299,7 @@
         <div
           v-for="(user, i) in getAggregatedBetsForColor('black')"
           :key="user.userId || i"
-          class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-white/20 transition-colors"
+          class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-purple-500/30 transition-colors"
         >
           <img
             src="@/assets/default-user.svg"
@@ -309,7 +309,7 @@
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span class="text-xs font-medium text-foreground font-outfit">{{ user.amount }}</span>
+          <span class="text-xs font-medium text-purple-400 font-outfit">{{ user.amount }}</span>
         </div>
       </div>
     </Card>
