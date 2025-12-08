@@ -25,12 +25,14 @@
     </footer>
     
     <LoginModal />
+    <ToastContainer />
   </div>
 </template>
 
 <script setup>
 import TopBar from './components/TopBar.vue';
 import LoginModal from './components/LoginModal.vue';
+import ToastContainer from './components/ToastContainer.vue';
 import { onMounted } from 'vue';
 import { useAuthStore } from './stores/auth';
 

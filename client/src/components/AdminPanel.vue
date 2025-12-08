@@ -228,8 +228,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuthStore } from '../stores/auth';
+import { useToast } from '../composables/useToast';
 
 const authStore = useAuthStore();
+const toast = useToast();
 const users = ref([]);
 const stats = ref({
   totalUsers: 0,
@@ -258,7 +260,7 @@ const fetchUsers = async () => {
     users.value = res.data;
   } catch (err) {
     console.error(err);
-    alert('Failed to fetch users');
+    toast.error('Failed to fetch users');
   }
 };
 
@@ -299,7 +301,7 @@ const saveBalance = async () => {
   if (!editingUser.value) return;
   
   if (!reason.value.trim()) {
-    alert('Please provide a reason for this change.');
+    toast.warning('Please provide a reason for this change.');
     return;
   }
   
@@ -319,7 +321,7 @@ const saveBalance = async () => {
     fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);
-    alert('Failed to update balance');
+    toast.error('Failed to update balance');
   }
 };
 
@@ -336,7 +338,7 @@ const updateStatus = async (user, status) => {
     fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);
-    alert('Failed to update status');
+    toast.error('Failed to update status');
   }
 };
 
@@ -354,7 +356,7 @@ const deleteUser = async () => {
     fetchStats(); // Refresh stats
   } catch (err) {
     console.error(err);
-    alert('Failed to delete user');
+    toast.error('Failed to delete user');
   }
 };
 

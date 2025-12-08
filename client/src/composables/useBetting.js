@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useToast } from './useToast';
 import socket from '../services/socket';
 
 // Flag to prevent gameState from restoring cleared bets during the clear operation
@@ -7,6 +8,7 @@ let clearPending = false;
 
 export function useBetting(bets, isSpinning) {
     const authStore = useAuthStore();
+    const toast = useToast();
     const currentBetAmount = ref(0);
 
     const totalBetAmount = computed(() => {
@@ -27,7 +29,19 @@ export function useBetting(bets, isSpinning) {
         // Check if user has enough balance for the NEW bet only
         // (balance is already deducted for existing bets on the server)
         if (balance < currentBetAmount.value) {
-            alert("Insufficient balance!");
+            toast.error("Insufficient balance!");
+            return;
+        }
+
+        // Check if total bet on board would exceed max limit (1000)
+        const MAX_BET_AMOUNT = 1000;
+        if (totalBetAmount.value + currentBetAmount.value > MAX_BET_AMOUNT) {
+            const remainingAllowance = MAX_BET_AMOUNT - totalBetAmount.value;
+            if (remainingAllowance <= 0) {
+                toast.warning(`Maximum bet limit of ₹${MAX_BET_AMOUNT} reached for this round`);
+            } else {
+                toast.warning(`You can only bet ₹${remainingAllowance} more this round (Max: ₹${MAX_BET_AMOUNT})`);
+            }
             return;
         }
 

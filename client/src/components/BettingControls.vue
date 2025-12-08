@@ -89,10 +89,12 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useToast } from '../composables/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const authStore = useAuthStore();
+const toast = useToast();
 
 const props = defineProps({
     balance: {
