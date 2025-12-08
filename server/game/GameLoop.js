@@ -60,7 +60,7 @@ class GameLoop {
                 });
                 await transaction.save();
 
-                this.io.emit('admin:userUpdate', updatedUser);
+                this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
             }
             logger.info("Refunded all active bets");
         } catch (err) {
@@ -98,8 +98,6 @@ class GameLoop {
         this.io.emit('gameState', {
             state: this.state,
             endTime: this.endTime, // Send timestamp instead of duration
-            bets: this.bets,
-            history: this.history,
             bets: this.bets,
             history: this.history,
             result: this.state === GAME_STATES.RESULT ? this.result : null,
@@ -177,7 +175,7 @@ class GameLoop {
 
                     // Notify individual user of win
                     this.io.to(`user:${bet.user}`).emit('balanceUpdate', { balance: updatedUser.balance });
-                    this.io.emit('admin:userUpdate', updatedUser);
+                    this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
                 }
             }
         } catch (err) {
@@ -291,7 +289,7 @@ class GameLoop {
         }
 
         this.broadcastState();
-        this.io.emit('admin:userUpdate', dbUser);
+        this.io.to('admin-room').emit('admin:userUpdate', dbUser);
         return dbUser.balance;
     }
 
@@ -332,7 +330,7 @@ class GameLoop {
         this.broadcastState();
 
 
-        this.io.emit('admin:userUpdate', dbUser);
+        this.io.to('admin-room').emit('admin:userUpdate', dbUser);
         return dbUser.balance;
     }
 }

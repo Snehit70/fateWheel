@@ -37,8 +37,8 @@ router.post('/register', authLimiter, async (req, res) => {
         // We need to attach io to req in auth routes too. 
         // server/index.js does `app.use((req, res, next) => { req.io = io; next(); });` before routes, so it should be available.
         if (req.io) {
-            req.io.emit('admin:newUser', user);
-            req.io.emit('admin:statsUpdate');
+            req.io.to('admin-room').emit('admin:newUser', user);
+            req.io.to('admin-room').emit('admin:statsUpdate');
         }
 
         res.json({ message: 'Registration successful. Please wait for admin approval.' });

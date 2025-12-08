@@ -6,6 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const GameLoop = require('./game/GameLoop');
 const jwt = require('jsonwebtoken');
+const { RateLimiterMemory, RateLimiterRedis } = require('rate-limiter-flexible');
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Railway)
@@ -32,6 +33,34 @@ if (process.env.REDIS_URL) {
         console.error('Redis Adapter error:', err);
     });
 }
+
+// Module-level Rate Limiter (prevents connection exhaustion)
+let rateLimiter;
+let rateLimiterRedisClient = null;
+
+if (process.env.REDIS_URL) {
+    const { createClient } = require('redis');
+    rateLimiterRedisClient = createClient({ url: process.env.REDIS_URL });
+    rateLimiterRedisClient.connect().catch(console.error);
+
+    rateLimiter = new RateLimiterRedis({
+        storeClient: rateLimiterRedisClient,
+        points: 5, // 5 requests
+        duration: 1, // per 1 second
+        keyPrefix: 'socket_rate_limit'
+    });
+} else {
+    rateLimiter = new RateLimiterMemory({
+        points: 5, // 5 requests
+        duration: 1, // per 1 second
+    });
+}
+
+// Separate rate limiter for timeSync (less strict)
+const timeSyncRateLimiter = new RateLimiterMemory({
+    points: 10, // 10 requests
+    duration: 1, // per 1 second
+});
 
 // Middleware
 app.use(require('helmet')());
@@ -88,7 +117,10 @@ io.use((socket, next) => {
     if (token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            socket.user = decoded.user;
+            // Validate JWT payload structure
+            if (decoded.user && decoded.user.id) {
+                socket.user = decoded.user;
+            }
         } catch (err) {
             // Invalid token, but we allow connection for spectating
         }
@@ -103,6 +135,12 @@ io.on('connection', (socket) => {
     if (socket.user) {
         socket.join(`user:${socket.user.id}`);
         console.log(`Socket ${socket.id} joined room user:${socket.user.id}`);
+
+        // Join admin room if user is admin (role checked from token, verify from DB for production)
+        if (socket.user.role === 'admin') {
+            socket.join('admin-room');
+            console.log(`Socket ${socket.id} joined admin-room`);
+        }
     }
 
     // Send initial state
@@ -114,30 +152,7 @@ io.on('connection', (socket) => {
         result: gameLoop.result
     });
 
-    // Rate Limiter
-    const { RateLimiterMemory, RateLimiterRedis } = require('rate-limiter-flexible');
-
-    let rateLimiter;
-    if (process.env.REDIS_URL) {
-        // Use Redis for distributed rate limiting
-        const { createClient } = require('redis');
-        const redisClient = createClient({ url: process.env.REDIS_URL });
-        redisClient.connect().catch(console.error);
-
-        rateLimiter = new RateLimiterRedis({
-            storeClient: redisClient,
-            points: 5, // 5 requests
-            duration: 1, // per 1 second
-            keyPrefix: 'rate_limit'
-        });
-    } else {
-        // Fallback to Memory
-        rateLimiter = new RateLimiterMemory({
-            points: 5, // 5 requests
-            duration: 1, // per 1 second
-        });
-    }
-
+    // Rate limit helper using module-level rate limiter
     const checkRateLimit = async (eventName) => {
         try {
             await rateLimiter.consume(`${socket.id}:${eventName}`);
@@ -148,14 +163,25 @@ io.on('connection', (socket) => {
     };
 
     socket.on('placeBet', async (betData, callback) => {
+        // Ensure callback is a function
+        if (typeof callback !== 'function') return;
+
         if (!socket.user) {
             return callback({ error: "Please login to bet" });
         }
         if (!await checkRateLimit('placeBet')) {
             return callback({ error: "Rate limit exceeded. Please slow down." });
         }
+
+        // Input sanitization - only extract expected fields
+        const sanitizedBetData = {
+            type: betData?.type,
+            value: betData?.value,
+            amount: betData?.amount
+        };
+
         try {
-            const newBalance = await gameLoop.placeBet(socket.user, betData);
+            const newBalance = await gameLoop.placeBet(socket.user, sanitizedBetData);
             callback({ success: true, newBalance });
         } catch (err) {
             callback({ error: err.message });
@@ -163,6 +189,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('clearBets', async (callback) => {
+        // Ensure callback is a function
+        if (typeof callback !== 'function') return;
+
         if (!socket.user) {
             return callback({ error: "Please login" });
         }
@@ -182,8 +211,17 @@ io.on('connection', (socket) => {
         // Clean up rate limiter (not needed for flexible-rate-limiter as it handles expiration)
     });
 
-    socket.on('timeSync', (callback) => {
-        callback(Date.now());
+    socket.on('timeSync', async (callback) => {
+        // Ensure callback is a function
+        if (typeof callback !== 'function') return;
+
+        // Rate limit timeSync to prevent abuse
+        try {
+            await timeSyncRateLimiter.consume(socket.id);
+            callback(Date.now());
+        } catch (rejRes) {
+            // Silently drop if rate limited (timeSync is non-critical)
+        }
     });
 });
 

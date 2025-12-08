@@ -125,14 +125,14 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
             // Emit new log
             const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-            req.io.emit('admin:newLog', populatedLog);
+            req.io.to('admin-room').emit('admin:newLog', populatedLog);
         }
 
         // Emit balance update to user
         req.io.to(`user:${user._id}`).emit('balanceUpdate', { balance: user.balance });
 
         // Emit update to admin panel
-        req.io.emit('admin:userUpdate', user);
+        req.io.to('admin-room').emit('admin:userUpdate', user);
 
         // Emit new log
         // This block was added by mistake in previous step, removing it to avoid duplication/errors
@@ -166,16 +166,16 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
         await log.save();
 
         // Emit user deleted event
-        req.io.emit('admin:userDeleted', user._id);
+        req.io.to('admin-room').emit('admin:userDeleted', user._id);
 
         // Emit new log
         const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        req.io.emit('admin:newLog', populatedLog);
+        req.io.to('admin-room').emit('admin:newLog', populatedLog);
 
         // Emit stats update (since user count changed)
         // We can just trigger a stats refresh on client or emit the new stats.
         // Let's emit a signal to refresh stats.
-        req.io.emit('admin:statsUpdate');
+        req.io.to('admin-room').emit('admin:statsUpdate');
 
         res.json({ msg: 'User removed' });
     } catch (err) {
@@ -208,13 +208,13 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
 
         // Emit new log
         const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        req.io.emit('admin:newLog', populatedLog);
+        req.io.to('admin-room').emit('admin:newLog', populatedLog);
 
         // Emit stats update (pending count might have changed)
-        req.io.emit('admin:statsUpdate');
+        req.io.to('admin-room').emit('admin:statsUpdate');
 
         // Emit update to admin panel
-        req.io.emit('admin:userUpdate', user);
+        req.io.to('admin-room').emit('admin:userUpdate', user);
 
         res.json(user);
     } catch (err) {
