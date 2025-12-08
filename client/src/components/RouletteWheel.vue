@@ -55,7 +55,6 @@
 
         <!-- Result State -->
         <div v-else-if="lastResult" class="text-center animate-fade-in">
-            <div class="text-text-muted text-[10px] sm:text-xs font-thin md:font-light tracking-[0.3em] uppercase mb-2 sm:mb-4">Winning Number</div>
             <div :class="[
                 'text-5xl sm:text-6xl md:text-7xl font-outfit font-thin md:font-light mb-2 sm:mb-4 drop-shadow-2xl',
                 lastResult.color === COLORS.RED ? 'text-primary' : lastResult.color === COLORS.GREEN ? 'text-success' : 'text-purple-300'
