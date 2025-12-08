@@ -53,7 +53,28 @@ export const useAuthStore = defineStore('auth', {
                 const response = await api.post('/auth/login', { username, password });
                 this.setAuth(response.data);
             } catch (err) {
-                throw err.response?.data?.message || 'Login failed';
+                // Server returned an error response with a message
+                if (err.response?.data?.message) {
+                    throw err.response.data.message;
+                }
+
+                // Network error - request never reached the server
+                if (err.code === 'ERR_NETWORK' || !err.response) {
+                    throw 'Network error - please check your internet connection and try again';
+                }
+
+                // Request timed out
+                if (err.code === 'ECONNABORTED') {
+                    throw 'Request timed out - please try again';
+                }
+
+                // Server error (5xx)
+                if (err.response?.status >= 500) {
+                    throw 'Server error - please try again later';
+                }
+
+                // Fallback for any other error
+                throw 'Unable to login - please try again';
             }
         },
         async register(username, password) {
