@@ -99,7 +99,14 @@ router.post('/login', authLimiter, async (req, res) => {
 router.get('/me', require('../middleware/auth'), async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
-        res.json(user);
+        // Return consistent format with login response (id instead of _id)
+        res.json({
+            id: user.id,
+            username: user.username,
+            balance: user.balance,
+            role: user.role,
+            status: user.status
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

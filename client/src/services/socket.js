@@ -47,9 +47,9 @@ class SocketService {
         this.socket.off(event);
     }
 
-    emit(event, data, callback) {
+    emit(event, ...args) {
         if (!this.socket) return;
-        this.socket.emit(event, data, callback);
+        this.socket.emit(event, ...args);
     }
 
     setToken(token) {

@@ -68,10 +68,14 @@ export function useBetting(bets, isSpinning) {
     };
 
     const clearBets = () => {
-        if (isSpinning.value) return;
+        if (isSpinning.value) {
+            return;
+        }
 
         const userId = authStore.user?.id;
-        if (!userId) return;
+        if (!userId) {
+            return;
+        }
 
         // Set flag to prevent gameState from restoring our bets
         clearPending = true;
