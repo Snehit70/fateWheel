@@ -51,12 +51,15 @@
                     </svg>
                 </button>
             </div>
-            <div class="flex gap-1">
-                 <Button variant="secondary" size="sm" @click="setAmount('10')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">10</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('1000')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">1000</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('min')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MIN</Button>
-                 <Button variant="secondary" size="sm" @click="setAmount('max')" class="h-10 sm:h-14 px-2 sm:px-4 text-xs sm:text-sm font-bold" :disabled="!isLoggedIn || isSpinning">MAX</Button>
-            </div>
+            <Button 
+                variant="secondary" 
+                size="sm" 
+                @click="$emit('clear-bets')" 
+                class="h-10 sm:h-14 px-4 sm:px-6 text-xs sm:text-sm font-bold uppercase tracking-wider"
+                :disabled="!isLoggedIn || isSpinning"
+            >
+                Clear Board
+            </Button>
         </div>
         <span v-if="isOutOfRange" class="text-sm text-red-500 font-bold ml-1">
             Correct range is 10-1000
@@ -79,25 +82,7 @@
         </Button>
     </div>
 
-    <!-- Actions -->
-    <div class="flex gap-2 sm:gap-3 mt-auto" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
-        <Button 
-            variant="secondary" 
-            class="flex-1 h-10 sm:h-12 hover:bg-destructive/10 hover:text-destructive text-xs sm:text-sm font-bold uppercase tracking-wider"
-            @click="betAmount = 0" 
-            :disabled="!isLoggedIn || isSpinning"
-        >
-            Reset Amount
-        </Button>
-        <Button 
-            variant="secondary"
-            class="flex-1 h-10 sm:h-12 text-xs sm:text-sm font-bold uppercase tracking-wider"
-            @click="$emit('clear-bets')"
-            :disabled="isSpinning || !isLoggedIn"
-        >
-            Clear Board
-        </Button>
-    </div>
+
   </div>
 </template>
 
