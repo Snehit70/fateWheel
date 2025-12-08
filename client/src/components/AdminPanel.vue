@@ -6,47 +6,48 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Total Users</CardTitle>
+      <div class="grid grid-cols-3 gap-2 sm:gap-6">
+        <Card class="p-2 sm:p-0">
+          <CardHeader class="p-2 sm:p-6 sm:pb-2 space-y-0">
+            <CardTitle class="text-xs sm:text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{{ stats.totalUsers }}</div>
+          <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
+            <div class="text-lg sm:text-2xl font-bold">{{ stats.totalUsers }}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Pending Approval</CardTitle>
+        <Card class="p-2 sm:p-0">
+          <CardHeader class="p-2 sm:p-6 sm:pb-2 space-y-0">
+            <CardTitle class="text-xs sm:text-sm font-medium">Pending</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div class="flex items-center justify-between">
-              <div class="text-2xl font-bold text-yellow-500">{{ stats.pendingUsers }}</div>
+          <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+              <div class="text-lg sm:text-2xl font-bold text-yellow-500">{{ stats.pendingUsers }}</div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 @click="filterPending"
                 :class="{ 'bg-yellow-500/10 border-yellow-500/50 text-yellow-500': showPendingOnly }"
+                class="text-xs h-7 px-2 sm:h-8 sm:px-3"
               >
                 Filter
               </Button>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Net Profit</CardTitle>
+        <Card class="p-2 sm:p-0">
+          <CardHeader class="p-2 sm:p-6 sm:pb-2 space-y-0">
+            <CardTitle class="text-xs sm:text-sm font-medium">Net Profit</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
+          <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
+            <div class="text-lg sm:text-2xl font-bold" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
               {{ stats.netProfit >= 0 ? '+' : '' }}₹{{ Math.floor(stats.netProfit) }}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <!-- Users Table -->
-      <Card>
+      <!-- Users Table - Desktop -->
+      <Card class="hidden sm:block">
         <CardHeader>
           <div class="flex items-center justify-between">
             <CardTitle>User Management</CardTitle>
@@ -102,6 +103,58 @@
               </TableRow>
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      <!-- Users List - Mobile -->
+      <Card class="sm:hidden">
+        <CardHeader>
+          <CardTitle>User Management</CardTitle>
+          <div class="mt-3">
+            <Input 
+              v-model="searchQuery" 
+              placeholder="Search users..." 
+            />
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-3">
+          <div 
+            v-for="user in filteredUsers" 
+            :key="user._id"
+            class="p-4 rounded-lg bg-surface border border-border"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-medium text-lg">{{ user.username }}</span>
+              <span class="font-mono text-green-500 font-bold">₹{{ Math.floor(user.balance) }}</span>
+            </div>
+            <div class="flex items-center gap-2 mb-3">
+              <Select 
+                :model-value="user.status || 'approved'" 
+                @update:model-value="(val) => updateStatus(user, val)"
+              >
+                <SelectTrigger class="w-[120px]" :class="getStatusColor(user.status)">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <span class="text-xs text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</span>
+            </div>
+            <div class="flex gap-2">
+              <Button size="sm" variant="outline" @click="openEditBalance(user)" class="flex-1">
+                Edit Balance
+              </Button>
+              <Button size="sm" variant="destructive" @click="confirmDelete(user)" class="flex-1">
+                Delete
+              </Button>
+            </div>
+          </div>
+          <div v-if="filteredUsers.length === 0" class="text-center text-muted-foreground py-4">
+            No users found
+          </div>
         </CardContent>
       </Card>
     </div>
