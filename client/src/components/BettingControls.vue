@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full flex flex-col gap-4 relative">
+  <div class="w-full h-full flex flex-col gap-2 sm:gap-4 relative">
     <!-- Login Overlay -->
     <div 
         v-if="!isLoggedIn" 
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Quick Chips -->
-    <div class="grid grid-cols-5 gap-3" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
+    <div class="grid grid-cols-5 gap-2 sm:gap-3" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <Button 
             v-for="chip in chips" 
             :key="chip.value" 
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex gap-3 mt-auto" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
+    <div class="flex gap-2 sm:gap-3 mt-auto" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <Button 
             variant="secondary" 
             class="flex-1 h-10 sm:h-12 hover:bg-destructive/10 hover:text-destructive text-xs sm:text-sm font-bold uppercase tracking-wider"

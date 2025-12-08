@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-full max-w-4xl mx-auto h-[150px] sm:h-[225px] md:h-[300px] overflow-hidden flex justify-center items-end mb-4 sm:mb-8">
+  <div class="relative w-full max-w-4xl mx-auto h-[150px] sm:h-[225px] md:h-[300px] overflow-hidden flex justify-center items-end mb-2 sm:mb-8">
     <!-- Wheel Container (Shifted up to show only bottom half) -->
     <div 
       class="relative w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] md:w-[600px] md:h-[600px] rounded-full transition-transform cubic-bezier(0.1, 0.8, 0.1, 1) transform-gpu"
@@ -50,7 +50,7 @@
             <div class="text-4xl sm:text-5xl md:text-6xl font-outfit font-thin md:font-light bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent mb-2 tracking-tighter drop-shadow-2xl">
                 {{ timeLeft.toFixed(2) }}
             </div>
-            <div class="text-text-muted text-xs sm:text-sm font-thin md:font-light tracking-[0.3em] uppercase">Rolling In</div>
+            <div class="text-text-muted text-xs sm:text-sm font-thin md:font-light tracking-[0.3em] uppercase hidden sm:block">Rolling In</div>
         </div>
 
         <!-- Result State -->

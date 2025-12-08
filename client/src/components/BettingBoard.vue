@@ -1,8 +1,8 @@
 
 <template>
-  <div class="w-full mb-8">
+  <div class="w-full mb-4 lg:mb-8">
     <!-- Mobile Tabs -->
-    <div class="grid grid-cols-3 gap-1 mb-4 lg:hidden bg-secondary/30 p-1 rounded-lg">
+    <div class="grid grid-cols-3 gap-1 mb-2 lg:mb-4 lg:hidden bg-secondary/30 p-1 rounded-lg">
       <button 
         @click="activeTab = 'red'"
         class="flex flex-col items-center justify-center py-2 rounded transition-all duration-300"
@@ -31,10 +31,10 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-6">
     <!-- Red Section -->
     <Card
-      class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
+      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-4 transition-all duration-500"
       :class="[getSectionClass('red'), { 'hidden lg:flex': activeTab !== 'red' }]"
     >
       <!-- Header Row -->
@@ -72,9 +72,9 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-3 gap-1 sm:gap-2">
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >Users</span
@@ -84,7 +84,7 @@
           }}</span>
         </div>
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >Total</span
@@ -94,7 +94,7 @@
           }}</span>
         </div>
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >You</span
@@ -129,7 +129,7 @@
 
     <!-- Green Section -->
     <Card
-      class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
+      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-4 transition-all duration-500"
       :class="[getSectionClass('green'), { 'hidden lg:flex': activeTab !== 'green' }]"
     >
       <!-- Header Row -->
@@ -166,9 +166,9 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-3 gap-1 sm:gap-2">
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >Users</span
@@ -178,7 +178,7 @@
           }}</span>
         </div>
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >Total</span
@@ -188,7 +188,7 @@
           }}</span>
         </div>
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >You</span
@@ -223,7 +223,7 @@
 
     <!-- Black Section -->
     <Card
-      class="flex flex-col gap-4 p-2 sm:p-4 transition-all duration-500"
+      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-4 transition-all duration-500"
       :class="[getSectionClass('black'), { 'hidden lg:flex': activeTab !== 'black' }]"
     >
       <!-- Header Row -->
@@ -261,9 +261,9 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-3 gap-1 sm:gap-2">
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >Users</span
@@ -273,7 +273,7 @@
           }}</span>
         </div>
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >Total</span
@@ -283,7 +283,7 @@
           }}</span>
         </div>
         <div
-          class="bg-secondary/50 rounded p-2 flex flex-col items-center justify-center border border-border"
+          class="bg-secondary/50 rounded p-1 sm:p-2 flex flex-col items-center justify-center border border-border"
         >
           <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider"
             >You</span
