@@ -2,36 +2,15 @@
   <div class="min-h-screen bg-background text-foreground pt-24 px-4 pb-12">
     <div class="max-w-6xl mx-auto space-y-6">
       <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold font-mono tracking-wider">BET HISTORY</h1>
+        <h1 class="text-3xl font-bold font-mono tracking-wider">
+          BET HISTORY
+          <span class="text-muted-foreground text-lg ml-2">({{ stats.totalBets }})</span>
+        </h1>
         <Button variant="secondary" as-child>
           <router-link to="/">
             BACK TO GAME
           </router-link>
         </Button>
-      </div>
-
-      <!-- Summary Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card class="p-4">
-          <div class="text-xs text-muted-foreground uppercase font-bold">Total Bets</div>
-          <div class="text-2xl font-bold font-mono">{{ stats.totalBets }}</div>
-        </Card>
-        <Card class="p-4">
-          <div class="text-xs text-muted-foreground uppercase font-bold">Win Rate</div>
-          <div class="text-2xl font-bold font-mono" :class="stats.winRate >= 50 ? 'text-green-500' : 'text-red-500'">
-            {{ stats.winRate.toFixed(0) }}%
-          </div>
-        </Card>
-        <Card class="p-4">
-          <div class="text-xs text-muted-foreground uppercase font-bold">Net Profit</div>
-          <div class="text-2xl font-bold font-mono" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
-            {{ stats.netProfit >= 0 ? '+' : '' }}₹{{ stats.netProfit }}
-          </div>
-        </Card>
-        <Card class="p-4">
-          <div class="text-xs text-muted-foreground uppercase font-bold">Total Wagered</div>
-          <div class="text-2xl font-bold font-mono">₹{{ stats.totalWagered }}</div>
-        </Card>
       </div>
 
       <!-- Filters -->
