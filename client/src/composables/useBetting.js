@@ -24,8 +24,9 @@ export function useBetting(bets, isSpinning) {
         }
 
         const balance = authStore.user?.balance || 0;
-        // Check if user has enough balance for NEW bet + EXISTING bets
-        if (balance < totalBetAmount.value + currentBetAmount.value) {
+        // Check if user has enough balance for the NEW bet only
+        // (balance is already deducted for existing bets on the server)
+        if (balance < currentBetAmount.value) {
             alert("Insufficient balance!");
             return;
         }

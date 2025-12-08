@@ -84,10 +84,10 @@
                 <!-- Amount -->
                 <TableCell class="font-mono">
                   <span v-if="isTransaction(item)" :class="getTransactionAmountClass(item)">
-                    {{ item.type === 'deposit' ? '+' : item.type === 'withdraw' ? '-' : '' }}₹{{ item.amount }}
+                    {{ item.type === 'deposit' ? '+' : item.type === 'withdraw' ? '-' : '' }}{{ item.amount }}
                   </span>
                   <span v-else>
-                    ₹{{ item.amount }}
+                    {{ item.amount }}
                   </span>
                 </TableCell>
 
@@ -108,13 +108,13 @@
                 </TableCell>
 
 
-                <!-- Net Profit (payout - amount for bets, ₹0 for refunded) -->
+                <!-- Net Profit (payout - amount for bets, 0 for refunded) -->
                 <TableCell class="font-mono font-bold">
                   <span v-if="isTransaction(item)" :class="getTransactionAmountClass(item)">
-                    {{ item.type === 'deposit' ? '+' : item.type === 'withdraw' ? '-' : '' }}₹{{ item.amount }}
+                    {{ item.type === 'deposit' ? '+' : item.type === 'withdraw' ? '-' : '' }}{{ item.amount }}
                   </span>
                   <span v-else-if="item.status === 'refunded'" class="text-blue-400">
-                    ₹0
+                    0
                   </span>
                   <span v-else :class="getNetProfitClass(item)">
                     {{ formatNetProfit(item) }}
@@ -329,7 +329,7 @@ const formatBalance = (balance) => {
   if (balance === null || balance === undefined) {
     return '-';
   }
-  return `₹${balance}`;
+  return `${balance}`;
 };
 
 const formatValue = (bet) => {
@@ -380,9 +380,9 @@ const getNetProfit = (item) => {
 
 const formatNetProfit = (item) => {
     const netProfit = getNetProfit(item);
-    if (netProfit > 0) return `+₹${netProfit}`;
-    if (netProfit < 0) return `-₹${Math.abs(netProfit)}`;
-    return '₹0';
+    if (netProfit > 0) return `+${netProfit}`;
+    if (netProfit < 0) return `-${Math.abs(netProfit)}`;
+    return '0';
 };
 
 const getNetProfitClass = (item) => {
