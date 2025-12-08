@@ -153,21 +153,10 @@ class GameLoop {
                     }
                 }
 
-                // 1. Update Bet Status to 'completed' FIRST to prevent double payout on crash
-                // If we crash after this but before balance update, user loses win (better than double payout)
-                // In a real system, we'd use transactions or a 'payout_pending' state with a recovery worker.
-                bet.status = 'completed';
-                bet.result = winnings > 0 ? 'win' : 'loss';
-                bet.payout = winnings;
-                bet.gameResult = {
-                    number: this.result.number,
-                    color: this.result.color
-                };
-                await bet.save();
-
-                // 2. Update User Balance
+                // 1. Update User Balance if won
+                let updatedUser;
                 if (winnings > 0) {
-                    const updatedUser = await User.findByIdAndUpdate(
+                    updatedUser = await User.findByIdAndUpdate(
                         bet.user,
                         { $inc: { balance: winnings } },
                         { new: true }
@@ -176,7 +165,21 @@ class GameLoop {
                     // Notify individual user of win
                     this.io.to(`user:${bet.user}`).emit('balanceUpdate', { balance: updatedUser.balance });
                     this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
+                } else {
+                    // Fetch current balance for losses
+                    updatedUser = await User.findById(bet.user);
                 }
+
+                // 2. Update Bet Status to 'completed' with balanceAfter
+                bet.status = 'completed';
+                bet.result = winnings > 0 ? 'win' : 'loss';
+                bet.payout = winnings;
+                bet.balanceAfter = updatedUser ? updatedUser.balance : null;
+                bet.gameResult = {
+                    number: this.result.number,
+                    color: this.result.color
+                };
+                await bet.save();
             }
         } catch (err) {
             logger.error("Error processing bets:", err);

@@ -21,15 +21,16 @@
                 <TableHead>Amount</TableHead>
                 <TableHead>Result</TableHead>
                 <TableHead>Payout</TableHead>
+                <TableHead>Balance After</TableHead>
                 <TableHead>Winning Number</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="loading">
-                <TableCell colspan="7" class="h-24 text-center">Loading history...</TableCell>
+                <TableCell colspan="8" class="h-24 text-center">Loading history...</TableCell>
               </TableRow>
               <TableRow v-else-if="history.length === 0">
-                <TableCell colspan="7" class="h-24 text-center">No bets found. Start playing!</TableCell>
+                <TableCell colspan="8" class="h-24 text-center">No bets found. Start playing!</TableCell>
               </TableRow>
               <TableRow v-else v-for="item in history" :key="item._id">
                 <TableCell class="text-muted-foreground whitespace-nowrap">
@@ -78,6 +79,13 @@
                   </span>
                   <span v-else :class="item.payout > 0 ? 'text-green-500' : 'text-muted-foreground'">
                     {{ item.payout > 0 ? '+' : '' }}₹{{ item.payout }}
+                  </span>
+                </TableCell>
+
+                <!-- Balance After -->
+                <TableCell class="font-mono">
+                  <span class="text-muted-foreground">
+                    ₹{{ item.balanceAfter ?? '-' }}
                   </span>
                 </TableCell>
 

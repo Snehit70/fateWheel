@@ -31,6 +31,9 @@ const betSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    balanceAfter: {
+        type: Number
+    },
     gameResult: {
         number: Number,
         color: String
