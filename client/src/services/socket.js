@@ -4,6 +4,7 @@ import { useAuthStore } from "../stores/auth";
 class SocketService {
     constructor() {
         this.socket = null;
+        this.serverTimeOffset = 0; // Initialize to 0 to prevent NaN before sync
     }
 
     connect(token = null) {

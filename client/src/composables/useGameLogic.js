@@ -18,7 +18,8 @@ export function useGameLogic() {
     const timeLeft = ref(0);
     const transitionDuration = ref(0);
 
-    let spinInterval = null;
+    let countdownInterval = null; // For the countdown timer
+    let animationFrameId = null;  // For requestAnimationFrame spin animation
     let endTime = 0;
 
     const handleSpin = async (result, spinEndTime) => {
@@ -27,36 +28,45 @@ export function useGameLogic() {
         lastResult.value = null;
         winnings.value = 0;
 
+        // Stop countdown timer when spinning starts
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+
         // Calculate duration based on server timestamp
         const now = socket.getServerTime();
-        // Add a small buffer for network latency if needed, but ideally we trust server time
-        // If spinEndTime is in the past, we just snap to result? 
-        // No, usually spinEndTime is in the future (5 seconds from start).
 
         let duration = Math.max(0, spinEndTime - now);
-
-        // If duration is too small (e.g. late join), we might want to skip animation or speed it up.
-        // For now, let's just use the calculated duration.
 
         // Start continuous spinning
         transitionDuration.value = 0;
 
         const animateSpin = () => {
             rotation.value += ANIMATION.ROTATION_SPEED;
-            spinInterval = requestAnimationFrame(animateSpin);
+            animationFrameId = requestAnimationFrame(animateSpin);
         };
         animateSpin();
 
         // Calculate rotation to land on the result
         const resultIndex = SEGMENTS.findIndex(s => s.number === result.number);
 
-        // Let's stop continuous spin immediately and start the target transition
-        if (spinInterval) cancelAnimationFrame(spinInterval);
+        // Stop continuous spin immediately and start the target transition
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
         // Force reflow
         await new Promise(r => requestAnimationFrame(r));
 
-        transitionDuration.value = duration; // Use calculated duration
+        // Ensure minimum animation duration (never 0 or negative)
+        // Also fallback if duration is NaN (serverTimeOffset not synced yet)
+        const MIN_DURATION = 1000; // 1 second minimum
+        const MAX_DURATION = 10000; // 10 second maximum safety cap
+        if (isNaN(duration) || duration < MIN_DURATION) {
+            duration = TIMING.SPIN_DURATION * 1000; // Fallback to configured duration
+        }
+        duration = Math.min(duration, MAX_DURATION); // Cap at max
+
+        transitionDuration.value = duration;
 
         const randomOffset = 0.5 + (Math.random() * 0.8 - 0.4);
         const targetAngle = (resultIndex + randomOffset) * SEGMENT_ANGLE;
@@ -74,12 +84,27 @@ export function useGameLogic() {
 
         rotation.value = finalRotation;
 
-        setTimeout(() => {
+        // Primary animation completion handler
+        const completeAnimation = () => {
             isAnimating.value = false;
             lastResult.value = result;
-            isSpinning.value = false; // Ensure spinning stops after animation
+            isSpinning.value = false;
             status.value = 'RESULT';
-        }, duration);
+        };
+
+        // Set timeout for animation completion
+        const animationTimeout = setTimeout(completeAnimation, duration);
+
+        // Safety timeout: force recovery if still stuck after duration + buffer
+        const safetyTimeout = setTimeout(() => {
+            if (isAnimating.value || isSpinning.value) {
+                console.warn('Safety timeout triggered - forcing wheel recovery');
+                completeAnimation();
+            }
+        }, duration + 2000);
+
+        // Clear safety timeout once animation completes normally
+        setTimeout(() => clearTimeout(safetyTimeout), duration + 100);
     };
 
     onMounted(() => {
@@ -101,22 +126,19 @@ export function useGameLogic() {
                 lastResult.value = null;
                 winnings.value = 0;
 
-                if (!spinInterval) {
-                    spinInterval = setInterval(() => {
+                if (!countdownInterval) {
+                    countdownInterval = setInterval(() => {
                         const remaining = Math.max(0, (endTime - socket.getServerTime()) / 1000);
                         timeLeft.value = remaining;
-                        if (remaining <= 0) {
-                            // Timer finished
-                        }
                     }, 100); // Update more frequently for smooth timer
                 }
 
             } else if (data.state === 'SPINNING') {
                 status.value = 'ROLLING...';
                 isSpinning.value = true;
-                if (spinInterval) {
-                    clearInterval(spinInterval);
-                    spinInterval = null;
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
                 }
                 // Late join handling
                 if (data.targetResult && !isAnimating.value) {
@@ -132,9 +154,9 @@ export function useGameLogic() {
                     }
                 }
 
-                if (spinInterval) {
-                    clearInterval(spinInterval);
-                    spinInterval = null;
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
                 }
             }
         });
@@ -146,9 +168,13 @@ export function useGameLogic() {
 
     onUnmounted(() => {
         socket.disconnect();
-        if (spinInterval) {
-            clearInterval(spinInterval);
-            cancelAnimationFrame(spinInterval);
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
         }
     });
 
