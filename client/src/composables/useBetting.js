@@ -2,6 +2,9 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import socket from '../services/socket';
 
+// Flag to prevent gameState from restoring cleared bets during the clear operation
+let clearPending = false;
+
 export function useBetting(bets, isSpinning) {
     const authStore = useAuthStore();
     const currentBetAmount = ref(0);
@@ -47,7 +50,7 @@ export function useBetting(bets, isSpinning) {
                 // alert(response.error); // Removed to prevent annoying popup
 
                 // Revert optimistic update
-                const index = bets.value.findIndex(b => b.type === type && b.value === value);
+                const index = bets.value.findIndex(b => b.type === type && b.value === value && b.userId === authStore.user?.id);
                 if (index !== -1) {
                     bets.value[index].amount -= currentBetAmount.value;
                     if (bets.value[index].amount <= 0) {
@@ -67,14 +70,22 @@ export function useBetting(bets, isSpinning) {
     const clearBets = () => {
         if (isSpinning.value) return;
 
+        const userId = authStore.user?.id;
+        if (!userId) return;
+
+        // Set flag to prevent gameState from restoring our bets
+        clearPending = true;
+
         // Optimistic clear
-        bets.value = bets.value.filter(b => b.userId !== authStore.user?.id);
+        bets.value = bets.value.filter(b => b.userId !== userId);
 
         socket.emit('clearBets', (response) => {
+            // Clear the pending flag after server responds
+            clearPending = false;
+
             if (response.error) {
                 console.error(response.error);
-                // If error, maybe we should fetch state again? 
-                // But usually socket broadcast will fix it.
+                // If error, the next gameState broadcast will restore the correct state
             } else if (response.newBalance !== undefined) {
                 if (authStore.user) {
                     authStore.user.balance = response.newBalance;
@@ -89,4 +100,9 @@ export function useBetting(bets, isSpinning) {
         handlePlaceBet,
         clearBets
     };
+}
+
+// Export helper to check if clear is pending (used by useGameLogic to filter bets)
+export function isClearPending() {
+    return clearPending;
 }

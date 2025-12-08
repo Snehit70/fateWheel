@@ -2,6 +2,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import socket from '../services/socket';
 import { useAuthStore } from '../stores/auth';
 import { SEGMENTS, SEGMENT_ANGLE, ANIMATION, TIMING } from '../constants/game';
+import { isClearPending } from './useBetting';
 
 export function useGameLogic() {
     const authStore = useAuthStore();
@@ -111,7 +112,14 @@ export function useGameLogic() {
         socket.connect();
 
         socket.on('gameState', (data) => {
-            bets.value = data.bets;
+            // If a clear operation is pending, filter out current user's bets from the broadcast
+            // to preserve the optimistic clear until the server confirms
+            if (isClearPending() && authStore.user?.id) {
+                const userId = authStore.user.id;
+                bets.value = data.bets.filter(b => b.userId !== userId);
+            } else {
+                bets.value = data.bets;
+            }
             spinHistory.value = data.history;
 
             // Sync Time
