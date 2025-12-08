@@ -40,7 +40,7 @@
           </CardHeader>
           <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
             <div class="text-lg sm:text-2xl font-bold" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
-              {{ stats.netProfit >= 0 ? '+' : '' }}₹{{ Math.floor(stats.netProfit) }}
+              {{ stats.netProfit >= 0 ? '+' : '' }}{{ Math.floor(stats.netProfit) }}
             </div>
           </CardContent>
         </Card>
@@ -88,7 +88,7 @@
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell class="font-mono text-green-500 font-bold">₹{{ Math.floor(user.balance) }}</TableCell>
+                <TableCell class="font-mono text-green-500 font-bold">{{ Math.floor(user.balance) }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
                 <TableCell>
                   <div class="flex gap-2">
@@ -125,7 +125,7 @@
           >
             <div class="flex items-center justify-between mb-3">
               <span class="font-medium text-lg">{{ user.username }}</span>
-              <span class="font-mono text-green-500 font-bold">₹{{ Math.floor(user.balance) }}</span>
+              <span class="font-mono text-green-500 font-bold">{{ Math.floor(user.balance) }}</span>
             </div>
             <div class="flex items-center gap-2 mb-3">
               <Select 

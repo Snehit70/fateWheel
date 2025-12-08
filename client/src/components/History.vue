@@ -58,7 +58,7 @@
                 <!-- Amount -->
                 <TableCell class="font-mono">
                   <span :class="isTransaction(item) && item.type === 'deposit' ? 'text-green-500 font-bold' : ''">
-                    ₹{{ item.amount }}
+                    {{ item.amount }}
                   </span>
                 </TableCell>
 
@@ -75,17 +75,17 @@
                 <!-- Payout / Balance After -->
                 <TableCell class="font-mono font-bold">
                   <span v-if="isTransaction(item)" class="text-muted-foreground">
-                    Bal: ₹{{ item.balanceAfter }}
+                    Bal: {{ item.balanceAfter }}
                   </span>
                   <span v-else :class="item.payout > 0 ? 'text-green-500' : 'text-muted-foreground'">
-                    {{ item.payout > 0 ? '+' : '' }}₹{{ item.payout }}
+                    {{ item.payout > 0 ? '+' : '' }}{{ item.payout }}
                   </span>
                 </TableCell>
 
                 <!-- Balance After -->
                 <TableCell class="font-mono">
                   <span class="text-muted-foreground">
-                    ₹{{ item.balanceAfter ?? '-' }}
+                    {{ item.balanceAfter ?? '-' }}
                   </span>
                 </TableCell>
 

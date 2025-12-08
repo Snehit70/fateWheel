@@ -19,9 +19,9 @@
             <TableHeader>
               <TableRow>
                 <TableHead>Action</TableHead>
-                <TableHead>Admin</TableHead>
                 <TableHead>Target User</TableHead>
                 <TableHead>Details</TableHead>
+                <TableHead>Reason</TableHead>
                 <TableHead>Time</TableHead>
               </TableRow>
             </TableHeader>
@@ -38,10 +38,10 @@
                     {{ log.action.replace(/_/g, ' ') }}
                   </Badge>
                 </TableCell>
-                <TableCell class="font-medium">{{ log.adminId?.username || 'System' }}</TableCell>
-                <TableCell>{{ log.targetUsername || '-' }}</TableCell>
-                <TableCell class="text-muted-foreground">{{ log.details }}</TableCell>
-                <TableCell class="text-muted-foreground text-xs">{{ new Date(log.createdAt).toLocaleString() }}</TableCell>
+                <TableCell class="font-medium">{{ log.targetUsername || '-' }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ getCleanDetails(log.details) }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ getReasonFromDetails(log.details) }}</TableCell>
+                <TableCell class="text-muted-foreground text-xs whitespace-nowrap">{{ new Date(log.createdAt).toLocaleString() }}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -84,6 +84,20 @@ const getActionVariant = (action) => {
         case 'update_balance': return 'secondary';
         default: return 'outline';
     }
+};
+
+// Remove "Reason: ..." from details since it now has its own column
+const getCleanDetails = (details) => {
+    if (!details) return '-';
+    // Remove the "Reason: ..." part from the end
+    return details.replace(/\.?\s*Reason:.*$/i, '').trim() || '-';
+};
+
+// Extract the reason from the details string
+const getReasonFromDetails = (details) => {
+    if (!details) return '-';
+    const match = details.match(/Reason:\s*(.+)$/i);
+    return match ? match[1].trim() : '-';
 };
 
 onMounted(() => {
