@@ -45,21 +45,21 @@ if (process.env.REDIS_URL) {
 
     rateLimiter = new RateLimiterRedis({
         storeClient: rateLimiterRedisClient,
-        points: 5, // 5 requests
-        duration: 1, // per 1 second
+        points: parseInt(process.env.SOCKET_RATE_LIMIT_POINTS, 10) || 5, // requests per second
+        duration: 1,
         keyPrefix: 'socket_rate_limit'
     });
 } else {
     rateLimiter = new RateLimiterMemory({
-        points: 5, // 5 requests
-        duration: 1, // per 1 second
+        points: parseInt(process.env.SOCKET_RATE_LIMIT_POINTS, 10) || 5, // requests per second
+        duration: 1,
     });
 }
 
 // Separate rate limiter for timeSync (less strict)
 const timeSyncRateLimiter = new RateLimiterMemory({
-    points: 10, // 10 requests
-    duration: 1, // per 1 second
+    points: parseInt(process.env.TIMESYNC_RATE_LIMIT_POINTS, 10) || 10, // requests per second
+    duration: 1,
 });
 
 // Middleware
