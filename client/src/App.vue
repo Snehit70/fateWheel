@@ -18,6 +18,12 @@
         </router-view>
       </div>
     </main>
+    
+    <!-- Terms and Conditions Footer -->
+    <footer class="footer-terms">
+      <p>This website is intended strictly for educational purposes only. Any misuse of the content or involvement in illegal usage is prohibited. We are not responsible for any unlawful use or consequences arising from such misuse.</p>
+    </footer>
+    
     <LoginModal />
   </div>
 </template>
