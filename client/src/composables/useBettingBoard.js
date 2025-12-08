@@ -116,6 +116,30 @@ export function useBettingBoard(props, emit) {
         }
     };
 
+    const getEvenOddClass = (type) => {
+        // Default state
+        const defaultClass = "bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500";
+
+        if (!props.lastResult) return defaultClass;
+
+        const winningNumber = props.lastResult.number;
+
+        // Zero is neither even nor odd for betting purposes
+        if (winningNumber === 0) {
+            return "bg-secondary/30 border-transparent opacity-40 hover:opacity-100 hover:bg-secondary/50 hover:border-border";
+        }
+
+        const isEven = winningNumber % 2 === 0;
+
+        if ((type === 'even' && isEven) || (type === 'odd' && !isEven)) {
+            // Winner - yellow highlight like winning numbers
+            return `bg-yellow-500 text-black border-yellow-500 shadow-[0_0_20px_${THEME.colors.gold.shadow}] scale-105`;
+        } else {
+            // Loser
+            return "bg-secondary/30 border-transparent opacity-40 hover:opacity-100 hover:bg-secondary/50 hover:border-border";
+        }
+    };
+
     return {
         getBetAmount,
         getBetsForColor,
@@ -124,6 +148,7 @@ export function useBettingBoard(props, emit) {
         getAggregatedBetsForColor,
         getUserBetForColor,
         getSectionClass,
-        getNumberClass
+        getNumberClass,
+        getEvenOddClass
     };
 }

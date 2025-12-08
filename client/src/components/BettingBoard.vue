@@ -137,8 +137,11 @@
         <Button
           @click="handlePlaceBet('type', 'even')"
           variant="outline"
-          class="h-full bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500 text-xs uppercase tracking-wider font-outfit font-bold"
-          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }"
+          class="h-full text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
+          :class="[
+            getEvenOddClass('even'),
+            { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }
+          ]"
         >
           EVEN
         </Button>
@@ -158,8 +161,11 @@
         <Button
           @click="handlePlaceBet('type', 'odd')"
           variant="outline"
-          class="h-full bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500 text-xs uppercase tracking-wider font-outfit font-bold"
-          :class="{ 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }"
+          class="h-full text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
+          :class="[
+            getEvenOddClass('odd'),
+            { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }
+          ]"
         >
           ODD
         </Button>
@@ -366,6 +372,7 @@ const {
     getAggregatedBetsForColor,
     getUserBetForColor,
     getSectionClass,
-    getNumberClass
+    getNumberClass,
+    getEvenOddClass
 } = useBettingBoard(props, emit);
 </script>
