@@ -237,6 +237,19 @@ class GameLoop {
             }
         }
 
+        // Check max bet amount limit per user per round
+        const MAX_BET_AMOUNT = parseInt(process.env.MAX_BET_AMOUNT, 10) || 1000;
+        const userActiveBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
+        const currentTotalBet = userActiveBets.reduce((sum, b) => sum + b.amount, 0);
+
+        if (currentTotalBet + amount > MAX_BET_AMOUNT) {
+            const remainingAllowance = MAX_BET_AMOUNT - currentTotalBet;
+            if (remainingAllowance <= 0) {
+                throw new Error(`Maximum bet limit of ₹${MAX_BET_AMOUNT} reached for this round`);
+            }
+            throw new Error(`Bet exceeds limit. You can only bet ₹${remainingAllowance} more this round (Max: ₹${MAX_BET_AMOUNT})`);
+        }
+
         // Atomic check and deduct
         const dbUser = await User.findOneAndUpdate(
             { _id: user.id, balance: { $gte: amount } },
