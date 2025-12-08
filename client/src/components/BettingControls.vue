@@ -27,7 +27,7 @@
     <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <div class="flex items-center gap-2">
             <div class="relative flex-1">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-xl z-10">₹</span>
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-xl z-10"></span>
                 <Input 
                     type="number" 
                     v-model.number="betAmount"
