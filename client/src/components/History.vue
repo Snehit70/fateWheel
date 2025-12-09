@@ -15,8 +15,8 @@
 
       <!-- Filters -->
       <div class="flex flex-wrap gap-2">
-        <Button 
-          v-for="f in filterOptions" 
+        <Button
+          v-for="f in filterOptions"
           :key="f.value"
           :variant="activeFilter === f.value ? 'default' : 'outline'"
           size="sm"
@@ -50,9 +50,9 @@
               <TableRow v-else-if="filteredHistory.length === 0">
                 <TableCell colspan="9" class="h-24 text-center">No records found.</TableCell>
               </TableRow>
-              <TableRow 
-                v-else 
-                v-for="(item, index) in filteredHistory" 
+              <TableRow
+                v-else
+                v-for="(item, index) in filteredHistory"
                 :key="item._id"
                 :class="getRoundRowClass(item, index)"
               >
@@ -66,7 +66,7 @@
                 <TableCell class="text-muted-foreground whitespace-nowrap">
                   {{ formatDate(item.createdAt) }}
                 </TableCell>
-                
+
                 <!-- Type -->
                 <TableCell class="font-medium capitalize">
                   <span v-if="isTransaction(item)" :class="getTransactionTypeClass(item.type)">
@@ -184,6 +184,7 @@ const activeFilter = ref('all');
 const viewingUserId = computed(() => route.query.userId || null);
 const viewingUsername = computed(() => route.query.username || null);
 
+const filterOptions = [
   { value: 'all', label: 'All' },
   { value: 'bets', label: 'Bets Only' },
   { value: 'transactions', label: 'Transactions' }
@@ -192,7 +193,7 @@ const viewingUsername = computed(() => route.query.username || null);
 const fetchHistory = async () => {
   try {
     // If admin is viewing another user's history, use admin endpoint
-    const endpoint = viewingUserId.value 
+    const endpoint = viewingUserId.value
       ? `/admin/users/${viewingUserId.value}/history`
       : '/game/history';
     const res = await api.get(endpoint);
@@ -207,25 +208,25 @@ const fetchHistory = async () => {
 // Return history directly (server already sorts, but we ensure order here)
 const aggregatedHistory = computed(() => {
   const items = [...history.value];
-  // Sort by createdAt descending (newest first) for general display, 
+  // Sort by createdAt descending (newest first) for general display,
   // but note that within a round, we want to see the progression.
   // Actually, the server /game/history endpoint sorts by createdAt desc.
   // And we want the default view to be newest first.
-  
+
   // However, for the progressive balance to make sense visually in a table (top to bottom),
-  // usually we read top-down. 
+  // usually we read top-down.
   // If we show newest first (DESC), looking at a round:
   // Row 1: 09:34:05 - Win - Balance 10100
   // Row 2: 09:34:00 - Bet - Balance 9900
   // This reads correctly: "Top is latest state".
-  
+
   return items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 });
 
 // Filter based on active filter
 const filteredHistory = computed(() => {
   const items = aggregatedHistory.value;
-  
+
   switch (activeFilter.value) {
     case 'bets':
       return items.filter(item => !isTransaction(item));
@@ -241,15 +242,15 @@ const stats = computed(() => {
   const completedBets = aggregatedHistory.value.filter(
     item => !isTransaction(item) && item.status === 'completed'
   );
-  
+
   const wins = completedBets.filter(b => b.result === 'win');
   const totalBets = completedBets.length;
   const winRate = totalBets > 0 ? (wins.length / totalBets) * 100 : 0;
-  
+
   const totalWagered = completedBets.reduce((sum, b) => sum + b.amount, 0);
   const totalPayout = completedBets.reduce((sum, b) => sum + (b.payout || 0), 0);
   const netProfit = totalPayout - totalWagered;
-  
+
   return {
     totalBets,
     winRate,
@@ -349,15 +350,15 @@ let colorToggle = false;
 
 const getRoundRowClass = (item, index) => {
     if (isTransaction(item)) return '';
-    
+
     const roundId = item.roundId || item._id;
-    
+
     if (!roundColorMap.has(roundId)) {
         // Assign a color to this round
         roundColorMap.set(roundId, colorToggle);
         colorToggle = !colorToggle;
     }
-    
+
     // Use a more visible alternating background
     return roundColorMap.get(roundId) ? 'bg-white/5' : 'bg-primary/5';
 };
