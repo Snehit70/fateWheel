@@ -41,13 +41,13 @@
       <div class="flex gap-2 h-14">
         <Button
           @click="handlePlaceBet('color', COLORS.RED)"
-          class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1"
+          class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1 flex flex-col items-center justify-center"
           :class="{ 'opacity-80 hover:bg-[#ff4d4d] cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
-          RED
+          <span>RED</span>
           <span
             v-if="getBetAmount('color', 'red')"
-            class="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-red-600"
+            class="text-[10px] text-yellow-500 font-medium whitespace-nowrap"
           >
             {{ getBetAmount("color", "red") }}
           </span>
@@ -137,13 +137,19 @@
         <Button
           @click="handlePlaceBet('type', 'even')"
           variant="outline"
-          class="h-full text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
+          class="h-full flex flex-col items-center justify-center text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
           :class="[
             getEvenOddClass('even'),
             { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }
           ]"
         >
-          EVEN
+          <span>EVEN</span>
+          <span
+            v-if="getBetAmount('type', 'even') > 0"
+            class="text-[10px] text-yellow-500 font-medium"
+          >
+            {{ getBetAmount("type", "even") }}
+          </span>
         </Button>
         <Button
           @click="handlePlaceBet('number', 0)"
@@ -161,13 +167,19 @@
         <Button
           @click="handlePlaceBet('type', 'odd')"
           variant="outline"
-          class="h-full text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
+          class="h-full flex flex-col items-center justify-center text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
           :class="[
             getEvenOddClass('odd'),
             { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }
           ]"
         >
-          ODD
+          <span>ODD</span>
+          <span
+            v-if="getBetAmount('type', 'odd') > 0"
+            class="text-[10px] text-yellow-500 font-medium"
+          >
+            {{ getBetAmount("type", "odd") }}
+          </span>
         </Button>
       </div>
 
@@ -236,13 +248,13 @@
       <div class="flex gap-2 h-14">
         <Button
           @click="handlePlaceBet('color', COLORS.BLACK)"
-          class="flex-1 bg-[#2d1f3d] hover:bg-[#3d2a52] text-purple-200 relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#4a3366] active:border-b-0 active:translate-y-1 shadow-[0_0_15px_rgba(138,43,226,0.2)]"
+          class="flex-1 bg-[#2d1f3d] hover:bg-[#3d2a52] text-purple-200 relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#4a3366] active:border-b-0 active:translate-y-1 shadow-[0_0_15px_rgba(138,43,226,0.2)] flex flex-col items-center justify-center"
           :class="{ 'opacity-80 hover:bg-[#2d1f3d] cursor-not-allowed': !isLoggedIn || isAdmin }"
         >
-          BLACK
+          <span>BLACK</span>
           <span
             v-if="getBetAmount('color', 'black')"
-            class="absolute -top-2 -right-2 bg-white text-purple-900 text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pop-in border-2 border-purple-600"
+            class="text-[10px] text-yellow-500 font-medium whitespace-nowrap"
           >
             {{ getBetAmount("color", "black") }}
           </span>
