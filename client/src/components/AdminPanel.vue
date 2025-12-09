@@ -92,6 +92,9 @@
                 <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
                 <TableCell>
                   <div class="flex gap-2">
+                    <Button size="sm" variant="ghost" @click="viewUserHistory(user)">
+                      History
+                    </Button>
                     <Button size="sm" variant="outline" @click="openEditBalance(user)">
                       Edit Balance
                     </Button>
@@ -143,7 +146,10 @@
               </Select>
               <span class="text-xs text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</span>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
+              <Button size="sm" variant="ghost" @click="viewUserHistory(user)" class="flex-1">
+                History
+              </Button>
               <Button size="sm" variant="outline" @click="openEditBalance(user)" class="flex-1">
                 Edit Balance
               </Button>
@@ -213,6 +219,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '../services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -230,6 +237,7 @@ import {
 import { useAuthStore } from '../stores/auth';
 import { useToast } from '../composables/useToast';
 
+const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
 const users = ref([]);
@@ -358,6 +366,13 @@ const deleteUser = async () => {
     console.error(err);
     toast.error('Failed to delete user');
   }
+};
+
+const viewUserHistory = (user) => {
+  router.push({ 
+    path: '/history', 
+    query: { userId: user._id, username: user.username } 
+  });
 };
 
 // Realtime Updates

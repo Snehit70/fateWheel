@@ -135,51 +135,70 @@ class GameLoop {
         if (this.history.length > 20) this.history.pop();
 
         // Process Bets
-        // We iterate through DB records to ensure we process every active bet for this round
+        // Group bets by user for correct balanceAfter values
         try {
             const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
 
+            // Group bets by user
+            const betsByUser = new Map();
             for (const bet of activeBets) {
-                let winnings = 0;
-                if (bet.type === "number" && bet.value === this.result.number) {
-                    winnings = Math.floor(bet.amount * PAYOUTS.NUMBER);
-                } else if (bet.type === "color" && bet.value === this.result.color) {
-                    winnings = Math.floor(bet.amount * PAYOUTS.COLOR);
-                } else if (bet.type === "type") {
-                    if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
-                        winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
-                    } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
-                        winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                const userId = bet.user.toString();
+                if (!betsByUser.has(userId)) {
+                    betsByUser.set(userId, []);
+                }
+                betsByUser.get(userId).push(bet);
+            }
+
+            // Process each user's bets together
+            for (const [userId, userBets] of betsByUser) {
+                let totalWinnings = 0;
+
+                // Calculate winnings for each bet
+                for (const bet of userBets) {
+                    let winnings = 0;
+                    if (bet.type === "number" && bet.value === this.result.number) {
+                        winnings = Math.floor(bet.amount * PAYOUTS.NUMBER);
+                    } else if (bet.type === "color" && bet.value === this.result.color) {
+                        winnings = Math.floor(bet.amount * PAYOUTS.COLOR);
+                    } else if (bet.type === "type") {
+                        if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
+                            winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                        } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
+                            winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                        }
                     }
+
+                    bet.status = 'completed';
+                    bet.result = winnings > 0 ? 'win' : 'loss';
+                    bet.payout = winnings;
+                    bet.gameResult = {
+                        number: this.result.number,
+                        color: this.result.color
+                    };
+
+                    totalWinnings += winnings;
                 }
 
-                // 1. Update User Balance if won
+                // Update user balance once with total winnings
                 let updatedUser;
-                if (winnings > 0) {
+                if (totalWinnings > 0) {
                     updatedUser = await User.findByIdAndUpdate(
-                        bet.user,
-                        { $inc: { balance: winnings } },
+                        userId,
+                        { $inc: { balance: totalWinnings } },
                         { new: true }
                     );
-
-                    // Notify individual user of win
-                    this.io.to(`user:${bet.user}`).emit('balanceUpdate', { balance: updatedUser.balance });
+                    this.io.to(`user:${userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
                     this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
                 } else {
-                    // Fetch current balance for losses
-                    updatedUser = await User.findById(bet.user);
+                    updatedUser = await User.findById(userId);
                 }
 
-                // 2. Update Bet Status to 'completed' with balanceAfter
-                bet.status = 'completed';
-                bet.result = winnings > 0 ? 'win' : 'loss';
-                bet.payout = winnings;
-                bet.balanceAfter = updatedUser ? updatedUser.balance : null;
-                bet.gameResult = {
-                    number: this.result.number,
-                    color: this.result.color
-                };
-                await bet.save();
+                // Set the SAME final balanceAfter for ALL bets of this user
+                const finalBalance = updatedUser ? updatedUser.balance : null;
+                for (const bet of userBets) {
+                    bet.balanceAfter = finalBalance;
+                    await bet.save();
+                }
             }
         } catch (err) {
             logger.error("Error processing bets:", err);

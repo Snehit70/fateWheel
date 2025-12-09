@@ -3,12 +3,12 @@
     <div class="max-w-6xl mx-auto space-y-6">
       <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold font-mono tracking-wider">
-          BET HISTORY
+          <span v-if="viewingUsername">{{ viewingUsername }}'s </span>BET HISTORY
           <span class="text-muted-foreground text-lg ml-2">({{ stats.totalBets }})</span>
         </h1>
         <Button variant="secondary" as-child>
-          <router-link to="/">
-            BACK TO GAME
+          <router-link :to="viewingUserId ? '/admin' : '/'">
+            {{ viewingUserId ? 'BACK TO ADMIN' : 'BACK TO GAME' }}
           </router-link>
         </Button>
       </div>
@@ -156,6 +156,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
 import { Button } from '@/components/ui/button';
@@ -163,10 +164,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
+const route = useRoute();
 const authStore = useAuthStore();
 const history = ref([]);
 const loading = ref(true);
 const activeFilter = ref('all');
+const viewingUserId = computed(() => route.query.userId || null);
+const viewingUsername = computed(() => route.query.username || null);
 
 const filterOptions = [
   { value: 'all', label: 'All' },
@@ -178,7 +182,11 @@ const filterOptions = [
 
 const fetchHistory = async () => {
   try {
-    const res = await api.get('/game/history');
+    // If admin is viewing another user's history, use admin endpoint
+    const endpoint = viewingUserId.value 
+      ? `/admin/users/${viewingUserId.value}/history`
+      : '/game/history';
+    const res = await api.get(endpoint);
     history.value = res.data;
   } catch (err) {
     console.error("Failed to fetch history:", err);
@@ -240,8 +248,12 @@ const aggregatedHistory = computed(() => {
       group.amount += item.amount;
       group.payout += item.payout || 0;
       group.betCount += 1;
+      // Use balanceAfter from the item with latest createdAt (most up-to-date)
       if (item.balanceAfter !== null && item.balanceAfter !== undefined) {
-        group.balanceAfter = item.balanceAfter;
+        if (!group._balanceAfterTime || new Date(item.createdAt) > new Date(group._balanceAfterTime)) {
+          group.balanceAfter = item.balanceAfter;
+          group._balanceAfterTime = item.createdAt;
+        }
       }
       if (new Date(item.createdAt) > new Date(group.createdAt)) {
         group.createdAt = item.createdAt;

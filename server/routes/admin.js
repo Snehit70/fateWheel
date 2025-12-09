@@ -78,6 +78,35 @@ router.get('/stats', auth, admin, async (req, res) => {
     }
 });
 
+// @route   GET api/admin/users/:id/history
+// @desc    Get user's bet and transaction history
+// @access  Admin
+router.get('/users/:id/history', auth, admin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        const bets = await Bet.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
+
+        const transactions = await Transaction.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
+
+        // Combine and sort by date
+        const history = [...bets, ...transactions].sort((a, b) => {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+
+        res.json(history);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   PUT api/admin/users/:id/balance
 // @desc    Update user balance
 // @access  Admin
