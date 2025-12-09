@@ -184,12 +184,9 @@ const activeFilter = ref('all');
 const viewingUserId = computed(() => route.query.userId || null);
 const viewingUsername = computed(() => route.query.username || null);
 
-const filterOptions = [
   { value: 'all', label: 'All' },
   { value: 'bets', label: 'Bets Only' },
-  { value: 'transactions', label: 'Transactions' },
-  { value: 'wins', label: 'Wins Only' },
-  { value: 'losses', label: 'Losses Only' }
+  { value: 'transactions', label: 'Transactions' }
 ];
 
 const fetchHistory = async () => {
@@ -234,10 +231,6 @@ const filteredHistory = computed(() => {
       return items.filter(item => !isTransaction(item));
     case 'transactions':
       return items.filter(item => isTransaction(item));
-    case 'wins':
-      return items.filter(item => !isTransaction(item) && item.result === 'win');
-    case 'losses':
-      return items.filter(item => !isTransaction(item) && item.result === 'loss');
     default:
       return items;
   }
