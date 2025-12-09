@@ -53,6 +53,7 @@
 
         <!-- History Button -->
         <Button
+            v-if="authStore.user.role !== 'admin'"
             variant="ghost"
             @click="handleHistoryClick"
             class="flex items-center space-x-2 text-muted-foreground hover:text-foreground px-2 md:px-4"
@@ -115,10 +116,6 @@ const handleLogout = () => {
 };
 
 const handleHistoryClick = () => {
-    if (authStore.user?.role === 'admin') {
-        router.push('/admin/logs');
-    } else {
-        router.push('/history');
-    }
+    router.push('/history');
 };
 </script>
