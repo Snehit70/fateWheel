@@ -33,13 +33,30 @@
 import TopBar from './components/TopBar.vue';
 import LoginModal from './components/LoginModal.vue';
 import ToastContainer from './components/ToastContainer.vue';
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from './stores/auth';
+import { useAudio } from './composables/useAudio';
 
 const authStore = useAuthStore();
+const { tryUnlockAudio, isAudioUnlocked } = useAudio();
+
+const handleInteraction = () => {
+    if (!isAudioUnlocked.value) {
+        tryUnlockAudio();
+    }
+};
 
 onMounted(() => {
     authStore.init();
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('click', handleInteraction);
+    window.removeEventListener('keydown', handleInteraction);
+    window.removeEventListener('touchstart', handleInteraction);
 });
 </script>
 

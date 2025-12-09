@@ -3,9 +3,11 @@ import socket from '../services/socket';
 import { useAuthStore } from '../stores/auth';
 import { SEGMENTS, SEGMENT_ANGLE, ANIMATION, TIMING } from '../constants/game';
 import { isClearPending } from './useBetting';
+import { useAudio } from './useAudio';
 
 export function useGameLogic() {
     const authStore = useAuthStore();
+    const { playWinSound } = useAudio();
 
     // State
     const bets = ref([]);
@@ -91,6 +93,9 @@ export function useGameLogic() {
             lastResult.value = result;
             isSpinning.value = false;
             status.value = 'RESULT';
+
+            // Play winning sound
+            playWinSound();
         };
 
         // Set timeout for animation completion
