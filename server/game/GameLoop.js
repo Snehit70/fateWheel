@@ -23,6 +23,7 @@ class GameLoop {
         this.endTime = 0; // Timestamp for current phase end
         this.result = null;
         this.currentRoundId = crypto.randomUUID();
+        this.roundNumber = 0; // Will be set from DB in init()
 
         this.init();
         this.startLoop();
@@ -32,7 +33,12 @@ class GameLoop {
         try {
             const results = await GameResult.find().sort({ createdAt: -1 }).limit(20);
             this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
-            logger.info(`Loaded ${this.history.length} past results`);
+
+            // Get the highest round number from DB to continue counting
+            const lastResult = await GameResult.findOne().sort({ roundNumber: -1 });
+            this.roundNumber = lastResult ? lastResult.roundNumber : 0;
+
+            logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber + 1}`);
         } catch (err) {
             logger.error("Failed to load game history:", err);
         }
@@ -151,9 +157,7 @@ class GameLoop {
 
             // Process each user's bets together
             for (const [userId, userBets] of betsByUser) {
-                let totalWinnings = 0;
-
-                // Calculate winnings for each bet
+                // First, calculate winnings for each bet to determine result
                 for (const bet of userBets) {
                     let winnings = 0;
                     if (bet.type === "number" && bet.value === this.result.number) {
@@ -175,9 +179,15 @@ class GameLoop {
                         number: this.result.number,
                         color: this.result.color
                     };
-
-                    totalWinnings += winnings;
                 }
+
+                // Sort bets: losses first, then wins (so progressive balance makes sense)
+                // Sort bets by createdAt (chronological order of placement)
+                userBets.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+                // Calculate total winnings for DB update
+                const totalWinnings = userBets.reduce((sum, bet) => sum + bet.payout, 0);
+                const totalBetAmount = userBets.reduce((sum, bet) => sum + bet.amount, 0);
 
                 // Update user balance once with total winnings
                 let updatedUser;
@@ -193,10 +203,20 @@ class GameLoop {
                     updatedUser = await User.findById(userId);
                 }
 
-                // Set the SAME final balanceAfter for ALL bets of this user
-                const finalBalance = updatedUser ? updatedUser.balance : null;
+                // Calculate PROGRESSIVE balanceAfter for each bet chronologically
+                // Initial balance BEFORE this round = final + total_bets - total_payouts
+                const finalBalance = updatedUser ? updatedUser.balance : 0;
+                const initialBalance = finalBalance + totalBetAmount - totalWinnings;
+                let runningBalance = initialBalance;
+
+                // Process bets in chronological order
                 for (const bet of userBets) {
-                    bet.balanceAfter = finalBalance;
+                    // Deduct bet amount (already happened at placement, but we're reconstructing)
+                    runningBalance -= bet.amount;
+                    // Add payout if won
+                    runningBalance += bet.payout;
+                    // This is the balance AFTER this bet was fully resolved
+                    bet.balanceAfter = runningBalance;
                     await bet.save();
                 }
             }
@@ -207,6 +227,8 @@ class GameLoop {
         // Save Game Result
         try {
             const gameResult = new GameResult({
+                roundId: this.currentRoundId,
+                roundNumber: this.roundNumber,
                 number: this.result.number,
                 color: this.result.color
             });
@@ -223,6 +245,7 @@ class GameLoop {
         this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
         this.bets = [];
         this.result = null;
+        this.roundNumber++; // Increment round number for next round
         this.currentRoundId = crypto.randomUUID();
         this.broadcastState();
     }

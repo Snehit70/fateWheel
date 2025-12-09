@@ -32,6 +32,7 @@
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Round</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Value</TableHead>
@@ -44,13 +45,24 @@
             </TableHeader>
             <TableBody>
               <TableRow v-if="loading">
-                <TableCell colspan="8" class="h-24 text-center">Loading history...</TableCell>
+                <TableCell colspan="9" class="h-24 text-center">Loading history...</TableCell>
               </TableRow>
               <TableRow v-else-if="filteredHistory.length === 0">
-                <TableCell colspan="8" class="h-24 text-center">No records found.</TableCell>
+                <TableCell colspan="9" class="h-24 text-center">No records found.</TableCell>
               </TableRow>
-              <TableRow v-else v-for="item in filteredHistory" :key="item._id">
-                <!-- Time -->
+              <TableRow 
+                v-else 
+                v-for="(item, index) in filteredHistory" 
+                :key="item._id"
+                :class="getRoundRowClass(item, index)"
+              >
+                <!-- Round Number -->
+                <TableCell class="font-mono text-muted-foreground">
+                  <span v-if="!isTransaction(item) && item.roundId">
+                    #{{ getRoundDisplayNumber(item) }}
+                  </span>
+                  <span v-else>-</span>
+                </TableCell>
                 <TableCell class="text-muted-foreground whitespace-nowrap">
                   {{ formatDate(item.createdAt) }}
                 </TableCell>
@@ -195,96 +207,22 @@ const fetchHistory = async () => {
   }
 };
 
-// Helper to create a time-based grouping key
-const getTimeGroupKey = (dateStr) => {
-  const date = new Date(dateStr);
-  const minutes = Math.floor(date.getMinutes() / 2) * 2;
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${minutes}`;
-};
-
-// Aggregate bets AND transactions
+// Return history directly (server already sorts, but we ensure order here)
 const aggregatedHistory = computed(() => {
-  const items = history.value;
-  const result = [];
-  const betGroups = new Map();
-  const txGroups = new Map();
-
-  for (const item of items) {
-    if (isTransaction(item)) {
-      // Aggregate transactions by time window + type + description
-      const txKey = `tx-${getTimeGroupKey(item.createdAt)}-${item.type}-${item.description || 'none'}`;
-      
-      if (txGroups.has(txKey)) {
-        const group = txGroups.get(txKey);
-        group.amount += item.amount;
-        group.txCount += 1;
-        if (item.balanceAfter !== null && item.balanceAfter !== undefined) {
-          group.balanceAfter = item.balanceAfter;
-        }
-        if (new Date(item.createdAt) > new Date(group.createdAt)) {
-          group.createdAt = item.createdAt;
-        }
-      } else {
-        txGroups.set(txKey, {
-          ...item,
-          amount: item.amount,
-          txCount: 1,
-          _id: txKey
-        });
-      }
-      continue;
-    }
-
-    // Bet aggregation
-    let groupKey;
-    if (item.roundId) {
-      groupKey = `round-${item.roundId}-${item.type}-${item.value}-${item.status || 'unknown'}`;
-    } else {
-      groupKey = `time-${getTimeGroupKey(item.createdAt)}-${item.type}-${item.value}-${item.status || 'unknown'}`;
-    }
-
-    if (betGroups.has(groupKey)) {
-      const group = betGroups.get(groupKey);
-      group.amount += item.amount;
-      group.payout += item.payout || 0;
-      group.betCount += 1;
-      // Use balanceAfter from the item with latest createdAt (most up-to-date)
-      if (item.balanceAfter !== null && item.balanceAfter !== undefined) {
-        if (!group._balanceAfterTime || new Date(item.createdAt) > new Date(group._balanceAfterTime)) {
-          group.balanceAfter = item.balanceAfter;
-          group._balanceAfterTime = item.createdAt;
-        }
-      }
-      if (new Date(item.createdAt) > new Date(group.createdAt)) {
-        group.createdAt = item.createdAt;
-      }
-      if (item.gameResult && !group.gameResult) {
-        group.gameResult = item.gameResult;
-      }
-      if (item.result && !group.result) {
-        group.result = item.result;
-      }
-    } else {
-      betGroups.set(groupKey, {
-        ...item,
-        amount: item.amount,
-        payout: item.payout || 0,
-        betCount: 1,
-        _id: groupKey
-      });
-    }
-  }
-
-  // Add transactions and bets to result
-  for (const tx of txGroups.values()) {
-    result.push(tx);
-  }
-  for (const group of betGroups.values()) {
-    result.push(group);
-  }
-
-  result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  return result;
+  const items = [...history.value];
+  // Sort by createdAt descending (newest first) for general display, 
+  // but note that within a round, we want to see the progression.
+  // Actually, the server /game/history endpoint sorts by createdAt desc.
+  // And we want the default view to be newest first.
+  
+  // However, for the progressive balance to make sense visually in a table (top to bottom),
+  // usually we read top-down. 
+  // If we show newest first (DESC), looking at a round:
+  // Row 1: 09:34:05 - Win - Balance 10100
+  // Row 2: 09:34:00 - Bet - Balance 9900
+  // This reads correctly: "Top is latest state".
+  
+  return items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 });
 
 // Filter based on active filter
@@ -402,6 +340,33 @@ const getNetProfitClass = (item) => {
     if (netProfit > 0) return 'text-green-500';
     if (netProfit < 0) return 'text-red-500';
     return 'text-muted-foreground';
+};
+
+// Get round display number (uses roundNumber if available, otherwise derives from roundId)
+const getRoundDisplayNumber = (item) => {
+    if (item.roundNumber) return item.roundNumber;
+    // For older items without roundNumber, use last 4 chars of roundId
+    if (item.roundId) return item.roundId.slice(-4).toUpperCase();
+    return '-';
+};
+
+// Get alternating row background color based on round
+const roundColorMap = new Map();
+let colorToggle = false;
+
+const getRoundRowClass = (item, index) => {
+    if (isTransaction(item)) return '';
+    
+    const roundId = item.roundId || item._id;
+    
+    if (!roundColorMap.has(roundId)) {
+        // Assign a color to this round
+        roundColorMap.set(roundId, colorToggle);
+        colorToggle = !colorToggle;
+    }
+    
+    // Use a more visible alternating background
+    return roundColorMap.get(roundId) ? 'bg-white/5' : 'bg-primary/5';
 };
 
 const handleGameState = (data) => {

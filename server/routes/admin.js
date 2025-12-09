@@ -252,4 +252,81 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
     }
 });
 
+const GameResult = require('../models/GameResult');
+
+// @route   GET api/admin/rounds
+// @desc    Get all rounds with summary stats
+// @access  Admin
+router.get('/rounds', auth, admin, async (req, res) => {
+    try {
+        // Get all game results ordered by round number descending
+        const rounds = await GameResult.find()
+            .sort({ roundNumber: -1 })
+            .limit(100)
+            .lean();
+
+        // For each round, calculate betting stats
+        const roundsWithStats = await Promise.all(rounds.map(async (round) => {
+            const bets = await Bet.find({ roundId: round.roundId }).lean();
+
+            const totalBets = bets.length;
+            const totalWagered = bets.reduce((sum, b) => sum + b.amount, 0);
+            const totalPayout = bets.reduce((sum, b) => sum + (b.payout || 0), 0);
+            const netProfit = totalWagered - totalPayout;
+            const uniqueUsers = new Set(bets.map(b => b.user?.toString())).size;
+
+            return {
+                ...round,
+                stats: {
+                    totalBets,
+                    totalWagered,
+                    totalPayout,
+                    netProfit,
+                    uniqueUsers
+                }
+            };
+        }));
+
+        res.json(roundsWithStats);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET api/admin/rounds/:roundId
+// @desc    Get detailed round info with all bets
+// @access  Admin
+router.get('/rounds/:roundId', auth, admin, async (req, res) => {
+    try {
+        const round = await GameResult.findOne({ roundId: req.params.roundId }).lean();
+        if (!round) {
+            return res.status(404).json({ msg: 'Round not found' });
+        }
+
+        const bets = await Bet.find({ roundId: req.params.roundId })
+            .sort({ createdAt: 1 })
+            .lean();
+
+        // Calculate stats
+        const totalWagered = bets.reduce((sum, b) => sum + b.amount, 0);
+        const totalPayout = bets.reduce((sum, b) => sum + (b.payout || 0), 0);
+        const netProfit = totalWagered - totalPayout;
+
+        res.json({
+            round,
+            bets,
+            stats: {
+                totalBets: bets.length,
+                totalWagered,
+                totalPayout,
+                netProfit
+            }
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

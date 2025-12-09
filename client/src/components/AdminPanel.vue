@@ -3,6 +3,14 @@
     <div class="max-w-7xl mx-auto space-y-8">
       <div class="flex justify-between items-center">
         <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
+        <div class="flex gap-2">
+          <Button variant="outline" size="sm" as-child>
+            <router-link to="/admin/rounds">Rounds</router-link>
+          </Button>
+          <Button variant="outline" size="sm" as-child>
+            <router-link to="/admin/logs">Logs</router-link>
+          </Button>
+        </div>
       </div>
 
       <!-- Stats Cards -->

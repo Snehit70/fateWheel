@@ -1,6 +1,17 @@
 const mongoose = require('mongoose');
 
 const gameResultSchema = new mongoose.Schema({
+    roundId: {
+        type: String,
+        required: true,
+        unique: true,
+        index: true
+    },
+    roundNumber: {
+        type: Number,
+        required: true,
+        index: true
+    },
     number: {
         type: Number,
         required: true
