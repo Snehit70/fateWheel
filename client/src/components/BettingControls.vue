@@ -35,8 +35,8 @@
                     @keypress="onlyAllowNumbers"
                     class="pl-10 pr-10 font-mono text-xl sm:text-2xl font-bold h-10 sm:h-14 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0"
-                    :min="10"
-                    :max="1000"
+                    :min="BET_LIMITS.MIN"
+                    :max="BET_LIMITS.MAX"
                     :disabled="!isLoggedIn || isSpinning"
                 />
                 <button 
@@ -62,7 +62,7 @@
             </Button>
         </div>
         <span v-if="isOutOfRange" class="text-sm text-red-500 font-bold ml-1">
-            Correct range is 10-1000
+            Correct range is {{ BET_LIMITS.MIN }}-{{ BET_LIMITS.MAX }}
         </span>
     </div>
 
@@ -92,6 +92,7 @@ import { useAuthStore } from '../stores/auth';
 import { useToast } from '../composables/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { BET_LIMITS } from '../constants/game';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -117,10 +118,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update:amount', 'clear-input', 'clear-bets', 'spin']);
 
-const betAmount = ref(11);
+const betAmount = ref(BET_LIMITS.MIN);
 
 const chips = [
-    { label: '11', value: 11 },
+    { label: `${BET_LIMITS.MIN}`, value: BET_LIMITS.MIN },
     { label: '21', value: 21 },
     { label: '51', value: 51 },
     { label: '101', value: 101 },
@@ -128,7 +129,7 @@ const chips = [
 ];
 
 const isOutOfRange = computed(() => {
-    return betAmount.value > 0 && (betAmount.value < 10 || betAmount.value > 1000);
+    return betAmount.value > 0 && (betAmount.value < BET_LIMITS.MIN || betAmount.value > BET_LIMITS.MAX);
 });
 
 const isAdmin = computed(() => {
@@ -140,18 +141,18 @@ watch(betAmount, (val) => {
 });
 
 const setAmount = (type) => {
-    if (type === '10') betAmount.value = 10;
-    if (type === '1000') betAmount.value = Math.min(props.balance, 1000);
-    if (type === 'min') betAmount.value = 10;
+    if (type === '10') betAmount.value = BET_LIMITS.MIN;
+    if (type === '1000') betAmount.value = Math.min(props.balance, BET_LIMITS.MAX);
+    if (type === 'min') betAmount.value = BET_LIMITS.MIN;
     if (type === 'max') betAmount.value = props.balance;
 };
 
 const addAmount = (amount) => {
     const newAmount = betAmount.value + amount;
-    if (newAmount <= 1000) {
+    if (newAmount <= BET_LIMITS.MAX) {
         betAmount.value = newAmount;
     } else {
-        betAmount.value = 1000;
+        betAmount.value = BET_LIMITS.MAX;
     }
 };
 

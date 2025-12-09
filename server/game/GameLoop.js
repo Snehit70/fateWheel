@@ -258,8 +258,8 @@ class GameLoop {
         const { type, value, amount } = betData;
 
         // Validation
-        if (!amount || isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
-            throw new Error("Invalid bet amount (must be a whole number)");
+        if (!amount || isNaN(amount) || amount < 11 || !Number.isInteger(amount)) {
+            throw new Error("Invalid bet amount (minimum is 11)");
         }
 
         // Validate type and value against constants
@@ -283,7 +283,7 @@ class GameLoop {
         }
 
         // Check max bet amount limit per user per round
-        const MAX_BET_AMOUNT = parseInt(process.env.MAX_BET_AMOUNT, 10) || 1000;
+        const MAX_BET_AMOUNT = parseInt(process.env.MAX_BET_AMOUNT, 10) || 1001;
         const userActiveBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
         const currentTotalBet = userActiveBets.reduce((sum, b) => sum + b.amount, 0);
 

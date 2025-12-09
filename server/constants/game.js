@@ -23,9 +23,9 @@ const SEGMENTS = [
 ];
 
 const PAYOUTS = {
-    NUMBER: 14,
-    COLOR: 2,
-    TYPE: 2 // Even/Odd
+    NUMBER: parseInt(process.env.PAYOUT_NUMBER, 10) || 14,
+    COLOR: parseInt(process.env.PAYOUT_COLOR, 10) || 2,
+    TYPE: parseInt(process.env.PAYOUT_TYPE, 10) || 2 // Even/Odd
 };
 
 const TIMING = {

@@ -3,6 +3,8 @@ import { useAuthStore } from '../stores/auth';
 import { useToast } from './useToast';
 import socket from '../services/socket';
 
+import { BET_LIMITS } from '../constants/game';
+
 // Flag to prevent gameState from restoring cleared bets during the clear operation
 let clearPending = false;
 
@@ -21,7 +23,8 @@ export function useBetting(bets, isSpinning) {
 
     const handlePlaceBet = (type, value) => {
         if (isSpinning.value) return;
-        if (currentBetAmount.value <= 0) {
+        if (currentBetAmount.value < BET_LIMITS.MIN) {
+            toast.error(`Minimum bet is ${BET_LIMITS.MIN}`);
             return;
         }
 
@@ -33,8 +36,8 @@ export function useBetting(bets, isSpinning) {
             return;
         }
 
-        // Check if total bet on board would exceed max limit (1000)
-        const MAX_BET_AMOUNT = 1000;
+        // Check if total bet on board would exceed max limit
+        const MAX_BET_AMOUNT = BET_LIMITS.MAX;
         if (totalBetAmount.value + currentBetAmount.value > MAX_BET_AMOUNT) {
             const remainingAllowance = MAX_BET_AMOUNT - totalBetAmount.value;
             if (remainingAllowance <= 0) {
