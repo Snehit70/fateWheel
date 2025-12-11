@@ -32,7 +32,7 @@ router.get('/users', auth, admin, async (req, res) => {
             });
         }
 
-        // Backward compatibility / "No Max" request
+        // If no pagination parameters are provided, return all users (Legacy support)
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
@@ -189,10 +189,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
         // Socket events (outside transaction)
         if (difference !== 0) {
-            // We need to re-fetch logs to populate? Or just construct it.
-            // Best to construct or fetch.
-            // For simplicity, we won't emit the populated log here perfectly or we fetch it.
-            // Actually, let's fetch the latest log to emit.
+            // Fetch the latest log to emit with populated admin details
             const latestLog = await AdminLog.findOne({ adminId: req.user.id, action: 'update_balance' }).sort({ createdAt: -1 }).populate('adminId', 'username');
             if (latestLog) req.io.to('admin-room').emit('admin:newLog', latestLog);
         }
@@ -303,15 +300,14 @@ router.get('/rounds', auth, admin, async (req, res) => {
             .limit(limit)
             .lean();
 
-        // Optimized: Use pre-calculated stats if available. 
-        // For old records without stats, we still need to calculate them, but new ones are instant.
-        // We can do this concurrently.
+        // Optimization: Use pre-calculated stats if available to avoid N+1 queries.
+        // Falls back to on-the-fly calculation for older records.
         const roundsWithStats = await Promise.all(rounds.map(async (round) => {
             if (round.stats && round.stats.totalBets !== undefined) {
                 return round;
             }
 
-            // Fallback for migration: Calculate regarding N+1 (only for old records)
+            // Fallback: Calculate stats dynamically for legacy records that lack pre-calculated data
             const bets = await Bet.find({ roundId: round.roundId }).lean();
             const totalBets = bets.length;
             const totalWagered = bets.reduce((sum, b) => sum + b.amount, 0);
