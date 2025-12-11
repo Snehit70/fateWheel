@@ -23,6 +23,8 @@ const createAdmin = async () => {
       process.env.MONGO_URL ||
       process.env.DATABASE_URL;
 
+    console.log("Resolved MONGODB_URI:", MONGODB_URI ? MONGODB_URI.replace(/:([^:@]{1,})@/, ":****@") : "undefined");
+
     if (!MONGODB_URI) {
       if (isProduction) {
         console.error(
