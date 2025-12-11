@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
 const Transaction = require('../models/Transaction');
+const GameStats = require('../models/GameStats');
 const { SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
 const logger = require('../utils/logger');
 const { secureRandomInt } = require('../utils/random');
@@ -164,8 +165,16 @@ class GameLoop {
                 betsByUser.get(userId).push(bet);
             }
 
+            // Stats counters for the round
+            let roundTotalBets = 0;
+            let roundTotalWagered = 0;
+            let roundTotalPayout = 0;
+            let roundUniqueUsers = 0;
+
             // Process each user's bets together
             for (const [userId, userBets] of betsByUser) {
+                roundUniqueUsers++;
+                roundTotalBets += userBets.length;
                 // First, calculate winnings for each bet to determine result
                 for (const bet of userBets) {
                     let winnings = 0;
@@ -196,6 +205,9 @@ class GameLoop {
                 // Calculate total winnings for DB update
                 const totalWinnings = userBets.reduce((sum, bet) => sum + bet.payout, 0);
                 const totalBetAmount = userBets.reduce((sum, bet) => sum + bet.amount, 0);
+
+                roundTotalWagered += totalBetAmount;
+                roundTotalPayout += totalWinnings;
 
                 // Update user balance once with total winnings
                 let updatedUser;
@@ -235,9 +247,27 @@ class GameLoop {
                 roundId: this.currentRoundId,
                 roundNumber: this.roundNumber,
                 number: this.result.number,
-                color: this.result.color
+                color: this.result.color,
+                stats: {
+                    totalBets: roundTotalBets,
+                    totalWagered: roundTotalWagered,
+                    totalPayout: roundTotalPayout,
+                    netProfit: roundTotalWagered - roundTotalPayout,
+                    uniqueUsers: roundUniqueUsers
+                }
             });
             await gameResult.save({ session });
+
+            await gameResult.save({ session });
+
+            // Update Global Stats
+            await GameStats.findOneAndUpdate({}, {
+                $inc: {
+                    totalBets: roundTotalBets,
+                    totalWagered: roundTotalWagered,
+                    netProfit: roundTotalWagered - roundTotalPayout
+                }
+            }, { session });
 
             await session.commitTransaction();
         } catch (err) {

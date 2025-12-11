@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const GameStats = require('../models/GameStats');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { validatePassword } = require('../utils/validation');
 
@@ -34,6 +35,9 @@ router.post('/register', authLimiter, async (req, res) => {
             }
             throw saveErr;
         }
+
+        // Update stats
+        await GameStats.findOneAndUpdate({}, { $inc: { totalUsers: 1 } });
 
         // Emit new user event to admin
         if (req.io) {

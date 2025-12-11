@@ -27,6 +27,13 @@ const gameResultSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
         index: true
+    },
+    stats: {
+        totalBets: Number,
+        totalWagered: Number,
+        totalPayout: Number,
+        netProfit: Number,
+        uniqueUsers: Number
     }
 });
 
