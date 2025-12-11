@@ -11,7 +11,10 @@ const createAdmin = async () => {
 
     console.log("--- Environment Debug ---");
     console.log("NODE_ENV:", process.env.NODE_ENV);
-    console.log("RAILWAY_ENVIRONMENT_NAME:", process.env.RAILWAY_ENVIRONMENT_NAME);
+    console.log(
+      "RAILWAY_ENVIRONMENT_NAME:",
+      process.env.RAILWAY_ENVIRONMENT_NAME,
+    );
     console.log("MONGO_URL Present:", !!process.env.MONGO_URL);
     console.log("MONGODB_URI Present:", !!process.env.MONGODB_URI);
     console.log("DATABASE_URL Present:", !!process.env.DATABASE_URL);
@@ -23,7 +26,12 @@ const createAdmin = async () => {
       process.env.MONGODB_URI ||
       process.env.DATABASE_URL;
 
-    console.log("Resolved MONGODB_URI:", MONGODB_URI ? MONGODB_URI.replace(/:([^:@]{1,})@/, ":****@") : "undefined");
+    console.log(
+      "Resolved MONGODB_URI:",
+      MONGODB_URI
+        ? MONGODB_URI.replace(/:([^:@]{1,})@/, ":****@")
+        : "undefined",
+    );
 
     if (!MONGODB_URI) {
       if (isProduction) {

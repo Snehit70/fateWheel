@@ -36,7 +36,7 @@ class GameLoop {
 
             // Get the highest round number from DB to continue counting
             const lastResult = await GameResult.findOne().sort({ roundNumber: -1 });
-            this.roundNumber = lastResult ? lastResult.roundNumber : 0;
+            this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber : 0;
 
             logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber + 1}`);
         } catch (err) {
