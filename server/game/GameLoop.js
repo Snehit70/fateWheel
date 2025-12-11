@@ -26,12 +26,13 @@ class GameLoop {
         this.roundNumber = 0; // Will be set from DB in init()
 
         this.init();
-        this.startLoop();
     }
 
     async init() {
         try {
-            const results = await GameResult.find().sort({ createdAt: -1 }).limit(20);
+            await this.refundActiveBets();
+
+            const results = await GameResult.find().sort({ createdAt: -1 }).limit(15);
             this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
 
             // Get the highest round number from DB to continue counting
@@ -39,6 +40,8 @@ class GameLoop {
             this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber : 0;
 
             logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber + 1}`);
+
+            this.startLoop();
         } catch (err) {
             logger.error("Failed to load game history:", err);
         }
@@ -111,7 +114,6 @@ class GameLoop {
         });
     }
 
-    // secureRandomInt moved to utils/random.js
 
     spin() {
         this.state = GAME_STATES.SPINNING;
