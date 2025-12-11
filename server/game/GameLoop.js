@@ -24,6 +24,7 @@ class GameLoop {
         this.result = null;
         this.currentRoundId = crypto.randomUUID();
         this.roundNumber = 0; // Will be set from DB in init()
+        this.processing = false;
 
         this.init();
     }
@@ -94,7 +95,7 @@ class GameLoop {
                 this.spin();
             }
         } else if (this.state === GAME_STATES.RESULT) {
-            if (timeLeft <= 0) {
+            if (timeLeft <= 0 && !this.processing) {
                 this.reset();
             }
         }
@@ -136,6 +137,8 @@ class GameLoop {
     }
 
     async processResults() {
+        if (this.processing) return;
+        this.processing = true;
         this.state = GAME_STATES.RESULT;
         this.endTime = Date.now() + TIMING.RESULT_DURATION * 1000;
 
@@ -240,6 +243,7 @@ class GameLoop {
         }
 
         this.broadcastState();
+        this.processing = false;
     }
 
     reset() {
