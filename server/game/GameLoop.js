@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const mongoose = require('mongoose');
+
 const User = require('../models/User');
 const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
@@ -143,8 +143,7 @@ class GameLoop {
         if (this.processing) return;
         this.processing = true;
 
-        const session = await mongoose.startSession();
-        session.startTransaction();
+
 
         try {
             this.state = GAME_STATES.RESULT;
@@ -154,7 +153,7 @@ class GameLoop {
             if (this.history.length > 20) this.history.pop();
 
             // Process Bets
-            const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId }).session(session);
+            const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
 
             // Group bets by user
             const betsByUser = new Map();
@@ -216,10 +215,10 @@ class GameLoop {
                     updatedUser = await User.findByIdAndUpdate(
                         userId,
                         { $inc: { balance: totalWinnings } },
-                        { new: true, session }
+                        { new: true }
                     );
                 } else {
-                    updatedUser = await User.findById(userId).session(session);
+                    updatedUser = await User.findById(userId);
                 }
 
                 // Broadcast updates if user exists
@@ -239,7 +238,7 @@ class GameLoop {
                     runningBalance -= bet.amount;
                     runningBalance += bet.payout;
                     bet.balanceAfter = runningBalance;
-                    await bet.save({ session });
+                    await bet.save();
                 }
             }
 
@@ -257,7 +256,7 @@ class GameLoop {
                     uniqueUsers: roundUniqueUsers
                 }
             });
-            await gameResult.save({ session });
+            await gameResult.save();
 
             // Update Global Stats
             await GameStats.findOneAndUpdate({}, {
@@ -266,16 +265,14 @@ class GameLoop {
                     totalWagered: roundTotalWagered,
                     netProfit: roundTotalWagered - roundTotalPayout
                 }
-            }, { session });
+            });
 
-            await session.commitTransaction();
         } catch (err) {
-            await session.abortTransaction();
             console.error("FULL ERROR OBJECT:", err); // Raw dump
-            logger.error("Error processing bets (Transaction Aborted):", err);
-            // Transaction failed. Active bets persist in DB and will be refunded upon server restart via refundActiveBets().
+            logger.error("Error processing bets:", err);
+            // Error occurred. Active bets persist in DB and will be refunded upon server restart via refundActiveBets().
         } finally {
-            session.endSession();
+
             this.broadcastState();
             this.processing = false;
         }
