@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 
 // Database Connection
 const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT_NAME;
-let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL;
+let MONGODB_URI = process.env.MONGO_URL || process.env.MONGODB_URI || process.env.DATABASE_URL;
 
 if (!MONGODB_URI) {
     if (isProduction) {
