@@ -1,13 +1,5 @@
 require('dotenv').config();
 
-console.log("--- INDEX.JS STARTUP DEBUG ---");
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("MONGO_URL Present:", !!process.env.MONGO_URL);
-console.log("MONGODB_URI Present:", !!process.env.MONGODB_URI);
-console.log("RAILWAY_ENVIRONMENT_NAME:", process.env.RAILWAY_ENVIRONMENT_NAME);
-console.log("All Keys:", Object.keys(process.env).join(", "));
-console.log("------------------------------");
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,6 +8,7 @@ const { Server } = require('socket.io');
 const GameLoop = require('./game/GameLoop');
 const jwt = require('jsonwebtoken');
 const { RateLimiterMemory, RateLimiterRedis } = require('rate-limiter-flexible');
+const logger = require('./utils/logger'); // Import logger at the top
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Railway)
@@ -37,9 +30,9 @@ if (process.env.REDIS_URL) {
 
     Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
         io.adapter(createAdapter(pubClient, subClient));
-        console.log('Redis Adapter connected');
+        logger.info('Redis Adapter connected');
     }).catch(err => {
-        console.error('Redis Adapter error:', err);
+        logger.error('Redis Adapter error:', err);
     });
 }
 
@@ -50,7 +43,7 @@ let rateLimiterRedisClient = null;
 if (process.env.REDIS_URL) {
     const { createClient } = require('redis');
     rateLimiterRedisClient = createClient({ url: process.env.REDIS_URL });
-    rateLimiterRedisClient.connect().catch(console.error);
+    rateLimiterRedisClient.connect().catch(err => logger.error('Rate Limiter Redis error:', err));
 
     rateLimiter = new RateLimiterRedis({
         storeClient: rateLimiterRedisClient,
@@ -86,16 +79,15 @@ app.use((req, res, next) => {
 
 // Database Connection
 const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT_NAME;
-let MONGODB_URI = process.env.MONGO_URL || process.env.MONGODB_URI || process.env.DATABASE_URL;
+let MONGO_URL = process.env.MONGO_URL;
 
-if (!MONGODB_URI) {
+if (!MONGO_URL) {
     if (isProduction) {
-        logger.error('Critical Error: MongoDB connection string not found in environment variables (MONGODB_URI, MONGO_URL, or DATABASE_URL).');
-        logger.error('This is required for production/Railway deployments.');
+        logger.error('Critical Error: MONGO_URL not found in environment variables.');
         process.exit(1);
     } else {
-        logger.warn('Warning: MONGODB_URI not found in environment, defaulting to localhost for development.');
-        MONGODB_URI = 'mongodb://127.0.0.1:27017/roulette';
+        logger.warn('Warning: MONGO_URL not found in environment, defaulting to localhost for development.');
+        MONGO_URL = 'mongodb://127.0.0.1:27017/roulette';
     }
 }
 
@@ -108,9 +100,9 @@ if (!process.env.CLIENT_URL) {
     logger.error('Critical Error: CLIENT_URL must be defined in environment variables for CORS.');
     process.exit(1);
 }
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(MONGO_URL)
+    .then(() => logger.info('Connected to MongoDB'))
+    .catch(err => logger.error('MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -145,17 +137,17 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id, socket.user ? `(User: ${socket.user.id})` : '(Guest)');
+    logger.info(`A user connected: ${socket.id} ${socket.user ? `(User: ${socket.user.id})` : '(Guest)'}`);
 
     // Join user room if authenticated
     if (socket.user) {
         socket.join(`user:${socket.user.id}`);
-        console.log(`Socket ${socket.id} joined room user:${socket.user.id}`);
+        logger.info(`Socket ${socket.id} joined room user:${socket.user.id}`);
 
         // Join admin room if user is admin (role checked from token, verify from DB for production)
         if (socket.user.role === 'admin') {
             socket.join('admin-room');
-            console.log(`Socket ${socket.id} joined admin-room`);
+            logger.info(`Socket ${socket.id} joined admin-room`);
         }
     }
 
@@ -223,7 +215,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+        logger.info(`User disconnected: ${socket.id}`);
         // Clean up rate limiter (not needed for flexible-rate-limiter as it handles expiration)
     });
 
@@ -241,10 +233,20 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-const logger = require('./utils/logger');
+// Global Error Handlers
+process.on('uncaughtException', (err) => {
+    logger.error('Uncaught Exception:', err);
+    process.exit(1);
+});
 
-// Global Error Handler
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
+const PORT = process.env.PORT || 3000;
+
+// Global Error Handler for Express
 app.use((err, req, res, next) => {
     logger.error('Unhandled Error', err);
     res.status(500).json({ message: 'Internal Server Error' });
