@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
 const Transaction = require('../models/Transaction');
-const { STATES, SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
+const { SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
 const logger = require('../utils/logger');
 const { secureRandomInt } = require('../utils/random');
 
