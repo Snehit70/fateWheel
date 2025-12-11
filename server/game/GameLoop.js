@@ -209,9 +209,7 @@ class GameLoop {
                     updatedUser = await User.findById(userId).session(session);
                 }
 
-                // If user not found (rare), skip? Or throw? Assuming user exists if bets exist.
-                // We broadcast outside transaction or inside? "admin:userUpdate" should be fine.
-                // But we only emit if updatedUser exists.
+                // Broadcast updates if user exists
                 if (updatedUser) {
                     if (totalWinnings > 0) {
                         this.io.to(`user:${userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
@@ -245,8 +243,7 @@ class GameLoop {
         } catch (err) {
             await session.abortTransaction();
             logger.error("Error processing bets (Transaction Aborted):", err);
-            // Critical: If transaction fails, we rely on refundActiveBets on restart? 
-            // Or we should try to recover? For now, logging error.
+            // Transaction failed. Active bets persist in DB and will be refunded upon server restart via refundActiveBets().
         } finally {
             session.endSession();
             this.broadcastState();
@@ -338,16 +335,8 @@ class GameLoop {
 
         if (existingBet) {
             existingBet.amount += amount;
-            // We don't update the _id of the existing aggregated bet, 
-            // but we need to track the individual bets for status updates?
-            // Actually, for the crash recovery, we just need the DB records.
-            // For processResults, we iterate this.bets.
-            // If we aggregate, we lose the individual bet IDs.
-            // So we should probably NOT aggregate in `this.bets` if we want to update specific bet docs.
-            // OR we update all active bets for this user/round in processResults.
-
-            // Let's keep aggregation for UI, but for DB updates in processResults, 
-            // we should query the DB for active bets for this round.
+            // Aggregate bets in memory for UI presentation only. 
+            // DB records track individual bets for settlement.
         } else {
             const bet = {
                 userId: user.id,
