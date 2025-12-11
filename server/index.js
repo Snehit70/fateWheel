@@ -100,8 +100,8 @@ if (!process.env.CLIENT_URL) {
     logger.error('Critical Error: CLIENT_URL must be defined in environment variables for CORS.');
     process.exit(1);
 }
-mongoose.connect(MONGO_URL)
-    .then(() => logger.info('Connected to MongoDB'))
+mongoose.connect(MONGO_URL, { dbName: 'roulette' })
+    .then(() => logger.info('Connected to MongoDB (DB: roulette)'))
     .catch(err => logger.error('MongoDB connection error:', err));
 
 // Routes

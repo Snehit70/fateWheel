@@ -25,7 +25,7 @@ const createAdmin = async () => {
       }
     }
 
-    await mongoose.connect(MONGO_URL);
+    await mongoose.connect(MONGO_URL, { dbName: 'roulette' });
     console.log("Connected to MongoDB for admin seeding");
 
     //env vars
