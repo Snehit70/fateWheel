@@ -14,7 +14,9 @@ const gameResultSchema = new mongoose.Schema({
     },
     number: {
         type: Number,
-        required: true
+        required: true,
+        min: 0,
+        max: 14
     },
     color: {
         type: String,
@@ -23,7 +25,8 @@ const gameResultSchema = new mongoose.Schema({
     },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true
     }
 });
 
