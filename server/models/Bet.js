@@ -17,7 +17,20 @@ const betSchema = new mongoose.Schema({
     },
     value: {
         type: mongoose.Schema.Types.Mixed, // Can be number or string
-        required: true
+        required: true,
+        validate: {
+            validator: function (v) {
+                if (this.type === 'number') {
+                    return Number.isInteger(v) && v >= 0 && v <= 14;
+                } else if (this.type === 'color') {
+                    return ['red', 'black', 'green'].includes(v);
+                } else if (this.type === 'type') {
+                    return ['even', 'odd'].includes(v);
+                }
+                return false;
+            },
+            message: props => `${props.value} is not a valid value for bet type ${props.path}`
+        }
     },
     amount: {
         type: Number,
