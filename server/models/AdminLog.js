@@ -4,7 +4,8 @@ const AdminLogSchema = new mongoose.Schema({
     adminId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true
     },
     action: {
         type: String,
@@ -25,7 +26,8 @@ const AdminLogSchema = new mongoose.Schema({
     },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true
     }
 });
 
