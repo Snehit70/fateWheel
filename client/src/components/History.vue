@@ -14,17 +14,31 @@
       </div>
 
       <!-- Filters -->
-      <div class="flex flex-wrap gap-2">
-        <Button
-          v-for="f in filterOptions"
-          :key="f.value"
-          :variant="activeFilter === f.value ? 'default' : 'outline'"
-          size="sm"
-          @click="activeFilter = f.value"
-          class="text-xs"
-        >
-          {{ f.label }}
-        </Button>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex flex-wrap gap-2">
+            <Button
+            v-for="f in filterOptions"
+            :key="f.value"
+            :variant="activeFilter === f.value ? 'default' : 'outline'"
+            size="sm"
+            @click="activeFilter = f.value"
+            class="text-xs"
+            >
+            {{ f.label }}
+            </Button>
+        </div>
+        <div class="flex items-center gap-2 ml-auto sm:ml-0">
+            <span class="text-sm text-muted-foreground whitespace-nowrap">Count:</span>
+            <input 
+                type="number" 
+                v-model="limit" 
+                min="1" 
+                class="flex h-8 w-16 rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <Button size="sm" variant="secondary" @click="fetchHistory" :disabled="loading" class="h-8">
+                Refresh
+            </Button>
+        </div>
       </div>
 
       <Card>
@@ -180,6 +194,7 @@ const route = useRoute();
 const authStore = useAuthStore();
 const history = ref([]);
 const loading = ref(true);
+const limit = ref(20);
 const activeFilter = ref('all');
 const viewingUserId = computed(() => route.query.userId || null);
 const viewingUsername = computed(() => route.query.username || null);
@@ -195,7 +210,7 @@ const fetchHistory = async () => {
     // If admin is viewing another user's history, use admin endpoint
     const endpoint = viewingUserId.value
       ? `/admin/users/${viewingUserId.value}/history`
-      : '/game/history';
+      : `/game/history?limit=${limit.value}`;
     const res = await api.get(endpoint);
     history.value = res.data;
   } catch (err) {

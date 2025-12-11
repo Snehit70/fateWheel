@@ -33,14 +33,17 @@ const Transaction = require('../models/Transaction');
 // @access  Private
 router.get('/history', auth, async (req, res) => {
     try {
+        let limit = parseInt(req.query.limit) || 20;
+        if (limit < 1) limit = 20;
+
         const bets = await Bet.find({ user: req.user.id })
             .sort({ createdAt: -1 })
-            .limit(50)
+            .limit(limit)
             .lean();
 
         const transactions = await Transaction.find({ user: req.user.id })
             .sort({ createdAt: -1 })
-            .limit(50)
+            .limit(limit)
             .lean();
 
         // Combine and sort
@@ -48,7 +51,11 @@ router.get('/history', auth, async (req, res) => {
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
-        res.json(history);
+        // Slice again to respect the limit after merging
+        // (Since we fetched 'limit' of each, we might have 2*limit items)
+        const finalHistory = history.slice(0, limit);
+
+        res.json(finalHistory);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
