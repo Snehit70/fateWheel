@@ -10,22 +10,25 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        minlength: 6
+        minlength: 8
     },
     balance: {
         type: Number,
         default: 0, // Initial balance
+        min: 0,
         set: v => Math.floor(v)
     },
     role: {
         type: String,
         enum: ['user', 'admin'],
-        default: 'user'
+        default: 'user',
+        index: true
     },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
+        default: 'pending',
+        index: true
     },
     createdAt: {
         type: Date,
