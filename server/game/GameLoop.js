@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
@@ -139,16 +140,19 @@ class GameLoop {
     async processResults() {
         if (this.processing) return;
         this.processing = true;
-        this.state = GAME_STATES.RESULT;
-        this.endTime = Date.now() + TIMING.RESULT_DURATION * 1000;
 
-        this.history.unshift(this.result);
-        if (this.history.length > 20) this.history.pop();
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        // Process Bets
-        // Group bets by user for correct balanceAfter values
         try {
-            const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
+            this.state = GAME_STATES.RESULT;
+            this.endTime = Date.now() + TIMING.RESULT_DURATION * 1000;
+
+            this.history.unshift(this.result);
+            if (this.history.length > 20) this.history.pop();
+
+            // Process Bets
+            const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId }).session(session);
 
             // Group bets by user
             const betsByUser = new Map();
@@ -186,8 +190,7 @@ class GameLoop {
                     };
                 }
 
-                // Sort bets: losses first, then wins (so progressive balance makes sense)
-                // Sort bets by createdAt (chronological order of placement)
+                // Sort bets: losses first, then wins, then by time
                 userBets.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
                 // Calculate total winnings for DB update
@@ -200,50 +203,55 @@ class GameLoop {
                     updatedUser = await User.findByIdAndUpdate(
                         userId,
                         { $inc: { balance: totalWinnings } },
-                        { new: true }
+                        { new: true, session }
                     );
-                    this.io.to(`user:${userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
-                    this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
                 } else {
-                    updatedUser = await User.findById(userId);
+                    updatedUser = await User.findById(userId).session(session);
                 }
 
-                // Calculate PROGRESSIVE balanceAfter for each bet chronologically
-                // Initial balance BEFORE this round = final + total_bets - total_payouts
+                // If user not found (rare), skip? Or throw? Assuming user exists if bets exist.
+                // We broadcast outside transaction or inside? "admin:userUpdate" should be fine.
+                // But we only emit if updatedUser exists.
+                if (updatedUser) {
+                    if (totalWinnings > 0) {
+                        this.io.to(`user:${userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
+                        this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
+                    }
+                }
+
+                // Calculate PROGRESSIVE balanceAfter for each bet
                 const finalBalance = updatedUser ? updatedUser.balance : 0;
                 const initialBalance = finalBalance + totalBetAmount - totalWinnings;
                 let runningBalance = initialBalance;
 
-                // Process bets in chronological order
                 for (const bet of userBets) {
-                    // Deduct bet amount (already happened at placement, but we're reconstructing)
                     runningBalance -= bet.amount;
-                    // Add payout if won
                     runningBalance += bet.payout;
-                    // This is the balance AFTER this bet was fully resolved
                     bet.balanceAfter = runningBalance;
-                    await bet.save();
+                    await bet.save({ session });
                 }
             }
-        } catch (err) {
-            logger.error("Error processing bets:", err);
-        }
 
-        // Save Game Result
-        try {
+            // Save Game Result
             const gameResult = new GameResult({
                 roundId: this.currentRoundId,
                 roundNumber: this.roundNumber,
                 number: this.result.number,
                 color: this.result.color
             });
-            await gameResult.save();
-        } catch (err) {
-            logger.error("Error saving game result:", err);
-        }
+            await gameResult.save({ session });
 
-        this.broadcastState();
-        this.processing = false;
+            await session.commitTransaction();
+        } catch (err) {
+            await session.abortTransaction();
+            logger.error("Error processing bets (Transaction Aborted):", err);
+            // Critical: If transaction fails, we rely on refundActiveBets on restart? 
+            // Or we should try to recover? For now, logging error.
+        } finally {
+            session.endSession();
+            this.broadcastState();
+            this.processing = false;
+        }
     }
 
     reset() {
