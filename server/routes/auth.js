@@ -4,21 +4,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { validatePassword } = require('../utils/validation');
 
 // Register
 router.post('/register', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-        if (!passwordRegex.test(password)) {
+        if (!validatePassword(password)) {
             return res.status(400).json({ message: 'Password must be at least 8 characters and include at least one number and one special character' });
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ username });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
         }
 
         // Hash password
@@ -26,16 +20,22 @@ router.post('/register', authLimiter, async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Create user
-        user = new User({
+        const user = new User({
             username,
             password: hashedPassword
         });
 
-        await user.save();
+        try {
+            await user.save();
+        } catch (saveErr) {
+            // Check for MongoDB Duplicate Key Error (E11000)
+            if (saveErr.code === 11000) {
+                return res.status(400).json({ message: 'User already exists' });
+            }
+            throw saveErr;
+        }
 
         // Emit new user event to admin
-        // We need to attach io to req in auth routes too. 
-        // server/index.js does `app.use((req, res, next) => { req.io = io; next(); });` before routes, so it should be available.
         if (req.io) {
             req.io.to('admin-room').emit('admin:newUser', user);
             req.io.to('admin-room').emit('admin:statsUpdate');
@@ -72,6 +72,9 @@ router.post('/login', authLimiter, async (req, res) => {
         if (user.status === 'rejected') {
             return res.status(403).json({ message: 'Account rejected' });
         }
+
+        // Update last login
+        await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
 
         // Create token
         const payload = {
