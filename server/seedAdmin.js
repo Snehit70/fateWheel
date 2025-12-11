@@ -9,6 +9,15 @@ const createAdmin = async () => {
       process.env.NODE_ENV === "production" ||
       process.env.RAILWAY_ENVIRONMENT_NAME;
 
+    console.log("--- Environment Debug ---");
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("RAILWAY_ENVIRONMENT_NAME:", process.env.RAILWAY_ENVIRONMENT_NAME);
+    console.log("MONGO_URL Present:", !!process.env.MONGO_URL);
+    console.log("MONGODB_URI Present:", !!process.env.MONGODB_URI);
+    console.log("DATABASE_URL Present:", !!process.env.DATABASE_URL);
+    console.log("All Env Keys:", Object.keys(process.env).join(", "));
+    console.log("------------------------");
+
     let MONGODB_URI =
       process.env.MONGODB_URI ||
       process.env.MONGO_URL ||
