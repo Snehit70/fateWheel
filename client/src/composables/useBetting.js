@@ -11,7 +11,7 @@ let clearPending = false;
 export function useBetting(bets, isSpinning) {
     const authStore = useAuthStore();
     const toast = useToast();
-    const currentBetAmount = ref(0);
+    const currentBetAmount = ref(BET_LIMITS.MIN);
 
     const totalBetAmount = computed(() => {
         const userId = authStore.user?.id;

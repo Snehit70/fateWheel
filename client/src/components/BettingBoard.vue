@@ -113,7 +113,7 @@
           class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-red-500/30 transition-colors"
         >
           <img
-            src="@/assets/default-user.svg"
+            src="/default-user.svg"
             class="w-8 h-8 rounded-full bg-white p-1 border border-border"
           />
           <span
@@ -225,7 +225,7 @@
           class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-green-500/30 transition-colors"
         >
           <img
-            src="@/assets/default-user.svg"
+            src="/default-user.svg"
             class="w-8 h-8 rounded-full bg-white p-1 border border-border"
           />
           <span
@@ -320,7 +320,7 @@
           class="bg-secondary/30 rounded p-2 flex flex-col items-center gap-1 border border-border hover:border-purple-500/30 transition-colors"
         >
           <img
-            src="@/assets/default-user.svg"
+            src="/default-user.svg"
             class="w-8 h-8 rounded-full bg-white p-1 border border-border"
           />
           <span

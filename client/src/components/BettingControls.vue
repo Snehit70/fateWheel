@@ -113,12 +113,21 @@ const props = defineProps({
     totalBet: {
         type: Number,
         default: 0
+    },
+    amount: {
+        type: Number,
+        default: BET_LIMITS.MIN
     }
 });
 
+
+
 const emit = defineEmits(['update:amount', 'clear-input', 'clear-bets', 'spin']);
 
-const betAmount = ref(BET_LIMITS.MIN);
+const betAmount = computed({
+    get: () => props.amount,
+    set: (val) => emit('update:amount', val)
+});
 
 const chips = [
     { label: `${BET_LIMITS.MIN}`, value: BET_LIMITS.MIN },
@@ -136,9 +145,7 @@ const isAdmin = computed(() => {
     return authStore.user && authStore.user.role === 'admin';
 });
 
-watch(betAmount, (val) => {
-    emit('update:amount', val);
-});
+
 
 const setAmount = (type) => {
     if (type === '10') betAmount.value = BET_LIMITS.MIN;
