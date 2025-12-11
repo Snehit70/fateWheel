@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+console.log("--- INDEX.JS STARTUP DEBUG ---");
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("MONGO_URL Present:", !!process.env.MONGO_URL);
+console.log("MONGODB_URI Present:", !!process.env.MONGODB_URI);
+console.log("RAILWAY_ENVIRONMENT_NAME:", process.env.RAILWAY_ENVIRONMENT_NAME);
+console.log("All Keys:", Object.keys(process.env).join(", "));
+console.log("------------------------------");
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
