@@ -5,17 +5,26 @@ require('dotenv').config();
 
 const createAdmin = async () => {
     try {
-        const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/roulette';
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT_NAME;
 
-        if (!process.env.MONGODB_URI && !process.env.MONGO_URL && !process.env.DATABASE_URL) {
-            console.warn('Warning: MONGODB_URI not found in environment, defaulting to localhost');
+        let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL;
+
+        if (!MONGODB_URI) {
+            if (isProduction) {
+                console.error('Critical Error: MongoDB connection string not found in environment variables (MONGODB_URI, MONGO_URL, or DATABASE_URL).');
+                console.error('This is required for production/Railway deployments.');
+                process.exit(1);
+            } else {
+                console.warn('Warning: MONGODB_URI not found in environment, defaulting to localhost for development.');
+                MONGODB_URI = 'mongodb://127.0.0.1:27017/roulette';
+            }
         }
 
         await mongoose.connect(MONGODB_URI);
         console.log('Connected to MongoDB');
 
-        const adminUsername = 'admin';
-        const adminPassword = 'adminpassword123'; // Hardcoded for user request
+        const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+        const adminPassword = process.env.ADMIN_PASSWORD || 'adminpassword123';
 
         let admin = await User.findOne({ username: adminUsername });
         const salt = await bcrypt.genSalt(10);

@@ -76,11 +76,18 @@ app.use((req, res, next) => {
 });
 
 // Database Connection
-const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/roulette';
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT_NAME;
+let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL;
 
-if (!process.env.MONGODB_URI && !process.env.MONGO_URL && !process.env.DATABASE_URL) {
-    logger.error('Critical Error: MONGODB_URI, MONGO_URL, or DATABASE_URL must be defined in environment variables.');
-    process.exit(1);
+if (!MONGODB_URI) {
+    if (isProduction) {
+        logger.error('Critical Error: MongoDB connection string not found in environment variables (MONGODB_URI, MONGO_URL, or DATABASE_URL).');
+        logger.error('This is required for production/Railway deployments.');
+        process.exit(1);
+    } else {
+        logger.warn('Warning: MONGODB_URI not found in environment, defaulting to localhost for development.');
+        MONGODB_URI = 'mongodb://127.0.0.1:27017/roulette';
+    }
 }
 
 if (!process.env.JWT_SECRET) {
