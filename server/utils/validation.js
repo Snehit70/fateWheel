@@ -5,7 +5,8 @@
  * @returns {boolean}
  */
 const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+    // At least 8 characters, at least one number, at least one non-alphanumeric character
+    const passwordRegex = /^(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/;
     return passwordRegex.test(password);
 };
 
