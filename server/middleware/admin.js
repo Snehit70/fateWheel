@@ -11,6 +11,7 @@ module.exports = async function (req, res, next) {
         }
         next();
     } catch (err) {
+        console.error('Admin Middleware Error:', err);
         res.status(500).send('Server Error');
     }
 };
