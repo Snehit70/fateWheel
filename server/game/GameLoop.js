@@ -40,9 +40,10 @@ class GameLoop {
 
             // Get the highest round number from DB to continue counting
             const lastResult = await GameResult.findOne().sort({ roundNumber: -1 });
-            this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber : 0;
+            // Initialize to next round number (last + 1), or 1 if no history
+            this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber + 1 : 1;
 
-            logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber + 1}`);
+            logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber}`);
 
             this.startLoop();
         } catch (err) {
@@ -258,8 +259,6 @@ class GameLoop {
             });
             await gameResult.save({ session });
 
-            await gameResult.save({ session });
-
             // Update Global Stats
             await GameStats.findOneAndUpdate({}, {
                 $inc: {
@@ -272,6 +271,7 @@ class GameLoop {
             await session.commitTransaction();
         } catch (err) {
             await session.abortTransaction();
+            console.error("FULL ERROR OBJECT:", err); // Raw dump
             logger.error("Error processing bets (Transaction Aborted):", err);
             // Transaction failed. Active bets persist in DB and will be refunded upon server restart via refundActiveBets().
         } finally {

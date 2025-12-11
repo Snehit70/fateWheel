@@ -9,47 +9,24 @@ const createAdmin = async () => {
       process.env.NODE_ENV === "production" ||
       process.env.RAILWAY_ENVIRONMENT_NAME;
 
-    console.log("--- Environment Debug ---");
-    console.log("NODE_ENV:", process.env.NODE_ENV);
-    console.log(
-      "RAILWAY_ENVIRONMENT_NAME:",
-      process.env.RAILWAY_ENVIRONMENT_NAME,
-    );
-    console.log("MONGO_URL Present:", !!process.env.MONGO_URL);
-    console.log("MONGODB_URI Present:", !!process.env.MONGODB_URI);
-    console.log("DATABASE_URL Present:", !!process.env.DATABASE_URL);
-    console.log("All Env Keys:", Object.keys(process.env).join(", "));
-    console.log("------------------------");
+    let MONGO_URL = process.env.MONGO_URL;
 
-    let MONGODB_URI =
-      process.env.MONGO_URL ||
-      process.env.MONGODB_URI ||
-      process.env.DATABASE_URL;
-
-    console.log(
-      "Resolved MONGODB_URI:",
-      MONGODB_URI
-        ? MONGODB_URI.replace(/:([^:@]{1,})@/, ":****@")
-        : "undefined",
-    );
-
-    if (!MONGODB_URI) {
+    if (!MONGO_URL) {
       if (isProduction) {
         console.error(
-          "Critical Error: MongoDB connection string not found in environment variables (MONGODB_URI, MONGO_URL, or DATABASE_URL).",
+          "Critical Error: MONGO_URL not found in environment variables.",
         );
-        console.error("This is required for production/Railway deployments.");
         process.exit(1);
       } else {
         console.warn(
-          "Warning: MONGODB_URI not found in environment, defaulting to localhost for development.",
+          "Warning: MONGO_URL not found, defaulting to localhost.",
         );
-        MONGODB_URI = "mongodb://127.0.0.1:27017/roulette";
+        MONGO_URL = "mongodb://127.0.0.1:27017/roulette";
       }
     }
 
-    await mongoose.connect(MONGODB_URI);
-    console.log("Connected to MongoDB");
+    await mongoose.connect(MONGO_URL);
+    console.log("Connected to MongoDB for admin seeding");
 
     //env vars
     const adminUsername = process.env.ADMIN_USERNAME || "admin";
@@ -60,7 +37,7 @@ const createAdmin = async () => {
     const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
     if (admin) {
-      console.log("Admin already exists. Skipped creation/update.");
+      console.log("Admin account already exists.");
       process.exit(0);
     }
 
@@ -69,17 +46,15 @@ const createAdmin = async () => {
       password: hashedPassword,
       role: "admin",
       status: "approved",
-      balance: 0, // Admin doesn't need balance for gameplay, only monitoring
+      balance: 0,
     });
 
     await admin.save();
-    console.log("Admin created successfully");
-    console.log("Username:", adminUsername);
-    console.log("Password:", "Check environment variables or default");
+    console.log(`Admin account '${adminUsername}' created successfully.`);
 
     process.exit(0);
   } catch (err) {
-    console.error(err);
+    console.error("Error creating admin:", err.message);
     process.exit(1);
   }
 };
