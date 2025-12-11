@@ -29,7 +29,7 @@ export const PAYOUTS = {
 };
 
 export const TIMING = {
-    WAITING_TIME: parseInt(import.meta.env.VITE_GAME_WAITING_TIME) || 20, // seconds
+    WAITING_TIME: parseInt(import.meta.env.VITE_GAME_WAITING_TIME) || 60, // seconds
     SPIN_DURATION: parseInt(import.meta.env.VITE_GAME_SPIN_DURATION) || 5, // seconds
     RESULT_DURATION: parseInt(import.meta.env.VITE_GAME_RESULT_DURATION) || 5 // seconds
 };
