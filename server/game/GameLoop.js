@@ -16,6 +16,9 @@ const GAME_STATES = {
     RESULT: 'RESULT'
 };
 
+// Consistent history limit for UI display
+const HISTORY_LIMIT = 15;
+
 class GameLoop {
     constructor(io) {
         this.io = io;
@@ -28,6 +31,9 @@ class GameLoop {
         this.roundNumber = 0; // Will be set from DB in init()
         this.processing = false;
 
+        // Parse environment config once at startup
+        this.maxBetAmount = parseInt(process.env.MAX_BET_AMOUNT, 10) || 1001;
+
         this.init();
     }
 
@@ -35,7 +41,7 @@ class GameLoop {
         try {
             await this.refundActiveBets();
 
-            const results = await GameResult.find().sort({ createdAt: -1 }).limit(15);
+            const results = await GameResult.find().sort({ createdAt: -1 }).limit(HISTORY_LIMIT);
             this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
 
             // Get the highest round number from DB to continue counting
@@ -47,7 +53,10 @@ class GameLoop {
 
             this.startLoop();
         } catch (err) {
-            logger.error("Failed to load game history:", err);
+            logger.error("Failed to initialize GameLoop:", err);
+            // Retry initialization after delay
+            logger.info("Retrying GameLoop initialization in 5 seconds...");
+            setTimeout(() => this.init(), 5000);
         }
     }
 
@@ -120,6 +129,8 @@ class GameLoop {
 
 
     spin() {
+        // Set processing flag early to prevent race conditions with tick()
+        this.processing = true;
         this.state = GAME_STATES.SPINNING;
         this.endTime = Date.now() + TIMING.SPIN_DURATION * 1000;
 
@@ -140,8 +151,7 @@ class GameLoop {
     }
 
     async processResults() {
-        if (this.processing) return;
-        this.processing = true;
+        // processing flag is now set in spin() to prevent race conditions
 
 
 
@@ -150,7 +160,7 @@ class GameLoop {
             this.endTime = Date.now() + TIMING.RESULT_DURATION * 1000;
 
             this.history.unshift(this.result);
-            if (this.history.length > 20) this.history.pop();
+            if (this.history.length > HISTORY_LIMIT) this.history.pop();
 
             // Process Bets
             const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
@@ -178,15 +188,17 @@ class GameLoop {
                 // First, calculate winnings for each bet to determine result
                 for (const bet of userBets) {
                     let winnings = 0;
+                    // Use integer arithmetic to avoid floating-point precision issues
                     if (bet.type === "number" && bet.value === this.result.number) {
-                        winnings = Math.floor(bet.amount * PAYOUTS.NUMBER);
+                        winnings = Math.floor((bet.amount * PAYOUTS.NUMBER * 100) / 100);
                     } else if (bet.type === "color" && bet.value === this.result.color) {
-                        winnings = Math.floor(bet.amount * PAYOUTS.COLOR);
+                        winnings = Math.floor((bet.amount * PAYOUTS.COLOR * 100) / 100);
                     } else if (bet.type === "type") {
+                        // Note: 0 (green) loses all even/odd bets - this is standard roulette behavior
                         if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
-                            winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                            winnings = Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
                         } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
-                            winnings = Math.floor(bet.amount * PAYOUTS.TYPE);
+                            winnings = Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
                         }
                     }
 
@@ -238,8 +250,24 @@ class GameLoop {
                     runningBalance -= bet.amount;
                     runningBalance += bet.payout;
                     bet.balanceAfter = runningBalance;
-                    await bet.save();
                 }
+
+                // Use bulkWrite for efficient batch updates instead of individual saves
+                const bulkOps = userBets.map(bet => ({
+                    updateOne: {
+                        filter: { _id: bet._id },
+                        update: {
+                            $set: {
+                                status: bet.status,
+                                result: bet.result,
+                                payout: bet.payout,
+                                balanceAfter: bet.balanceAfter,
+                                gameResult: bet.gameResult
+                            }
+                        }
+                    }
+                }));
+                await Bet.bulkWrite(bulkOps);
             }
 
             // Save Game Result
@@ -268,11 +296,12 @@ class GameLoop {
             }, { upsert: true });
 
         } catch (err) {
-            console.error("FULL ERROR OBJECT:", err); // Raw dump
+            logger.error("FULL ERROR OBJECT:", err);
             logger.error("Error processing bets:", err);
             // Error occurred. Active bets persist in DB and will be refunded upon server restart via refundActiveBets().
         } finally {
-
+            // Ensure bets array is cleared even on error to prevent memory leaks
+            this.bets = [];
             this.broadcastState();
             this.processing = false;
         }
@@ -320,17 +349,16 @@ class GameLoop {
             }
         }
 
-        // Check max bet amount limit per user per round
-        const MAX_BET_AMOUNT = parseInt(process.env.MAX_BET_AMOUNT, 10) || 1001;
+        // Check max bet amount limit per user per round (maxBetAmount parsed once in constructor)
         const userActiveBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
         const currentTotalBet = userActiveBets.reduce((sum, b) => sum + b.amount, 0);
 
-        if (currentTotalBet + amount > MAX_BET_AMOUNT) {
-            const remainingAllowance = MAX_BET_AMOUNT - currentTotalBet;
+        if (currentTotalBet + amount > this.maxBetAmount) {
+            const remainingAllowance = this.maxBetAmount - currentTotalBet;
             if (remainingAllowance <= 0) {
-                throw new Error(`Maximum bet limit of ₹${MAX_BET_AMOUNT} reached for this round`);
+                throw new Error(`Maximum bet limit of ₹${this.maxBetAmount} reached for this round`);
             }
-            throw new Error(`Bet exceeds limit. You can only bet ₹${remainingAllowance} more this round (Max: ₹${MAX_BET_AMOUNT})`);
+            throw new Error(`Bet exceeds limit. You can only bet ₹${remainingAllowance} more this round (Max: ₹${this.maxBetAmount})`);
         }
 
         // Atomic check and deduct
@@ -382,44 +410,48 @@ class GameLoop {
     }
 
     async clearBets(user) {
-        if (this.state !== GAME_STATES.WAITING) {
-            throw new Error("Cannot clear bets now");
+        try {
+            if (this.state !== GAME_STATES.WAITING) {
+                throw new Error("Cannot clear bets now");
+            }
+
+            // Find user's active bets in DB
+            const activeBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
+            if (activeBets.length === 0) return;
+
+            const totalRefund = activeBets.reduce((sum, b) => sum + b.amount, 0);
+
+            // Refund to DB
+            await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
+
+            // Mark bets as refunded
+            await Bet.updateMany(
+                { user: user.id, status: 'active', roundId: this.currentRoundId },
+                { status: 'refunded' }
+            );
+
+            // Log Transaction
+            const dbUser = await User.findById(user.id);
+            const transaction = new Transaction({
+                user: user.id,
+                type: 'adjustment',
+                amount: totalRefund,
+                balanceAfter: dbUser.balance,
+                description: 'Refund: Bets Cleared'
+            });
+            await transaction.save();
+
+            // Remove bets from memory
+            this.bets = this.bets.filter(b => b.userId !== user.id);
+
+            this.broadcastState();
+
+            this.io.to('admin-room').emit('admin:userUpdate', dbUser);
+            return dbUser.balance;
+        } catch (err) {
+            logger.error("Error clearing bets for user:", user.id, err);
+            throw err;
         }
-
-        // Find user's active bets in DB
-        const activeBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
-        if (activeBets.length === 0) return;
-
-        const totalRefund = activeBets.reduce((sum, b) => sum + b.amount, 0);
-
-        // Refund to DB
-        await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
-
-        // Mark bets as refunded
-        await Bet.updateMany(
-            { user: user.id, status: 'active', roundId: this.currentRoundId },
-            { status: 'refunded' }
-        );
-
-        // Log Transaction
-        const dbUser = await User.findById(user.id);
-        const transaction = new Transaction({
-            user: user.id,
-            type: 'adjustment',
-            amount: totalRefund,
-            balanceAfter: dbUser.balance,
-            description: 'Refund: Bets Cleared'
-        });
-        await transaction.save();
-
-        // Remove bets from memory
-        this.bets = this.bets.filter(b => b.userId !== user.id);
-
-        this.broadcastState();
-
-
-        this.io.to('admin-room').emit('admin:userUpdate', dbUser);
-        return dbUser.balance;
     }
 }
 
