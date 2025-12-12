@@ -213,6 +213,13 @@ const formatDate = (dateString) => {
 
 
 
+const getProfitClass = (profit) => {
+    if (!profit) return 'text-muted-foreground';
+    if (profit > 0) return 'text-green-500';
+    if (profit < 0) return 'text-red-500';
+    return 'text-muted-foreground';
+};
+
 onMounted(() => {
   fetchRounds();
 });
