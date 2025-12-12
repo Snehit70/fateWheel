@@ -76,17 +76,8 @@ export function useBettingBoard(props, emit) {
         if (!props.lastResult) return "border-border";
 
         if (props.lastResult.color === color) {
-            // Winner
-            let borderColor = THEME.colors.zinc.border;
-            let shadowColor = THEME.colors.black.shadow;
-
+            // Winner - return appropriate border and shadow classes based on color
             if (color === 'red') {
-                borderColor = `border-[${THEME.colors.red.text}]`; // Using tailwind arbitrary value or class if available
-                // Since we can't easily inject dynamic tailwind classes without safelisting, we might return style object or specific classes
-                // Let's stick to the existing class pattern but use our constants logic if possible, 
-                // or just map to the tailwind classes that match our theme.
-                // Actually, to use the theme constants effectively in template classes, we might need to bind style or use standard classes.
-                // For now, let's keep returning tailwind classes but ensure they match our theme intent.
                 return `border-red-500 shadow-[0_0_40px_${THEME.colors.red.shadow}] scale-[1.02] z-10`;
             } else if (color === 'green') {
                 return `border-green-500 shadow-[0_0_40px_${THEME.colors.green.shadow}] scale-[1.02] z-10`;

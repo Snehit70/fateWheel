@@ -1,11 +1,18 @@
 import { ref } from 'vue';
 
+const MAX_TOASTS = 5;
 const toasts = ref([]);
 let toastId = 0;
 
 export function useToast() {
     const showToast = (message, type = 'error', duration = 3000) => {
         const id = ++toastId;
+
+        // Enforce maximum toast limit - remove oldest if at limit
+        while (toasts.value.length >= MAX_TOASTS) {
+            toasts.value.shift();
+        }
+
         toasts.value.push({ id, message, type });
 
         // Auto-remove after duration
@@ -17,10 +24,7 @@ export function useToast() {
     };
 
     const removeToast = (id) => {
-        const index = toasts.value.findIndex(t => t.id === id);
-        if (index !== -1) {
-            toasts.value.splice(index, 1);
-        }
+        toasts.value = toasts.value.filter(t => t.id !== id);
     };
 
     const error = (message, duration = 3000) => showToast(message, 'error', duration);

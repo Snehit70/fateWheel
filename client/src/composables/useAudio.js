@@ -1,10 +1,13 @@
 import { ref } from 'vue';
 
+const DEFAULT_VOLUME = 1.0;
+
 const isMuted = ref(false);
 const isAudioUnlocked = ref(false);
 // Create audio instance once
 const winAudio = new Audio('https://cdn.reamaze.com/audio/snapup.mp3');
-winAudio.volume = 1.0;
+winAudio.volume = DEFAULT_VOLUME;
+winAudio.preload = 'auto';
 
 export function useAudio() {
 
@@ -30,7 +33,7 @@ export function useAudio() {
                 // Success!
                 winAudio.pause();
                 winAudio.currentTime = 0;
-                winAudio.volume = 1.0; // Restore volume
+                winAudio.volume = originalVolume; // Restore volume
                 isAudioUnlocked.value = true;
                 console.log("Audio unlocked successfully.");
             }).catch(e => {

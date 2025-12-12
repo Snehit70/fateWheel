@@ -23,6 +23,8 @@ export function useGameLogic() {
 
     let countdownInterval = null; // For the countdown timer
     let animationFrameId = null;  // For requestAnimationFrame spin animation
+    let animationTimeout = null;  // For animation completion timeout
+    let safetyTimeout = null;     // For safety recovery timeout
     let endTime = 0;
 
     const handleSpin = async (result, spinEndTime) => {
@@ -62,12 +64,10 @@ export function useGameLogic() {
 
         // Ensure minimum animation duration (never 0 or negative)
         // Also fallback if duration is NaN (serverTimeOffset not synced yet)
-        const MIN_DURATION = 1000; // 1 second minimum
-        const MAX_DURATION = 10000; // 10 second maximum safety cap
-        if (isNaN(duration) || duration < MIN_DURATION) {
+        if (isNaN(duration) || duration < ANIMATION.SPIN_MIN_DURATION) {
             duration = TIMING.SPIN_DURATION * 1000; // Fallback to configured duration
         }
-        duration = Math.min(duration, MAX_DURATION); // Cap at max
+        duration = Math.min(duration, ANIMATION.SPIN_MAX_DURATION); // Cap at max
 
         transitionDuration.value = duration;
 
@@ -94,23 +94,26 @@ export function useGameLogic() {
             isSpinning.value = false;
             status.value = 'RESULT';
 
+            // Clear safety timeout if animation completed normally
+            if (safetyTimeout) {
+                clearTimeout(safetyTimeout);
+                safetyTimeout = null;
+            }
+
             // Play winning sound
             playWinSound();
         };
 
         // Set timeout for animation completion
-        const animationTimeout = setTimeout(completeAnimation, duration);
+        animationTimeout = setTimeout(completeAnimation, duration);
 
         // Safety timeout: force recovery if still stuck after duration + buffer
-        const safetyTimeout = setTimeout(() => {
+        safetyTimeout = setTimeout(() => {
             if (isAnimating.value || isSpinning.value) {
                 console.warn('Safety timeout triggered - forcing wheel recovery');
                 completeAnimation();
             }
-        }, duration + 2000);
-
-        // Clear safety timeout once animation completes normally
-        setTimeout(() => clearTimeout(safetyTimeout), duration + 100);
+        }, duration + ANIMATION.SAFETY_TIMEOUT_BUFFER);
     };
 
     onMounted(() => {
@@ -155,7 +158,9 @@ export function useGameLogic() {
                 }
                 // Late join handling
                 if (data.targetResult && !isAnimating.value) {
-                    handleSpin(data.targetResult, endTime);
+                    handleSpin(data.targetResult, endTime).catch(err => {
+                        console.error('Error in handleSpin from gameState:', err);
+                    });
                 }
             } else if (data.state === 'RESULT') {
                 if (!isAnimating.value) {
@@ -175,12 +180,19 @@ export function useGameLogic() {
         });
 
         socket.on('spinResult', (data) => {
-            handleSpin(data.result, data.endTime);
+            handleSpin(data.result, data.endTime).catch(err => {
+                console.error('Error in handleSpin from spinResult:', err);
+            });
         });
     });
 
     onUnmounted(() => {
+        // Remove socket listeners
+        socket.off('gameState');
+        socket.off('spinResult');
+
         socket.disconnect();
+
         if (countdownInterval) {
             clearInterval(countdownInterval);
             countdownInterval = null;
@@ -188,6 +200,14 @@ export function useGameLogic() {
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
+        }
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+        if (safetyTimeout) {
+            clearTimeout(safetyTimeout);
+            safetyTimeout = null;
         }
     });
 

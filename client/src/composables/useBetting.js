@@ -6,7 +6,8 @@ import socket from '../services/socket';
 import { BET_LIMITS } from '../constants/game';
 
 // Flag to prevent gameState from restoring cleared bets during the clear operation
-let clearPending = false;
+const clearPending = ref(false);
+const CLEAR_PENDING_TIMEOUT = 5000; // 5 second timeout to prevent stuck state
 
 export function useBetting(bets, isSpinning) {
     const authStore = useAuthStore();
@@ -65,7 +66,7 @@ export function useBetting(bets, isSpinning) {
         // Send bet to server
         socket.emit('placeBet', { type, value, amount: currentBetAmount.value }, (response) => {
             if (response.error) {
-                // alert(response.error); // Removed to prevent annoying popup
+                toast.error(response.error);
 
                 // Revert optimistic update
                 const index = bets.value.findIndex(b => b.type === type && b.value === value && b.userId === authStore.user?.id);
@@ -75,12 +76,9 @@ export function useBetting(bets, isSpinning) {
                         bets.value.splice(index, 1);
                     }
                 }
-                // Also revert balance if we optimistically updated it (we didn't, but good to know)
             } else if (response.newBalance !== undefined) {
                 // Update balance from server response
-                if (authStore.user) {
-                    authStore.user.balance = response.newBalance;
-                }
+                authStore.updateBalance(response.newBalance);
             }
         });
     };
@@ -96,22 +94,29 @@ export function useBetting(bets, isSpinning) {
         }
 
         // Set flag to prevent gameState from restoring our bets
-        clearPending = true;
+        clearPending.value = true;
+
+        // Safety timeout to reset clearPending if socket callback never fires
+        const timeoutId = setTimeout(() => {
+            if (clearPending.value) {
+                console.warn('clearPending timeout - resetting flag');
+                clearPending.value = false;
+            }
+        }, CLEAR_PENDING_TIMEOUT);
 
         // Optimistic clear
         bets.value = bets.value.filter(b => b.userId !== userId);
 
         socket.emit('clearBets', (response) => {
-            // Clear the pending flag after server responds
-            clearPending = false;
+            // Clear the pending flag and timeout after server responds
+            clearTimeout(timeoutId);
+            clearPending.value = false;
 
             if (response.error) {
                 console.error(response.error);
                 // If error, the next gameState broadcast will restore the correct state
             } else if (response.newBalance !== undefined) {
-                if (authStore.user) {
-                    authStore.user.balance = response.newBalance;
-                }
+                authStore.updateBalance(response.newBalance);
             }
         });
     };
@@ -126,5 +131,5 @@ export function useBetting(bets, isSpinning) {
 
 // Export helper to check if clear is pending (used by useGameLogic to filter bets)
 export function isClearPending() {
-    return clearPending;
+    return clearPending.value;
 }

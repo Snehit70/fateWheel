@@ -38,7 +38,10 @@ export const SEGMENT_ANGLE = 360 / SEGMENTS.length;
 
 export const ANIMATION = {
     ROTATION_SPEED: parseInt(import.meta.env.VITE_ANIMATION_ROTATION_SPEED) || 15,
-    EXTRA_SPINS: parseInt(import.meta.env.VITE_ANIMATION_EXTRA_SPINS) || 5
+    EXTRA_SPINS: parseInt(import.meta.env.VITE_ANIMATION_EXTRA_SPINS) || 5,
+    SPIN_MIN_DURATION: 1000, // 1 second minimum
+    SPIN_MAX_DURATION: 10000, // 10 second maximum safety cap
+    SAFETY_TIMEOUT_BUFFER: 2000 // Buffer for safety timeout
 };
 
 export const getNumbersByColor = (color) => {
