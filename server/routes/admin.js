@@ -233,7 +233,22 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        // Delete user
+        // Delete user from Supabase first (if they have a supabaseUid)
+        if (user.supabaseUid) {
+            try {
+                const supabase = require('../utils/supabase');
+                const { error } = await supabase.auth.admin.deleteUser(user.supabaseUid);
+                if (error) {
+                    console.error('Failed to delete user from Supabase:', error.message);
+                    // Continue with MongoDB deletion even if Supabase fails
+                }
+            } catch (supabaseErr) {
+                console.error('Supabase deletion error:', supabaseErr.message);
+                // Continue with MongoDB deletion
+            }
+        }
+
+        // Delete user from MongoDB
         await User.findByIdAndDelete(userId);
 
         // Cleanup associated data

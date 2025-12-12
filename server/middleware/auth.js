@@ -58,6 +58,21 @@ module.exports = async function (req, res, next) {
       }
     }
 
+    // Check if user is approved (admins bypass this check)
+    if (user.role !== 'admin' && user.status !== 'approved') {
+      if (user.status === 'pending') {
+        return res.status(403).json({
+          message: 'Account pending approval',
+          status: 'pending'
+        });
+      } else if (user.status === 'rejected') {
+        return res.status(403).json({
+          message: 'Account has been rejected',
+          status: 'rejected'
+        });
+      }
+    }
+
     // Attach user to request
     req.user = {
       id: user.id,

@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', {
         session: null,
         isInitialized: false,
         isLoginModalOpen: false,
+        pendingStatus: null, // 'pending' | 'rejected' | null
     }),
     actions: {
         async init() {
@@ -84,6 +85,20 @@ export const useAuthStore = defineStore('auth', {
                         // Sign out from Supabase to clear session
                         await supabase.auth.signOut();
                         this.openLoginModal();
+                        return;
+                    }
+
+                    // If 403, user is pending or rejected
+                    if (err.response?.status === 403) {
+                        const status = err.response?.data?.status;
+                        console.warn("User not approved:", status);
+                        this.user = null;
+                        this.session = null;
+                        this.pendingStatus = status; // Store for UI to display
+                        delete api.defaults.headers.common['x-auth-token'];
+                        socket.setToken(null);
+                        // Sign out from Supabase
+                        await supabase.auth.signOut();
                         return;
                     }
                 } finally {
