@@ -52,7 +52,7 @@ module.exports = async function (req, res, next) {
           username,
           supabaseUid: supabaseUser.id,
           role: 'user',
-          status: 'approved'
+          status: 'pending'
         });
         await user.save();
       }
