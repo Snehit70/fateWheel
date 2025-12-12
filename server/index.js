@@ -108,7 +108,7 @@ mongoose.connect(MONGO_URL, { dbName: 'roulette' })
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/game', require('./routes/game'));
-
+app.get('/health', (req, res) => res.json({ status: "running" }))
 app.get('/', (req, res) => {
     res.send('Roulette Server is running');
 });
