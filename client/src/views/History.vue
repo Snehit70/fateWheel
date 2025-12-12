@@ -36,6 +36,7 @@
             <TableHeader>
               <TableRow>
                 <TableHead>Round</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Value</TableHead>
@@ -67,7 +68,10 @@
                   <span v-else>-</span>
                 </TableCell>
                 <TableCell class="text-muted-foreground whitespace-nowrap">
-                  {{ formatDate(item.createdAt) }}
+                  {{ formatOnlyDate(item.createdAt) }}
+                </TableCell>
+                <TableCell class="text-muted-foreground whitespace-nowrap">
+                  {{ formatOnlyTime(item.createdAt) }}
                 </TableCell>
 
                 <!-- Type -->
@@ -184,7 +188,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatOnlyDate, formatOnlyTime } from '../utils/formatters';
 import { getResultColor, getValueColor } from '../utils/game';
 
 const route = useRoute();
