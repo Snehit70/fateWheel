@@ -93,7 +93,17 @@ router.get('/logs', auth, admin, async (req, res) => {
 router.get('/stats', auth, admin, async (req, res) => {
     try {
         const stats = await GameStats.getStats();
-        res.json(stats);
+
+        // Recalculate accurate user counts dynamically
+        const totalUsers = await User.countDocuments();
+        const pendingUsers = await User.countDocuments({ status: 'pending' });
+
+        // Return mixed stats (dynamic counts + cached aggregations)
+        res.json({
+            ...stats.toObject(),
+            totalUsers,
+            pendingUsers
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
