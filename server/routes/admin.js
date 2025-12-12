@@ -4,6 +4,18 @@ const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const User = require('../models/User');
+const Transaction = require('../models/Transaction');
+const Bet = require('../models/Bet');
+const AdminLog = require('../models/AdminLog');
+const GameStats = require('../models/GameStats');
+const GameResult = require('../models/GameResult');
+const supabase = require('../utils/supabase');
+
+// Allowed status values for user status updates
+const ALLOWED_STATUSES = ['pending', 'approved', 'rejected'];
+
+// Helper to validate MongoDB ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @route   GET api/admin/users
 // @desc    Get all users
@@ -40,11 +52,6 @@ router.get('/users', auth, admin, async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
-const Transaction = require('../models/Transaction');
-const Bet = require('../models/Bet');
-const AdminLog = require('../models/AdminLog');
-const GameStats = require('../models/GameStats');
 
 // @route   GET api/admin/logs
 // @desc    Get admin action logs
@@ -94,7 +101,6 @@ router.get('/stats', auth, admin, async (req, res) => {
     try {
         const stats = await GameStats.getStats();
 
-        // Recalculate accurate user counts dynamically
         // Recalculate accurate user counts dynamically (excluding admins)
         const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
         const pendingUsers = await User.countDocuments({ status: 'pending' });
@@ -117,6 +123,10 @@ router.get('/stats', auth, admin, async (req, res) => {
 router.get('/users/:id/history', auth, admin, async (req, res) => {
     try {
         const userId = req.params.id;
+
+        if (!isValidObjectId(userId)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
 
         const bets = await Bet.find({ user: userId })
             .sort({ createdAt: -1 })
@@ -143,10 +153,10 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
 // @route   PUT api/admin/users/:id/balance
 // @desc    Update user balance
 // @access  Admin
-// @route   PUT api/admin/users/:id/balance
-// @desc    Update user balance
-// @access  Admin
 router.put('/users/:id/balance', auth, admin, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ msg: 'Invalid user ID' });
+    }
     try {
         let { balance: rawBalance, reason } = req.body;
 
@@ -230,13 +240,17 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 router.delete('/users/:id', auth, admin, async (req, res) => {
     try {
         const userId = req.params.id;
+
+        if (!isValidObjectId(userId)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
+
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
         // Delete user from Supabase first (if they have a supabaseUid)
         if (user.supabaseUid) {
             try {
-                const supabase = require('../utils/supabase');
                 const { error } = await supabase.auth.admin.deleteUser(user.supabaseUid);
                 if (error) {
                     console.error('Failed to delete user from Supabase:', error.message);
@@ -284,12 +298,25 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
 // @access  Admin
 router.put('/users/:id/status', auth, admin, async (req, res) => {
     try {
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
+
         const { status } = req.body;
+
+        if (!status || !ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({ msg: `Invalid status. Allowed values: ${ALLOWED_STATUSES.join(', ')}` });
+        }
+
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { status: status },
             { new: true }
         ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
 
         // Log Admin Action
         const log = new AdminLog({
@@ -318,7 +345,7 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
     }
 });
 
-const GameResult = require('../models/GameResult');
+
 
 // @route   GET api/admin/rounds
 // @desc    Get all rounds with summary stats

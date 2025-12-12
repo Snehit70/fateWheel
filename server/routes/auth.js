@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const User = require('../models/User');
 
 // Login and Register are now handled client-side via Supabase.
 
-// Get User
-router.get('/me', require('../middleware/auth'), async (req, res) => {
+// @route   GET api/auth/me
+// @desc    Get current user
+// @access  Private
+router.get('/me', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).select('username balance role status');
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         res.json({

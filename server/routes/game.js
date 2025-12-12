@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
-const User = require("../models/User");
 const Bet = require("../models/Bet");
 
 const Transaction = require("../models/Transaction");
