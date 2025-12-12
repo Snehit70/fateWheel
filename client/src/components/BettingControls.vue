@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full flex flex-col gap-2 sm:gap-4 relative">
+  <div class="w-full h-full flex flex-col gap-2 relative">
     <!-- Login Overlay -->
     <div 
         v-if="!isLoggedIn" 
@@ -7,7 +7,7 @@
     >
         <Button 
             @click="authStore.openLoginModal()" 
-            class="font-bold text-lg px-8 py-6 shadow-xl animate-pulse"
+            class="font-bold text-lg px-8 py-3 shadow-xl animate-pulse"
         >
             LOGIN TO BET
         </Button>
@@ -72,7 +72,7 @@
             v-for="chip in chips" 
             :key="chip.value" 
             variant="outline" 
-            class="h-auto py-2 sm:py-3 flex items-center justify-center hover:border-primary/50"
+            class="h-auto py-1 sm:py-2 flex items-center justify-center hover:border-primary/50"
             @click="addAmount(chip.value)"
             :disabled="!isLoggedIn || isSpinning"
         >

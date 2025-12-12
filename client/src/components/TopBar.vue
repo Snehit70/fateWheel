@@ -1,5 +1,5 @@
 <template>
-  <header class="h-20 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
+  <header class="h-16 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
     <!-- Left: Logo & Brand -->
     <router-link to="/" class="flex items-center space-x-3 group">
       <img src="/logo.svg" alt="Probability Game Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_10px_rgba(255,62,62,0.5)]" />
@@ -10,16 +10,6 @@
 
     <!-- Right: User / Auth -->
     <div class="flex items-center space-x-4">
-      <template v-if="authStore.user">
-        <!-- Balance Display -->
-        <div v-if="authStore.user.role !== 'admin'" class="flex items-center bg-secondary/50 rounded-lg px-2 md:px-4 py-1.5 md:py-2 border border-border">
-            <span class="text-green-500 font-medium mr-1 md:mr-2 font-outfit text-sm md:text-base"></span>
-            <span class="text-foreground font-outfit font-medium tracking-wide text-sm md:text-base">{{ Math.floor(authStore.user.balance) }}</span>
-            <Button variant="ghost" size="sm" class="hidden md:flex ml-3 h-6 text-xs uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10">
-                Wallet
-            </Button>
-        </div>
-
         <!-- Sound Toggle -->
         <Button
             variant="ghost"
@@ -36,6 +26,18 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
             </svg>
         </Button>
+
+      <template v-if="authStore.user">
+        <!-- Balance Display -->
+        <div v-if="authStore.user.role !== 'admin'" class="flex items-center bg-secondary/50 rounded-lg px-2 md:px-4 py-1.5 md:py-2 border border-border">
+            <span class="text-green-500 font-medium mr-1 md:mr-2 font-outfit text-sm md:text-base"></span>
+            <span class="text-foreground font-outfit font-medium tracking-wide text-sm md:text-base">{{ Math.floor(authStore.user.balance) }}</span>
+            <Button variant="ghost" size="sm" class="hidden md:flex ml-3 h-6 text-xs uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10">
+                Wallet
+            </Button>
+        </div>
+
+
 
 
 

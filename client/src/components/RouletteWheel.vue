@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-full max-w-4xl mx-auto h-[150px] sm:h-[225px] md:h-[300px] overflow-hidden flex justify-center items-end mb-2 sm:mb-8">
+  <div class="relative w-full max-w-4xl mx-auto h-[150px] sm:h-[225px] md:h-[300px] overflow-hidden flex justify-center items-end mb-0 sm:mb-0">
     <!-- Wheel Container (Shifted up to show only bottom half) -->
     <div 
       class="relative w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] md:w-[600px] md:h-[600px] rounded-full transition-transform cubic-bezier(0.1, 0.8, 0.1, 1) transform-gpu"

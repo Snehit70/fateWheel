@@ -1,6 +1,6 @@
 
 <template>
-  <div class="w-full mb-4 lg:mb-8">
+  <div class="w-full mb-4 lg:mb-4">
     <!-- Mobile Tabs -->
     <div class="grid grid-cols-3 gap-1 mb-2 lg:mb-4 lg:hidden bg-secondary/30 p-1 rounded-lg">
       <button 
@@ -31,10 +31,10 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4">
     <!-- Red Section -->
     <Card
-      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-4 transition-all duration-500"
+      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-2 transition-all duration-500"
       :class="[getSectionClass('red'), { 'hidden lg:flex': activeTab !== 'red' }]"
     >
       <!-- Header Row -->
@@ -129,7 +129,7 @@
 
     <!-- Green Section -->
     <Card
-      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-4 transition-all duration-500"
+      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-2 transition-all duration-500"
       :class="[getSectionClass('green'), { 'hidden lg:flex': activeTab !== 'green' }]"
     >
       <!-- Header Row -->
@@ -241,7 +241,7 @@
 
     <!-- Black Section -->
     <Card
-      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-4 transition-all duration-500"
+      class="flex flex-col gap-2 sm:gap-4 p-1 sm:p-2 transition-all duration-500"
       :class="[getSectionClass('black'), { 'hidden lg:flex': activeTab !== 'black' }]"
     >
       <!-- Header Row -->

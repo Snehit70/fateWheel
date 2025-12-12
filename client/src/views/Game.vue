@@ -2,13 +2,13 @@
   <div class="flex flex-col items-center w-full">
     
     <!-- Game Area -->
-    <div class="w-full relative flex flex-col gap-2 lg:gap-6">
+    <div class="w-full relative flex flex-col gap-2 lg:gap-4">
         
         <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
-        <div class="flex flex-col lg:flex-row gap-2 lg:gap-6 items-stretch">
+        <div class="flex flex-col lg:flex-row gap-2 lg:gap-4 items-stretch">
             <!-- Left: Wheel -->
             <Card 
-                class="w-full lg:w-[60%] p-1 sm:p-4 relative min-h-[180px] sm:min-h-[300px] md:min-h-[450px] flex items-center justify-center transition-all duration-500"
+                class="w-full lg:w-[60%] p-1 sm:p-4 relative min-h-[180px] sm:min-h-[300px] md:min-h-[350px] flex items-center justify-center transition-all duration-500"
                 :class="{ 'ring-2 ring-yellow-500/20 shadow-[0_0_50px_rgba(255,215,0,0.1)]': isSpinning }"
             >
                 <RouletteWheel 
@@ -22,7 +22,7 @@
 
             <!-- Right: History & Betting Controls -->
             <div 
-                class="w-full lg:w-[40%] flex flex-col gap-2 lg:gap-6 transition-all duration-500"
+                class="w-full lg:w-[40%] flex flex-col gap-2 lg:gap-4 transition-all duration-500"
                 :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
             >
                 <!-- History Section (Mobile) -->
@@ -38,7 +38,7 @@
                 </div>
 
                 <!-- Betting Controls Section -->
-                <Card class="p-2 sm:p-4 flex-1 flex flex-col">
+                <Card class="p-2 sm:p-3 flex-1 flex flex-col">
                      <BettingControls 
                         :balance="authStore.user?.balance || 0"
                         :is-logged-in="!!authStore.user"
