@@ -28,25 +28,22 @@
             </Button>
         </div>
 
-      </div>
-
-      <div class="flex items-center gap-2">
-        <Input 
-          type="date" 
-          v-model="selectedDate" 
-          @change="() => { pagination.page = 1; fetchHistory(); }"
-          class="w-auto h-8 text-xs" 
-        />
-        <Input 
-          type="text" 
-          placeholder="Round ID" 
-          v-model="filterRoundId" 
-          @keydown.enter="() => { pagination.page = 1; fetchHistory(); }"
-          @blur="() => { pagination.page = 1; fetchHistory(); }" 
-          class="w-32 h-8 text-xs" 
-        />
-      </div>
-
+        <div class="flex items-center gap-2">
+          <Input 
+            type="date" 
+            v-model="selectedDate" 
+            @change="() => { pagination.page = 1; fetchHistory(); }"
+            class="w-auto h-8 text-xs" 
+          />
+          <Input 
+            type="text" 
+            placeholder="Round ID" 
+            v-model="filterRoundId" 
+            @keydown.enter="() => { pagination.page = 1; fetchHistory(); }"
+            @blur="() => { pagination.page = 1; fetchHistory(); }" 
+            class="w-32 h-8 text-xs" 
+          />
+        </div>
       </div>
 
       <Card>
