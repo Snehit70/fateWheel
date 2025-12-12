@@ -1,110 +1,91 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
 import socket from '../services/socket';
+import { supabase } from '../lib/supabase';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
-        token: localStorage.getItem('token') || null,
+        session: null,
         isInitialized: false,
         isLoginModalOpen: false,
     }),
     actions: {
         async init() {
-            if (this.token) {
-                api.defaults.headers.common['x-auth-token'] = this.token;
+            // Get initial session
+            const { data: { session } } = await supabase.auth.getSession();
+            this.handleSession(session);
+
+            // Listen for auth changes
+            supabase.auth.onAuthStateChange((_event, session) => {
+                this.handleSession(session);
+            });
+
+            this.isInitialized = true;
+        },
+        async handleSession(session) {
+            this.session = session;
+
+            if (session?.access_token) {
+                api.defaults.headers.common['x-auth-token'] = session.access_token;
+                socket.setToken(session.access_token);
+
                 try {
+                    // Sync with backend and get user details (balance, etc.)
                     const response = await api.get('/auth/me');
                     this.user = response.data;
-                    this.isInitialized = true;
 
-                    // Initialize socket with token
-                    socket.setToken(this.token);
-
-                    // Listen for balance updates
+                    // Socket events
                     socket.on('balanceUpdate', (payload) => {
                         if (this.user) {
                             this.user.balance = payload.balance;
                         }
                     });
 
-                    // Refresh user data on reconnection (fixes sync issues after server restart)
+                    // Re-fetch on socket reconnect
                     socket.on('connect', async () => {
-                        if (this.token) {
-                            try {
-                                const res = await api.get('/auth/me');
-                                this.user = res.data;
-                            } catch (err) {
-                                console.error("Failed to refresh user on reconnect:", err);
-                            }
+                        if (this.session?.access_token) {
+                            const res = await api.get('/auth/me');
+                            this.user = res.data;
                         }
                     });
+
                 } catch (err) {
-                    console.error("Failed to fetch user:", err);
-                    this.logout();
-                    this.isInitialized = true;
+                    console.error("Failed to sync user with backend:", err);
+                    // If backend sync fails (e.g. user deleted on backend), should we logout?
+                    // For now, keep session but user data might be incomplete.
                 }
             } else {
-                this.isInitialized = true;
+                this.user = null;
+                delete api.defaults.headers.common['x-auth-token'];
+                socket.setToken(null);
             }
         },
-        async login(username, password) {
-            try {
-                const response = await api.post('/auth/login', { username, password });
-                this.setAuth(response.data);
-            } catch (err) {
-                // Server returned an error response with a message
-                if (err.response?.data?.message) {
-                    throw err.response.data.message;
-                }
-
-                // Network error - request never reached the server
-                if (err.code === 'ERR_NETWORK' || !err.response) {
-                    throw 'Network error - please check your internet connection and try again';
-                }
-
-                // Request timed out
-                if (err.code === 'ECONNABORTED') {
-                    throw 'Request timed out - please try again';
-                }
-
-                // Server error (5xx)
-                if (err.response?.status >= 500) {
-                    throw 'Server error - please try again later';
-                }
-
-                // Fallback for any other error
-                throw 'Unable to login - please try again';
-            }
+        async login(email, password) {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) throw error;
+            return data;
         },
-        async register(username, password) {
-            try {
-                const res = await api.post('/auth/register', { username, password });
-                return res.data;
-            } catch (err) {
-                throw err;
-            }
-        },
-        setAuth(data) {
-            this.token = data.token;
-            this.user = data.user;
-            localStorage.setItem('token', data.token);
-            api.defaults.headers.common['x-auth-token'] = data.token;
-            socket.setToken(data.token);
-
-            // Listen for balance updates
-            socket.on('balanceUpdate', (payload) => {
-                if (this.user) {
-                    this.user.balance = payload.balance;
+        async register(email, password, username) {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        username: username // Store username in metadata
+                    }
                 }
             });
+            if (error) throw error;
+            return data;
         },
-        logout() {
-            this.token = null;
-            this.user = null;
-            localStorage.removeItem('token');
-            delete api.defaults.headers.common['x-auth-token'];
-            socket.setToken(null);
+        async logout() {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            // handleSession(null) will be triggered by onAuthStateChange
         },
         updateBalance(newBalance) {
             if (this.user) {

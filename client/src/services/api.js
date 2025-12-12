@@ -7,18 +7,7 @@ const api = axios.create({
     }
 });
 
-// Add a request interceptor to add the auth token
-api.interceptors.request.use(
-    config => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers['x-auth-token'] = token;
-        }
-        return config;
-    },
-    error => {
-        return Promise.reject(error);
-    }
-);
+// Interceptor removed. Auth token is set globally by the auth store via api.defaults.headers.common
+// when the Supabase session changes.
 
 export default api;

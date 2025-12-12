@@ -8,9 +8,15 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
+    supabaseUid: {
+        type: String,
+        unique: true,
+        index: true,
+        sparse: true // Allows null/undefined for legacy users if any
+    },
     password: {
         type: String,
-        required: true,
+        required: false, // Now optional as we use Supabase Auth
         minlength: 8
     },
     balance: {

@@ -11,11 +11,21 @@
 
       <form @submit.prevent="handleSubmit" class="space-y-4 py-4">
         <div class="space-y-2">
+          <label class="text-xs font-bold text-muted-foreground uppercase">Email</label>
+          <Input 
+            v-model="email" 
+            type="email" 
+            placeholder="Enter your email"
+            required
+          />
+        </div>
+
+        <div v-if="!isLogin" class="space-y-2">
           <label class="text-xs font-bold text-muted-foreground uppercase">Username</label>
           <Input 
             v-model="username" 
             type="text" 
-            placeholder="Enter your username"
+            placeholder="Choose a username"
             required
           />
         </div>
@@ -57,7 +67,7 @@
           :disabled="loading || isSuccess"
         >
           <span v-if="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Processing...</span>
-          <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> Sent</span>
+          <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> {{ isLogin ? 'Success' : 'Check Email' }}</span>
           <span v-else>{{ isLogin ? 'Sign In' : 'Sign Up' }}</span>
         </Button>
       </form>
@@ -97,6 +107,7 @@ const authStore = useAuthStore();
 const router = useRouter();
 const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
+const email = ref('');
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -121,6 +132,7 @@ const toggleMode = () => {
 };
 
 const resetForm = () => {
+  email.value = '';
   username.value = '';
   password.value = '';
   showPassword.value = false;
@@ -134,25 +146,27 @@ const handleSubmit = async () => {
   
   try {
     if (isLogin.value) {
-      await authStore.login(username.value, password.value);
-
+      await authStore.login(email.value, password.value);
       close();
     } else {
-      const res = await authStore.register(username.value, password.value);
-      // Registration successful, show success state on button
+      await authStore.register(email.value, password.value, username.value);
+      // Registration successful
       isSuccess.value = true;
+      error.value = 'Verification email sent! Please check your inbox.';
       
-      // Wait 2 seconds then switch to login
+      // Wait 3 seconds then switch/close
       setTimeout(() => {
         isSuccess.value = false;
-        toggleMode(); // Switch to login
-      }, 2000);
+        // Depending on Supabase settings, user might be logged in or need verify
+        // For now, we assume email verification is required or we just close
+        close();
+      }, 3000);
     }
   } catch (err) {
     if (typeof err === 'string') {
         error.value = err;
     } else {
-        error.value = err.response?.data?.message || err.message || 'An error occurred';
+        error.value = err.message || 'An error occurred';
     }
     isSuccess.value = false;
   } finally {

@@ -6,9 +6,11 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const GameLoop = require('./game/GameLoop');
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken'); // Kept for legacy or utility if needed, otherwise can remove
 const { RateLimiterMemory, RateLimiterRedis } = require('rate-limiter-flexible');
 const logger = require('./utils/logger'); // Import logger at the top
+const supabase = require('./utils/supabase');
+const User = require('./models/User');
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Railway)
@@ -120,17 +122,27 @@ const gameLoop = new GameLoop(io);
 gameLoop.refundActiveBets();
 
 // Socket.io Middleware for Auth (Optional for connection, required for betting)
-io.use((socket, next) => {
+// Socket.io Middleware for Auth (Optional for connection, required for betting)
+io.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
     if (token) {
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            // Validate JWT payload structure
-            if (decoded.user && decoded.user.id) {
-                socket.user = decoded.user;
+            const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+
+            if (supabaseUser && !error) {
+                // Find user in MongoDB to get internal ID and Role
+                const user = await User.findOne({ supabaseUid: supabaseUser.id });
+                if (user) {
+                    socket.user = {
+                        id: user.id,
+                        role: user.role,
+                        supabaseUid: user.supabaseUid
+                    };
+                }
             }
         } catch (err) {
             // Invalid token, but we allow connection for spectating
+            logger.warn(`Socket auth failed: ${err.message}`);
         }
     }
     next();
