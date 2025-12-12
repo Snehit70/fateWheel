@@ -18,7 +18,22 @@ export const useAuthStore = defineStore('auth', {
         async init() {
             // Get initial session
             const { data: { session } } = await supabase.auth.getSession();
-            this.handleSession(session);
+
+            // If we have a session, try to refresh it to ensure token is valid
+            if (session) {
+                const { data: refreshData, error } = await supabase.auth.refreshSession();
+                if (error || !refreshData.session) {
+                    // Token is truly invalid, clear it
+                    console.warn("Session expired, clearing...");
+                    await supabase.auth.signOut();
+                    this.isInitialized = true;
+                    return;
+                }
+                // Use the refreshed session
+                this.handleSession(refreshData.session);
+            } else {
+                this.handleSession(null);
+            }
 
             // Listen for auth changes
             supabase.auth.onAuthStateChange((_event, session) => {
