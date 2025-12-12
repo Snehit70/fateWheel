@@ -1,5 +1,4 @@
 import { io } from "socket.io-client";
-import { useAuthStore } from "../stores/auth";
 
 class SocketService {
     constructor() {
@@ -17,7 +16,11 @@ class SocketService {
         this.socket = io(socketUrl, {
             auth: {
                 token: authToken
-            }
+            },
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000
         });
 
         this.socket.on('connect', () => {
@@ -25,8 +28,12 @@ class SocketService {
             this.syncTime();
         });
 
-        this.socket.on('disconnect', () => {
-            console.log('Disconnected from WebSocket');
+        this.socket.on('disconnect', (reason) => {
+            console.log('Disconnected from WebSocket:', reason);
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('Socket connection error:', error.message);
         });
     }
 
@@ -42,9 +49,13 @@ class SocketService {
         this.socket.on(event, callback);
     }
 
-    off(event) {
+    off(event, callback) {
         if (!this.socket) return;
-        this.socket.off(event);
+        if (callback) {
+            this.socket.off(event, callback);
+        } else {
+            this.socket.off(event);
+        }
     }
 
     emit(event, ...args) {
@@ -53,7 +64,6 @@ class SocketService {
     }
 
     setToken(token) {
-        this.token = token;
         if (this.socket) {
             this.socket.auth = { token };
             if (this.socket.connected) {
@@ -62,7 +72,7 @@ class SocketService {
         }
     }
 
-    async syncTime() {
+    syncTime() {
         if (!this.socket) return;
         const start = Date.now();
         this.socket.emit('timeSync', (serverTime) => {
