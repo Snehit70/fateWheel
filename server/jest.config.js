@@ -6,9 +6,13 @@ module.exports = {
         '**/*.js',
         '!**/node_modules/**',
         '!**/coverage/**',
-        '!jest.config.js'
+        '!jest.config.js',
+        '!seedAdmin.js'
     ],
     setupFilesAfterEnv: ['./tests/setup.js'],
     testTimeout: 30000,
-    verbose: true
+    verbose: true,
+    forceExit: true,
+    resetModules: true,
+    restoreMocks: true
 };
