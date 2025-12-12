@@ -17,12 +17,19 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: false, // Optional, managed by Supabase
-        minlength: 8
+        validate: {
+            validator: function (v) {
+                // Only validate length if password is provided
+                return !v || v.length >= 8;
+            },
+            message: 'Password must be at least 8 characters long'
+        }
     },
     balance: {
         type: Number,
         default: 0,
         min: 0,
+        // Math.floor to remove penny/decimal changes
         set: v => Math.floor(v)
     },
     role: {
@@ -37,10 +44,9 @@ const userSchema = new mongoose.Schema({
         default: 'pending',
         index: true
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-}, { timestamps: true });
+}, { timestamps: true }); // timestamps: true auto-creates createdAt and updatedAt
+
+// Add index on createdAt for sorting users by registration date
+userSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('User', userSchema);

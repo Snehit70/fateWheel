@@ -16,7 +16,7 @@ const TransactionSchema = new mongoose.Schema({
     amount: {
         type: Number,
         required: true,
-        min: 0,
+        min: 1, // No zero-value transactions
         immutable: true
     },
     balanceAfter: {
@@ -34,5 +34,6 @@ const TransactionSchema = new mongoose.Schema({
 });
 
 TransactionSchema.index({ user: 1, createdAt: -1 });
+TransactionSchema.index({ type: 1, createdAt: -1 }); // For type-based queries
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

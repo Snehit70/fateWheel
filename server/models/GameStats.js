@@ -20,20 +20,23 @@ const gameStatsSchema = new mongoose.Schema({
     totalWagered: {
         type: Number,
         default: 0
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
     }
-}, { timestamps: true });
+}, { timestamps: true }); // timestamps: true auto-creates updatedAt and createdAt
 
 // Singleton pattern: We only ever want one document
+// Uses findOneAndUpdate with upsert for concurrency safety
 gameStatsSchema.statics.getStats = async function () {
-    let stats = await this.findOne();
-    if (!stats) {
-        stats = await this.create({});
+    try {
+        const stats = await this.findOneAndUpdate(
+            {},
+            { $setOnInsert: { totalUsers: 0, pendingUsers: 0, netProfit: 0, totalBets: 0, totalWagered: 0 } },
+            { upsert: true, new: true }
+        );
+        return stats;
+    } catch (error) {
+        console.error('Error fetching GameStats:', error);
+        throw error;
     }
-    return stats;
 };
 
 module.exports = mongoose.model('GameStats', gameStatsSchema);

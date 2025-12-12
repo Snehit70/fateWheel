@@ -4,8 +4,7 @@ const gameResultSchema = new mongoose.Schema({
     roundId: {
         type: String,
         required: true,
-        unique: true,
-        index: true
+        unique: true // unique already creates an index
     },
     roundNumber: {
         type: Number,
@@ -29,11 +28,12 @@ const gameResultSchema = new mongoose.Schema({
         index: true
     },
     stats: {
-        totalBets: Number,
-        totalWagered: Number,
-        totalPayout: Number,
+        totalBets: { type: Number, min: 0 },
+        totalWagered: { type: Number, min: 0 },
+        totalPayout: { type: Number, min: 0 },
+        // netProfit: positive = house profit, negative = house loss
         netProfit: Number,
-        uniqueUsers: Number
+        uniqueUsers: { type: Number, min: 0 }
     }
 });
 

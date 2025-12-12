@@ -16,6 +16,7 @@ const AdminLogSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
+    index: true,
   },
   targetUsername: {
     type: String,
@@ -27,8 +28,10 @@ const AdminLogSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    index: true,
   },
 });
+
+// TTL index to auto-expire logs after 90 days
+AdminLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 module.exports = mongoose.model("AdminLog", AdminLogSchema);
