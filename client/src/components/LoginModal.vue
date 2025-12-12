@@ -79,7 +79,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { useRouter } from 'vue-router';
+
 import {
   Dialog,
   DialogContent,
@@ -93,7 +93,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
-const router = useRouter();
+
 const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
 const username = ref('');

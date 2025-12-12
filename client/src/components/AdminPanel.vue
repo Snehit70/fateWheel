@@ -37,8 +37,6 @@
         </div>
       </div>
 
-      <!-- Stats Cards -->
-
 
       <!-- Users Table - Desktop -->
       <Card class="hidden sm:block">
@@ -239,7 +237,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   Select,
@@ -469,5 +467,6 @@ onUnmounted(() => {
   socket.off('admin:newUser');
   socket.off('admin:userDeleted');
   socket.off('admin:statsUpdate');
+  socket.off('connect');
 });
 </script>

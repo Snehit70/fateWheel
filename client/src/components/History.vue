@@ -212,6 +212,7 @@ const filterOptions = [
 
 const fetchHistory = async () => {
   loading.value = true;
+  clearRoundColorMap(); // Clear color map on data refresh to prevent stale entries
   try {
     // If admin is viewing another user's history, use admin endpoint
     const endpoint = viewingUserId.value
@@ -286,19 +287,8 @@ const stats = computed(() => {
     item => !isTransaction(item) && item.status === 'completed'
   );
 
-  const wins = completedBets.filter(b => b.result === 'win');
-  const totalBets = completedBets.length;
-  const winRate = totalBets > 0 ? (wins.length / totalBets) * 100 : 0;
-
-  const totalWagered = completedBets.reduce((sum, b) => sum + b.amount, 0);
-  const totalPayout = completedBets.reduce((sum, b) => sum + (b.payout || 0), 0);
-  const netProfit = totalPayout - totalWagered;
-
   return {
-    totalBets,
-    winRate,
-    netProfit,
-    totalWagered
+    totalBets: completedBets.length
   };
 });
 
@@ -388,22 +378,27 @@ const getRoundDisplayNumber = (item) => {
 };
 
 // Get alternating row background color based on round
-const roundColorMap = new Map();
-let colorToggle = false;
+const roundColorMap = ref(new Map());
+const colorToggle = ref(false);
+
+const clearRoundColorMap = () => {
+    roundColorMap.value.clear();
+    colorToggle.value = false;
+};
 
 const getRoundRowClass = (item, index) => {
     if (isTransaction(item)) return '';
 
     const roundId = item.roundId || item._id;
 
-    if (!roundColorMap.has(roundId)) {
+    if (!roundColorMap.value.has(roundId)) {
         // Assign a color to this round
-        roundColorMap.set(roundId, colorToggle);
-        colorToggle = !colorToggle;
+        roundColorMap.value.set(roundId, colorToggle.value);
+        colorToggle.value = !colorToggle.value;
     }
 
     // Use a more visible alternating background
-    return roundColorMap.get(roundId) ? 'bg-white/5' : 'bg-primary/5';
+    return roundColorMap.value.get(roundId) ? 'bg-white/5' : 'bg-primary/5';
 };
 
 const handleGameState = (data) => {

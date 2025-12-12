@@ -89,13 +89,13 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { useToast } from '../composables/useToast';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BET_LIMITS } from '../constants/game';
 
 const authStore = useAuthStore();
-const toast = useToast();
+
 
 const props = defineProps({
     balance: {
@@ -147,12 +147,7 @@ const isAdmin = computed(() => {
 
 
 
-const setAmount = (type) => {
-    if (type === '10') betAmount.value = BET_LIMITS.MIN;
-    if (type === '1000') betAmount.value = Math.min(props.balance, BET_LIMITS.MAX);
-    if (type === 'min') betAmount.value = BET_LIMITS.MIN;
-    if (type === 'max') betAmount.value = props.balance;
-};
+
 
 const addAmount = (amount) => {
     const newAmount = betAmount.value + amount;
