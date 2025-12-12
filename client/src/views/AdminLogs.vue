@@ -126,14 +126,14 @@ const getActionVariant = (action) => {
 // Remove "Reason: ..." from details since it now has its own column
 const getCleanDetails = (details) => {
     if (!details) return '-';
-    // Remove the "Reason: ..." part from the end
-    return details.replace(/\.?\s*Reason:.*$/i, '').trim() || '-';
+    // Remove "Reason: ..." starting from the last occurrence or robustly
+    // Using [\s\S] to match newlines if any
+    return details.replace(/\.?\s*Reason:[\s\S]*$/i, '').trim() || '-';
 };
 
-// Extract the reason from the details string
 const getReasonFromDetails = (details) => {
     if (!details) return '-';
-    const match = details.match(/Reason:\s*(.+)$/i);
+    const match = details.match(/Reason:\s*([\s\S]+)$/i);
     return match ? match[1].trim() : '-';
 };
 

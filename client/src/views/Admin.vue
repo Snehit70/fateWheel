@@ -248,6 +248,7 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '../stores/auth';
 import { useToast } from '../composables/useToast';
+import { getStatusColor } from '../utils/game';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
 
 const router = useRouter();
@@ -336,14 +337,7 @@ const filterPending = () => {
   showPendingOnly.value = !showPendingOnly.value;
 };
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'approved': return 'text-green-500 border-green-500/20 bg-green-500/10';
-    case 'rejected': return 'text-red-500 border-red-500/20 bg-red-500/10';
-    case 'pending': return 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10';
-    default: return '';
-  }
-};
+
 
 const openEditBalance = (user) => {
   editingUser.value = user;
@@ -417,6 +411,7 @@ const viewUserHistory = (user) => {
 };
 
 // Realtime Updates
+// Realtime Updates
 const handleUserUpdate = (updatedUser) => {
   const index = users.value.findIndex(u => u._id === updatedUser._id);
   if (index !== -1) {
@@ -428,10 +423,10 @@ const handleUserUpdate = (updatedUser) => {
     if (isNaN(currentUpdate) || newUpdate > currentUpdate) {
       users.value[index] = updatedUser;
     }
-  } else if (updatedUser.role !== 'admin') {
-    // New user?
-    users.value.unshift(updatedUser);
   }
+  // Removed else if block: Updates to users not on the current page should not seamlessly appear at the top.
+  // New users are handled by 'admin:newUser' event.
+  
   fetchStats(); // Refresh stats on any user update
 };
 

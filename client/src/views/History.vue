@@ -55,9 +55,9 @@
               </TableRow>
               <TableRow
                 v-else
-                v-for="(item, index) in filteredHistory"
+                v-for="(item, index) in processedHistory"
                 :key="item._id"
-                :class="getRoundRowClass(item, index)"
+                :class="item.rowClass"
               >
                 <!-- Round Number -->
                 <TableCell class="font-mono text-muted-foreground">
@@ -88,12 +88,18 @@
 
                 <!-- Value -->
                 <TableCell>
-                  <span v-if="isTransaction(item)" class="text-muted-foreground italic text-xs">
-                    {{ item.description || '-' }}
-                  </span>
-                  <span v-else :class="getValueClass(item)">
-                    {{ formatValue(item) }}
-                  </span>
+const formatValue = (bet) => {
+    if (bet.type === 'type') return bet.value.toUpperCase();
+    if (bet.type === 'color') return bet.value.toUpperCase();
+    return bet.value;
+};
+
+const formatBalance = (balance) => {
+  if (balance === null || balance === undefined) {
+    return '-';
+  }
+  return `${balance}`;
+};
                 </TableCell>
 
                 <!-- Amount -->
@@ -151,7 +157,7 @@
                     <div v-if="!isTransaction(item) && item.gameResult" class="flex items-center space-x-2">
                         <span :class="[
                             'w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold text-white',
-                            getGameResultColor(item.gameResult.color)
+                            getResultColor(item.gameResult.color)
                         ]">
                             {{ item.gameResult.number }}
                         </span>
@@ -189,6 +195,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
+import { formatDate } from '../utils/formatters';
+import { getResultColor, getValueColor } from '../utils/game';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -212,7 +220,7 @@ const filterOptions = [
 
 const fetchHistory = async () => {
   loading.value = true;
-  clearRoundColorMap(); // Clear color map on data refresh to prevent stale entries
+
   try {
     // If admin is viewing another user's history, use admin endpoint
     const endpoint = viewingUserId.value
@@ -264,7 +272,26 @@ const aggregatedHistory = computed(() => {
   // Row 2: 09:34:00 - Bet - Balance 9900
   // This reads correctly: "Top is latest state".
 
-  return items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Trust server sorting for now to avoid hydration mismatches or redundant work on large sets
+  return items;
+});
+
+// Pre-process history to add row classes (alternating colors for rounds)
+const processedHistory = computed(() => {
+    let lastRoundId = null;
+    let isDark = false;
+    
+    return filteredHistory.value.map(item => {
+        const roundId = item.roundId || item._id;
+        if (!isTransaction(item) && roundId !== lastRoundId) {
+            isDark = !isDark;
+            lastRoundId = roundId;
+        }
+        return {
+            ...item,
+            rowClass: isTransaction(item) ? '' : (isDark ? 'bg-white/5' : 'bg-primary/5')
+        };
+    });
 });
 
 // Filter based on active filter
@@ -292,47 +319,7 @@ const stats = computed(() => {
   };
 });
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
 
-const formatBalance = (balance) => {
-  if (balance === null || balance === undefined) {
-    return '-';
-  }
-  return `${balance}`;
-};
-
-const formatValue = (bet) => {
-    if (bet.type === 'type') return bet.value.toUpperCase();
-    if (bet.type === 'color') return bet.value.toUpperCase();
-    return bet.value;
-  };
-
-const getValueClass = (bet) => {
-    if (bet.type === 'color') {
-        return bet.value === 'red' ? 'text-red-500 font-bold' : bet.value === 'black' ? 'text-purple-400 font-bold' : 'text-green-500 font-bold';
-    }
-    if (bet.type === 'number') {
-        return 'text-foreground font-bold';
-    }
-    return 'text-muted-foreground';
-};
-
-const getGameResultColor = (color) => {
-    switch(color) {
-        case 'red': return 'bg-red-500';
-        case 'black': return 'bg-[#2d1f3d] shadow-[0_0_6px_rgba(138,43,226,0.3)]';
-        case 'green': return 'bg-green-500';
-        default: return 'bg-gray-500';
-    }
-};
 
 const isTransaction = (item) => {
     return ['deposit', 'withdraw', 'adjustment'].includes(item.type);
@@ -377,29 +364,7 @@ const getRoundDisplayNumber = (item) => {
     return '-';
 };
 
-// Get alternating row background color based on round
-const roundColorMap = ref(new Map());
-const colorToggle = ref(false);
 
-const clearRoundColorMap = () => {
-    roundColorMap.value.clear();
-    colorToggle.value = false;
-};
-
-const getRoundRowClass = (item, index) => {
-    if (isTransaction(item)) return '';
-
-    const roundId = item.roundId || item._id;
-
-    if (!roundColorMap.value.has(roundId)) {
-        // Assign a color to this round
-        roundColorMap.value.set(roundId, colorToggle.value);
-        colorToggle.value = !colorToggle.value;
-    }
-
-    // Use a more visible alternating background
-    return roundColorMap.value.get(roundId) ? 'bg-white/5' : 'bg-primary/5';
-};
 
 const handleGameState = (data) => {
     if (data.state === 'RESULT') {

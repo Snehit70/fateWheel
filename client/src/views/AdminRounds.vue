@@ -126,6 +126,7 @@
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
+import { getResultColor, getValueColor } from '../utils/game';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -141,6 +142,7 @@ const pagination = ref({
 });
 const expandedRound = ref(null);
 const expandedBets = ref([]);
+const betsCache = ref(new Map());
 
 const fetchRounds = async () => {
   loading.value = true;
@@ -183,9 +185,16 @@ const toggleExpand = async (roundId) => {
   }
 
   expandedRound.value = roundId;
+
+  if (betsCache.value.has(roundId)) {
+      expandedBets.value = betsCache.value.get(roundId);
+      return;
+  }
+
   try {
     const res = await api.get(`/admin/rounds/${roundId}`);
     expandedBets.value = res.data.bets;
+    betsCache.value.set(roundId, res.data.bets);
   } catch (err) {
     console.error('Failed to fetch round details:', err);
     expandedBets.value = [];
@@ -202,29 +211,7 @@ const formatDate = (dateString) => {
   });
 };
 
-const getResultColor = (color) => {
-  switch (color) {
-    case 'red': return 'bg-red-500';
-    case 'black': return 'bg-[#2d1f3d] shadow-[0_0_6px_rgba(138,43,226,0.3)]';
-    case 'green': return 'bg-green-500';
-    default: return 'bg-gray-500';
-  }
-};
 
-const getProfitClass = (profit) => {
-  if (profit > 0) return 'text-green-500';
-  if (profit < 0) return 'text-red-500';
-  return 'text-muted-foreground';
-};
-
-const getValueColor = (value) => {
-  switch (value) {
-    case 'red': return 'text-red-500 font-bold';
-    case 'black': return 'text-purple-400 font-bold';
-    case 'green': return 'text-green-500 font-bold';
-    default: return '';
-  }
-};
 
 onMounted(() => {
   fetchRounds();
