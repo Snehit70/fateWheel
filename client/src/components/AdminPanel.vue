@@ -233,9 +233,209 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import api from '../services/api';
 import socket from '../services/socket';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAuthStore } from '../stores/auth';
+import { useToast } from '../composables/useToast';
+import PaginationControls from '@/components/ui/PaginationControls.vue';
 
-// ... existing imports ...
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
+const users = ref([]);
+const stats = ref({
+  totalUsers: 0,
+  pendingUsers: 0,
+  netProfit: 0
+});
+const searchQuery = ref('');
+const showPendingOnly = ref(false);
+const editingUser = ref(null);
+const deletingUser = ref(null);
+const newBalance = ref(0);
+const reason = ref('');
+
+const loading = ref(false);
+const pagination = ref({
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    total: 0
+});
+
+const fetchStats = async () => {
+  try {
+    const res = await api.get('/admin/stats');
+    stats.value = res.data;
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const fetchUsers = async () => {
+  loading.value = true;
+  try {
+    const res = await api.get('/admin/users', {
+        params: {
+            page: pagination.value.page,
+            limit: pagination.value.limit
+        }
+    });
+    
+    if (res.data.pagination) {
+        users.value = res.data.data;
+        pagination.value = {
+            page: res.data.pagination.page,
+            limit: res.data.pagination.limit,
+            totalPages: res.data.pagination.pages,
+            total: res.data.pagination.total
+        };
+    } else {
+        // Fallback or legacy response
+        users.value = res.data;
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error('Failed to fetch users');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const changePage = (newPage) => {
+    pagination.value.page = newPage;
+    fetchUsers();
+};
+
+const filteredUsers = computed(() => {
+  let result = users.value.filter(u => u.role !== 'admin');
+  
+  if (showPendingOnly.value) {
+    result = result.filter(u => u.status === 'pending');
+  }
+  
+  if (searchQuery.value) {
+    result = result.filter(u => u.username.toLowerCase().includes(searchQuery.value.toLowerCase()));
+  }
+  
+  return result;
+});
+
+const filterPending = () => {
+  showPendingOnly.value = !showPendingOnly.value;
+};
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'approved': return 'text-green-500 border-green-500/20 bg-green-500/10';
+    case 'rejected': return 'text-red-500 border-red-500/20 bg-red-500/10';
+    case 'pending': return 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10';
+    default: return '';
+  }
+};
+
+const openEditBalance = (user) => {
+  editingUser.value = user;
+  newBalance.value = user.balance;
+  reason.value = '';
+};
+
+const saveBalance = async () => {
+  if (!editingUser.value) return;
+  
+  if (!reason.value.trim()) {
+    toast.warning('Please provide a reason for this change.');
+    return;
+  }
+  
+  try {
+    const res = await api.put(`/admin/users/${editingUser.value._id}/balance`, {
+      balance: newBalance.value,
+      reason: reason.value
+    });
+    
+    
+    editingUser.value = null;
+    fetchStats(); // Refresh stats
+  } catch (err) {
+    console.error(err);
+    toast.error('Failed to update balance');
+  }
+};
+
+const updateStatus = async (user, status) => {
+  try {
+    const res = await api.put(`/admin/users/${user._id}/status`, { status });
+    
+    // Update local state immediately
+    const index = users.value.findIndex(u => u._id === user._id);
+    if (index !== -1) {
+      users.value[index] = res.data;
+    }
+    
+    fetchStats(); // Refresh stats
+  } catch (err) {
+    console.error(err);
+    toast.error('Failed to update status');
+  }
+};
+
+const confirmDelete = (user) => {
+  deletingUser.value = user;
+};
+
+const deleteUser = async () => {
+  if (!deletingUser.value) return;
+
+  try {
+    await api.delete(`/admin/users/${deletingUser.value._id}`);
+    users.value = users.value.filter(u => u._id !== deletingUser.value._id);
+    deletingUser.value = null;
+    fetchStats(); // Refresh stats
+  } catch (err) {
+    console.error(err);
+    toast.error('Failed to delete user');
+  }
+};
+
+const viewUserHistory = (user) => {
+  router.push({ 
+    path: '/history', 
+    query: { userId: user._id, username: user.username } 
+  });
+};
+
+// Realtime Updates
+const handleUserUpdate = (updatedUser) => {
+  const index = users.value.findIndex(u => u._id === updatedUser._id);
+  if (index !== -1) {
+    // Check timestamps to avoid race conditions (out of order updates)
+    const currentUpdate = new Date(users.value[index].updatedAt).getTime();
+    const newUpdate = new Date(updatedUser.updatedAt).getTime();
+    
+    // Only update if the new data is actually newer (or if we don't have a timestamp yet)
+    if (isNaN(currentUpdate) || newUpdate > currentUpdate) {
+      users.value[index] = updatedUser;
+    }
+  } else if (updatedUser.role !== 'admin') {
+    // New user?
+    users.value.unshift(updatedUser);
+  }
+  fetchStats(); // Refresh stats on any user update
+};
 
 onMounted(() => {
   fetchUsers();
