@@ -25,19 +25,21 @@ router.get("/history", auth, async (req, res) => {
     const txQuery = { user: req.user.id };
 
     if (roundId) {
-      betQuery.roundId = roundId;
-      // Transactions don't have roundId, so we can either exclude them or return empty
-      // If filtering by roundId, likely only interested in bets
+      // Support partial match (last 4 chars) and case-insensitive
+      betQuery.roundId = { $regex: roundId, $options: 'i' };
     }
 
     if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      // Assume date is YYYY-MM-DD. Create UTC range.
+      // We match any time within that UTC date.
+      // Note: exact matching depends on whether stored dates are UTC (standard Mongoose behavior)
+      const start = new Date(date); // YYYY-MM-DD -> UTC midnight
+      const end = new Date(date);
+      end.setUTCDate(end.getUTCDate() + 1); // Next day UTC midnight
 
-      betQuery.createdAt = { $gte: startDate, $lte: endDate };
-      txQuery.createdAt = { $gte: startDate, $lte: endDate };
+      // Correct logic: >= start AND < end
+      betQuery.createdAt = { $gte: start, $lt: end };
+      txQuery.createdAt = { $gte: start, $lt: end };
     }
 
     if (page) {

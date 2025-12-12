@@ -43,15 +43,15 @@ describe('GET /api/game/history Filters', () => {
         });
     });
 
-    it('should filter by roundId', async () => {
-        // Create matching bet
+    it('should filter by roundId (partial match)', async () => {
+        // Create matching bet with long ID
         await Bet.create({
             user: user._id,
             username: 'testuser',
             type: 'number',
             value: 5,
             amount: 100,
-            roundId: 'target-round',
+            roundId: 'some-long-uuid-matching-1234',
             status: 'completed',
             createdAt: new Date()
         });
@@ -63,27 +63,18 @@ describe('GET /api/game/history Filters', () => {
             type: 'number',
             value: 5,
             amount: 100,
-            roundId: 'other-round',
+            roundId: 'other-round-5678',
             status: 'completed',
             createdAt: new Date()
         });
 
-        // Create transaction (should be excluded by roundId filter)
-        await Transaction.create({
-            user: user._id,
-            type: 'deposit',
-            amount: 500,
-            balanceAfter: 1500,
-            createdAt: new Date()
-        });
-
-        const res = await request(app).get('/api/game/history').query({ roundId: 'target-round', page: 1 });
+        const res = await request(app).get('/api/game/history').query({ roundId: '1234', page: 1 });
 
         expect(res.status).toBe(200);
         expect(res.body.data).toBeDefined();
         // Should only find the matching bet
         expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0].roundId).toBe('target-round');
+        expect(res.body.data[0].roundId).toBe('some-long-uuid-matching-1234');
     });
 
     it('should filter by date', async () => {

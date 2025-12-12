@@ -38,9 +38,7 @@
           <Input 
             type="text" 
             placeholder="Round ID" 
-            v-model="filterRoundId" 
-            @keydown.enter="() => { pagination.page = 1; fetchHistory(); }"
-            @blur="() => { pagination.page = 1; fetchHistory(); }" 
+            v-model="filterRoundId"
             class="w-32 h-8 text-xs" 
           />
         </div>
@@ -194,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
@@ -207,6 +205,7 @@ import { Badge } from '@/components/ui/badge';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
 import { formatDate, formatOnlyDate, formatOnlyTime } from '../utils/formatters';
 import { getResultColor, getValueColor } from '../utils/game';
+import { useDebounceFn } from '@vueuse/core';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -230,6 +229,12 @@ const filterOptions = [
 
 const selectedDate = ref('');
 const filterRoundId = ref('');
+
+// Instant filter for Round ID with debounce
+watch(filterRoundId, useDebounceFn(() => {
+    pagination.value.page = 1;
+    fetchHistory();
+}, 300));
 
 const fetchHistory = async () => {
   loading.value = true;
