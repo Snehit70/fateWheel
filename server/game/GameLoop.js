@@ -199,7 +199,7 @@ class GameLoop {
                     };
                 }
 
-                // Sort bets: losses first, then wins, then by time
+                // Sort bets: by time to replay history correctly for balance calculation
                 userBets.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
                 // Calculate total winnings for DB update
@@ -265,7 +265,7 @@ class GameLoop {
                     totalWagered: roundTotalWagered,
                     netProfit: roundTotalWagered - roundTotalPayout
                 }
-            });
+            }, { upsert: true });
 
         } catch (err) {
             console.error("FULL ERROR OBJECT:", err); // Raw dump
