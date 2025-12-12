@@ -34,30 +34,45 @@ export const useAuthStore = defineStore('auth', {
                 api.defaults.headers.common['x-auth-token'] = session.access_token;
                 socket.setToken(session.access_token);
 
+                // Skip sync if already in progress (debounce)
+                if (this._syncInProgress) {
+                    return;
+                }
+                this._syncInProgress = true;
+
                 try {
                     // Sync with backend and get user details (balance, etc.)
                     const response = await api.get('/auth/me');
                     this.user = response.data;
 
-                    // Socket events
-                    socket.on('balanceUpdate', (payload) => {
-                        if (this.user) {
-                            this.user.balance = payload.balance;
-                        }
-                    });
+                    // Setup socket listeners only once
+                    if (!this._listenersSetup) {
+                        this._listenersSetup = true;
 
-                    // Re-fetch on socket reconnect
-                    socket.on('connect', async () => {
-                        if (this.session?.access_token) {
-                            const res = await api.get('/auth/me');
-                            this.user = res.data;
-                        }
-                    });
+                        socket.on('balanceUpdate', (payload) => {
+                            if (this.user) {
+                                this.user.balance = payload.balance;
+                            }
+                        });
+                    }
 
                 } catch (err) {
                     console.error("Failed to sync user with backend:", err);
-                    // If backend sync fails (e.g. user deleted on backend), should we logout?
-                    // For now, keep session but user data might be incomplete.
+
+                    // If 401, token is invalid - logout user gracefully
+                    if (err.response?.status === 401) {
+                        console.warn("Auth token invalid, logging out...");
+                        this.user = null;
+                        this.session = null;
+                        delete api.defaults.headers.common['x-auth-token'];
+                        socket.setToken(null);
+                        // Sign out from Supabase to clear session
+                        await supabase.auth.signOut();
+                        this.openLoginModal();
+                        return;
+                    }
+                } finally {
+                    this._syncInProgress = false;
                 }
             } else {
                 this.user = null;

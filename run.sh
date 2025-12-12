@@ -64,6 +64,18 @@ else
   echo "Error seeding admin user."
   # We don't exit here because the app might still work, but it's good to know
 fi
+
+# Run Tests
+echo ""
+echo "Running tests..."
+npm test
+if [ $? -eq 0 ]; then
+  echo -e "\e[32mAll tests passed!\e[0m"
+else
+  echo -e "\e[33mWarning: Some tests failed. Check output above.\e[0m"
+fi
+echo ""
+
 cd ..
 
 echo "Starting backend..."
