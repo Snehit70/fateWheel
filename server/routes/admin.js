@@ -143,9 +143,10 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
 // @route   PUT api/admin/users/:id/balance
 // @desc    Update user balance
 // @access  Admin
+// @route   PUT api/admin/users/:id/balance
+// @desc    Update user balance
+// @access  Admin
 router.put('/users/:id/balance', auth, admin, async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
     try {
         const { balance: rawBalance, reason } = req.body;
         const balance = Math.floor(rawBalance);
@@ -155,10 +156,8 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
         }
 
         // Get old user to calculate difference
-        const oldUser = await User.findById(req.params.id).session(session);
+        const oldUser = await User.findById(req.params.id);
         if (!oldUser) {
-            await session.abortTransaction();
-            session.endSession();
             return res.status(404).json({ msg: 'User not found' });
         }
 
@@ -167,7 +166,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { balance: balance },
-            { new: true, session }
+            { new: true }
         ).select('-password');
 
         // Log Transaction
@@ -179,7 +178,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
                 balanceAfter: user.balance,
                 description: `Admin ${difference > 0 ? 'added' : 'removed'} funds`
             });
-            await transaction.save({ session });
+            await transaction.save();
 
             // Log Admin Action
             const log = new AdminLog({
@@ -189,16 +188,15 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
                 targetUsername: user.username,
                 details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference}). Reason: ${reason}`
             });
-            await log.save({ session });
+            await log.save();
 
-            // Emit new log (Must be done AFTER commit to be safe, but data needed now)
-            // We can emit after commit block.
+            // Update Net Profit in GameStats
+            // If admin ADDS money (deposit), it's a LIABILITY/LOSS for the house?
+            // Actually, manual balance changes are usually excluded from "Net Profit" which tracks GAME performance (Wagered - Payout).
+            // However, we should arguably track it somewhere. For now, we won't touch GameStats netProfit as that is game-logic specific.
         }
 
-        await session.commitTransaction();
-        session.endSession();
-
-        // Socket events (outside transaction)
+        // Socket events
         if (difference !== 0) {
             // Fetch the latest log to emit with populated admin details
             const latestLog = await AdminLog.findOne({ adminId: req.user.id, action: 'update_balance' }).sort({ createdAt: -1 }).populate('adminId', 'username');
@@ -210,12 +208,11 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
         res.json(user);
     } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
         console.error(err.message);
         res.status(500).send('Server Error');
     }
 });
+
 
 // @route   DELETE api/admin/users/:id
 // @desc    Delete user
