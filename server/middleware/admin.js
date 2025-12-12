@@ -2,6 +2,11 @@ const User = require('../models/User');
 
 module.exports = async function (req, res, next) {
     try {
+        // Guard: Ensure auth middleware ran first
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized. Authentication required.' });
+        }
+
         // Optimistic check: if role is in token
         if (req.user.role) {
             if (req.user.role !== 'admin') {
@@ -23,7 +28,11 @@ module.exports = async function (req, res, next) {
         req.user.role = user.role;
         next();
     } catch (err) {
-        console.error('Admin Middleware Error:', err);
-        res.status(500).send('Server Error');
+        console.error('Admin Middleware Error:', {
+            message: err.message,
+            userId: req.user?.id,
+            path: req.path
+        });
+        res.status(500).json({ message: 'Server Error' });
     }
 };
