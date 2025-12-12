@@ -137,25 +137,24 @@ const getReasonFromDetails = (details) => {
     return match ? match[1].trim() : '-';
 };
 
+import socket from '../services/socket';
+// ... previous imports ...
+
 onMounted(() => {
     fetchLogs();
     
-    if (authStore.socket) {
-        authStore.socket.on('admin:newLog', (log) => {
-            // Only update live if we are on the first page
-            if (pagination.value.page === 1) {
-                logs.value.unshift(log);
-                if (logs.value.length > pagination.value.limit) {
-                    logs.value.pop();
-                }
+    socket.on('admin:newLog', (log) => {
+        // Only update live if we are on the first page
+        if (pagination.value.page === 1) {
+            logs.value.unshift(log);
+            if (logs.value.length > pagination.value.limit) {
+                logs.value.pop();
             }
-        });
-    }
+        }
+    });
 });
 
 onUnmounted(() => {
-    if (authStore.socket) {
-        authStore.socket.off('admin:newLog');
-    }
+    socket.off('admin:newLog');
 });
 </script>

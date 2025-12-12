@@ -183,6 +183,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
+import socket from '../services/socket';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -414,16 +415,12 @@ const handleGameState = (data) => {
 onMounted(() => {
   fetchHistory();
 
-  if (authStore.socket) {
-    authStore.socket.on('balanceUpdate', fetchHistory);
-    authStore.socket.on('gameState', handleGameState);
-  }
+  socket.on('balanceUpdate', fetchHistory);
+  socket.on('gameState', handleGameState);
 });
 
 onUnmounted(() => {
-    if (authStore.socket) {
-        authStore.socket.off('balanceUpdate', fetchHistory);
-        authStore.socket.off('gameState', handleGameState);
-    }
+    socket.off('balanceUpdate', fetchHistory);
+    socket.off('gameState', handleGameState);
 });
 </script>

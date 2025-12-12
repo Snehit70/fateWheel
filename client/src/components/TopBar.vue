@@ -110,6 +110,7 @@ import { Button } from '@/components/ui/button';
 import { useAudio } from '../composables/useAudio';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import api from '../services/api';
+import socket from '../services/socket';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -131,9 +132,7 @@ onMounted(() => {
         fetchStats();
     }
     
-    if (authStore.socket) {
-        authStore.socket.on('admin:statsUpdate', fetchStats);
-    }
+    socket.on('admin:statsUpdate', fetchStats);
 });
 
 watch(() => authStore.user, (newUser) => {
@@ -143,9 +142,7 @@ watch(() => authStore.user, (newUser) => {
 });
 
 onUnmounted(() => {
-    if (authStore.socket) {
-        authStore.socket.off('admin:statsUpdate', fetchStats);
-    }
+    socket.off('admin:statsUpdate', fetchStats);
 });
 
 const handleLogout = () => {
