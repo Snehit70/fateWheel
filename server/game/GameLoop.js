@@ -5,7 +5,7 @@ const Bet = require('../models/Bet');
 const GameResult = require('../models/GameResult');
 const Transaction = require('../models/Transaction');
 const GameStats = require('../models/GameStats');
-const { SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
+const { SEGMENTS, PAYOUTS, TIMING, COLORS, BET_LIMITS, BET_TYPES, NUMBER_RANGE } = require('../constants/game');
 const logger = require('../utils/logger');
 const { secureRandomInt } = require('../utils/random');
 
@@ -31,8 +31,8 @@ class GameLoop {
         this.roundNumber = 0; // Will be set from DB in init()
         this.processing = false;
 
-        // Parse environment config once at startup
-        this.maxBetAmount = parseInt(process.env.MAX_BET_AMOUNT, 10) || 1001;
+        // Use centralized constants for bet limits
+        this.maxBetAmount = BET_LIMITS.MAX;
 
         this.init();
     }
@@ -324,9 +324,9 @@ class GameLoop {
 
         const { type, value, amount } = betData;
 
-        // Validation
-        if (!amount || isNaN(amount) || amount < 11 || !Number.isInteger(amount)) {
-            throw new Error("Invalid bet amount (minimum is 11)");
+        // Validation using centralized constants
+        if (!amount || isNaN(amount) || amount < BET_LIMITS.MIN || !Number.isInteger(amount)) {
+            throw new Error(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         }
 
         // Validate type and value against constants
@@ -336,15 +336,15 @@ class GameLoop {
         }
 
         if (type === 'number') {
-            if (!Number.isInteger(value) || value < 0 || value > 14) {
-                throw new Error("Invalid number bet (must be 0-14)");
+            if (!Number.isInteger(value) || value < NUMBER_RANGE.MIN || value > NUMBER_RANGE.MAX) {
+                throw new Error(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
             }
         } else if (type === 'color') {
-            if (!['red', 'black', 'green'].includes(value)) {
+            if (!Object.values(COLORS).includes(value)) {
                 throw new Error("Invalid color bet");
             }
         } else if (type === 'type') {
-            if (!['even', 'odd'].includes(value)) {
+            if (!Object.values(BET_TYPES).includes(value)) {
                 throw new Error("Invalid type bet (must be even or odd)");
             }
         }

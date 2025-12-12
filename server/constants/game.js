@@ -35,9 +35,30 @@ const TIMING = Object.freeze({
   RESULT_DURATION: parseInt(process.env.GAME_RESULT_DURATION, 10) || 5, // seconds
 });
 
+// Bet amount limits - synced with client/src/constants/game.js
+const BET_LIMITS = Object.freeze({
+  MIN: parseInt(process.env.MIN_BET_AMOUNT, 10) || 11,
+  MAX: parseInt(process.env.MAX_BET_AMOUNT, 10) || 1001,
+});
+
+// Valid bet types for even/odd bets
+const BET_TYPES = Object.freeze({
+  EVEN: "even",
+  ODD: "odd",
+});
+
+// Valid number range derived from SEGMENTS
+const NUMBER_RANGE = Object.freeze({
+  MIN: Math.min(...SEGMENTS.map(s => s.number)),
+  MAX: Math.max(...SEGMENTS.map(s => s.number)),
+});
+
 module.exports = {
   COLORS,
   SEGMENTS,
   PAYOUTS,
   TIMING,
+  BET_LIMITS,
+  BET_TYPES,
+  NUMBER_RANGE,
 };

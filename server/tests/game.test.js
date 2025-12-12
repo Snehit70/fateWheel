@@ -1,5 +1,5 @@
 require('./setup');
-const { SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
+const { SEGMENTS, PAYOUTS, TIMING, COLORS, BET_LIMITS, BET_TYPES, NUMBER_RANGE } = require('../constants/game');
 
 describe('Game Constants', () => {
     describe('SEGMENTS', () => {
@@ -102,11 +102,11 @@ describe('Payout Calculations', () => {
 });
 
 describe('Bet Validation Logic', () => {
-    // Validation function matching expected behavior
+    // Validation function matching expected behavior - uses constants
     const validateBet = (type, value, amount) => {
         // Check amount first
-        if (amount === null || amount === undefined || isNaN(amount) || amount < 11 || !Number.isInteger(amount)) {
-            return 'Invalid bet amount (minimum is 11)';
+        if (amount === null || amount === undefined || isNaN(amount) || amount < BET_LIMITS.MIN || !Number.isInteger(amount)) {
+            return `Invalid bet amount (minimum is ${BET_LIMITS.MIN})`;
         }
 
         // Check type
@@ -117,15 +117,15 @@ describe('Bet Validation Logic', () => {
 
         // Validate value based on type
         if (type === 'number') {
-            if (!Number.isInteger(value) || value < 0 || value > 14) {
-                return 'Invalid number bet (must be 0-14)';
+            if (!Number.isInteger(value) || value < NUMBER_RANGE.MIN || value > NUMBER_RANGE.MAX) {
+                return `Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`;
             }
         } else if (type === 'color') {
-            if (!['red', 'black', 'green'].includes(value)) {
+            if (!Object.values(COLORS).includes(value)) {
                 return 'Invalid color bet';
             }
         } else if (type === 'type') {
-            if (!['even', 'odd'].includes(value)) {
+            if (!Object.values(BET_TYPES).includes(value)) {
                 return 'Invalid type bet (must be even or odd)';
             }
         }
@@ -135,39 +135,39 @@ describe('Bet Validation Logic', () => {
 
     describe('Amount validation', () => {
         it('should reject amount below minimum', () => {
-            expect(validateBet('number', 5, 10)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, BET_LIMITS.MIN - 1)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should reject non-integer amounts', () => {
-            expect(validateBet('number', 5, 10.5)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, 10.5)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should reject zero amount', () => {
-            expect(validateBet('number', 5, 0)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, 0)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should reject negative amount', () => {
-            expect(validateBet('number', 5, -100)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, -100)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should reject null amount', () => {
-            expect(validateBet('number', 5, null)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, null)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should reject undefined amount', () => {
-            expect(validateBet('number', 5, undefined)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, undefined)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should reject NaN amount', () => {
-            expect(validateBet('number', 5, NaN)).toBe('Invalid bet amount (minimum is 11)');
+            expect(validateBet('number', 5, NaN)).toBe(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
         });
 
         it('should accept valid amount', () => {
             expect(validateBet('number', 5, 100)).toBeNull();
         });
 
-        it('should accept minimum valid amount (11)', () => {
-            expect(validateBet('number', 5, 11)).toBeNull();
+        it('should accept minimum valid amount', () => {
+            expect(validateBet('number', 5, BET_LIMITS.MIN)).toBeNull();
         });
 
         it('should accept large amounts', () => {
@@ -194,26 +194,26 @@ describe('Bet Validation Logic', () => {
     });
 
     describe('Number bets', () => {
-        it('should accept numbers 0-14', () => {
-            for (let i = 0; i <= 14; i++) {
+        it('should accept numbers within valid range', () => {
+            for (let i = NUMBER_RANGE.MIN; i <= NUMBER_RANGE.MAX; i++) {
                 expect(validateBet('number', i, 100)).toBeNull();
             }
         });
 
-        it('should reject number 15', () => {
-            expect(validateBet('number', 15, 100)).toBe('Invalid number bet (must be 0-14)');
+        it('should reject number above max', () => {
+            expect(validateBet('number', NUMBER_RANGE.MAX + 1, 100)).toBe(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
         });
 
         it('should reject negative numbers', () => {
-            expect(validateBet('number', -1, 100)).toBe('Invalid number bet (must be 0-14)');
+            expect(validateBet('number', -1, 100)).toBe(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
         });
 
         it('should reject float numbers', () => {
-            expect(validateBet('number', 5.5, 100)).toBe('Invalid number bet (must be 0-14)');
+            expect(validateBet('number', 5.5, 100)).toBe(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
         });
 
         it('should reject string numbers', () => {
-            expect(validateBet('number', '5', 100)).toBe('Invalid number bet (must be 0-14)');
+            expect(validateBet('number', '5', 100)).toBe(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
         });
     });
 
