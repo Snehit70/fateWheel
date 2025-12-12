@@ -37,7 +37,7 @@ router.post('/register', authLimiter, async (req, res) => {
         }
 
         // Update stats
-        await GameStats.findOneAndUpdate({}, { $inc: { totalUsers: 1 } });
+        await GameStats.findOneAndUpdate({}, { $inc: { totalUsers: 1 } }, { upsert: true });
 
         // Emit new user event to admin
         if (req.io) {

@@ -95,7 +95,8 @@ router.get('/stats', auth, admin, async (req, res) => {
         const stats = await GameStats.getStats();
 
         // Recalculate accurate user counts dynamically
-        const totalUsers = await User.countDocuments();
+        // Recalculate accurate user counts dynamically (excluding admins)
+        const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
         const pendingUsers = await User.countDocuments({ status: 'pending' });
 
         // Return mixed stats (dynamic counts + cached aggregations)
