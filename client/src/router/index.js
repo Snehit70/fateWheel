@@ -30,10 +30,6 @@ router.beforeEach(async (to, from, next) => {
             next('/'); // Redirect unauthorized users to home
             return;
         }
-    } else if (to.path === '/' && authStore.user && authStore.user.role === 'admin') {
-        // Redirect admins from Game page to Admin Panel
-        next('/admin');
-        return;
     }
 
     // 2. Auth Requirement (Game Page)

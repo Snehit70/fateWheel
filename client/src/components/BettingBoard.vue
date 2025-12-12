@@ -120,7 +120,7 @@
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span class="text-xs font-medium text-red-500 font-outfit">{{
+          <span v-if="shouldShowAmount(user)" class="text-xs font-medium text-red-500 font-outfit">{{
             user.amount
           }}</span>
         </div>
@@ -232,7 +232,7 @@
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span class="text-xs font-medium text-green-500 font-outfit">{{
+          <span v-if="shouldShowAmount(user)" class="text-xs font-medium text-green-500 font-outfit">{{
             user.amount
           }}</span>
         </div>
@@ -327,7 +327,7 @@
             class="text-[10px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span class="text-xs font-medium text-purple-400 font-outfit">{{ user.amount }}</span>
+          <span v-if="shouldShowAmount(user)" class="text-xs font-medium text-purple-400 font-outfit">{{ user.amount }}</span>
         </div>
       </div>
     </Card>
@@ -374,6 +374,14 @@ const handlePlaceBet = (type, value) => {
     }
     if (isAdmin.value) return;
     emit('place-bet', type, value);
+};
+
+const shouldShowAmount = (betUser) => {
+    if (isAdmin.value) return true;
+    if (authStore.user && (authStore.user.id === betUser.userId || authStore.user._id === betUser.userId)) {
+        return true;
+    }
+    return false;
 };
 
 const {

@@ -135,10 +135,7 @@ const handleSubmit = async () => {
   try {
     if (isLogin.value) {
       await authStore.login(username.value, password.value);
-      // Check if admin and redirect
-      if (authStore.user?.role === 'admin') {
-        router.push('/admin');
-      }
+
       close();
     } else {
       const res = await authStore.register(username.value, password.value);
