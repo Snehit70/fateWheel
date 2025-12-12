@@ -148,8 +148,18 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
 // @access  Admin
 router.put('/users/:id/balance', auth, admin, async (req, res) => {
     try {
-        const { balance: rawBalance, reason } = req.body;
-        const balance = Math.floor(rawBalance);
+        let { balance: rawBalance, reason } = req.body;
+
+        // Loosely parse number: remove all non-numeric characters except dot and minus
+        if (typeof rawBalance === 'string') {
+            rawBalance = rawBalance.replace(/,/g, '');
+        }
+
+        const balance = Math.floor(Number(rawBalance));
+
+        if (balance === undefined || balance === null || isNaN(balance) || balance < 0) {
+            return res.status(400).json({ msg: 'Please provide a valid positive balance' });
+        }
 
         if (!reason || reason.trim() === '') {
             return res.status(400).json({ msg: 'Reason is required' });
@@ -166,7 +176,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { balance: balance },
-            { new: true }
+            { new: true, runValidators: true }
         ).select('-password');
 
         // Log Transaction
