@@ -59,6 +59,7 @@
                 <TableHead>Status</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead>History</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -83,14 +84,21 @@
                 <TableCell class="font-mono text-green-500 font-bold">{{ Math.floor(user.balance) }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
                 <TableCell>
+                  <Button size="sm" variant="ghost" @click="viewUserHistory(user)">
+                    History
+                  </Button>
+                </TableCell>
+                <TableCell>
                   <div class="flex gap-2">
-                    <Button size="sm" variant="ghost" @click="viewUserHistory(user)">
-                      History
-                    </Button>
                     <Button size="sm" variant="outline" @click="openEditBalance(user)">
                       Edit Balance
                     </Button>
-                    <Button size="sm" variant="destructive" @click="confirmDelete(user)">
+                    <Button
+                      v-if="user.status && user.status !== 'approved'"
+                      size="sm"
+                      variant="destructive"
+                      @click="confirmDelete(user)"
+                    >
                       Delete
                     </Button>
                   </div>
@@ -154,7 +162,13 @@
               <Button size="sm" variant="outline" @click="openEditBalance(user)" class="flex-1">
                 Edit Balance
               </Button>
-              <Button size="sm" variant="destructive" @click="confirmDelete(user)" class="flex-1">
+              <Button
+                v-if="user.status && user.status !== 'approved'"
+                size="sm"
+                variant="destructive"
+                @click="confirmDelete(user)"
+                class="flex-1"
+              >
                 Delete
               </Button>
             </div>
