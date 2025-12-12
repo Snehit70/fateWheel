@@ -8,24 +8,13 @@
         </DialogDescription>
       </DialogHeader>
 
-
       <form @submit.prevent="handleSubmit" class="space-y-4 py-4">
         <div class="space-y-2">
-          <label class="text-xs font-bold text-muted-foreground uppercase">Email</label>
-          <Input 
-            v-model="email" 
-            type="email" 
-            placeholder="Enter your email"
-            required
-          />
-        </div>
-
-        <div v-if="!isLogin" class="space-y-2">
           <label class="text-xs font-bold text-muted-foreground uppercase">Username</label>
           <Input 
             v-model="username" 
             type="text" 
-            placeholder="Choose a username"
+            placeholder="Enter your username"
             required
           />
         </div>
@@ -67,7 +56,7 @@
           :disabled="loading || isSuccess"
         >
           <span v-if="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Processing...</span>
-          <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> {{ isLogin ? 'Success' : 'Check Email' }}</span>
+          <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> {{ isLogin ? 'Success' : 'Success' }}</span>
           <span v-else>{{ isLogin ? 'Sign In' : 'Sign Up' }}</span>
         </Button>
       </form>
@@ -107,7 +96,6 @@ const authStore = useAuthStore();
 const router = useRouter();
 const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
-const email = ref('');
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -132,7 +120,6 @@ const toggleMode = () => {
 };
 
 const resetForm = () => {
-  email.value = '';
   username.value = '';
   password.value = '';
   showPassword.value = false;
@@ -146,21 +133,24 @@ const handleSubmit = async () => {
   
   try {
     if (isLogin.value) {
-      await authStore.login(email.value, password.value);
+      // Login with Username
+      await authStore.login(username.value, password.value);
       close();
     } else {
-      await authStore.register(email.value, password.value, username.value);
-      // Registration successful
+      // Register with Username
+      await authStore.register(username.value, password.value);
       isSuccess.value = true;
-      error.value = 'Verification email sent! Please check your inbox.';
       
-      // Wait 3 seconds then switch/close
+      // Since we disabled email verification or assuming auto-login/immediate verification
       setTimeout(() => {
         isSuccess.value = false;
-        // Depending on Supabase settings, user might be logged in or need verify
-        // For now, we assume email verification is required or we just close
-        close();
-      }, 3000);
+         // Try to login automatically or allow user to switch to login.
+         // If Supabase sends confirmation email, this needs to be clear.
+         // Given "username" preference, user likely wants immediate play.
+         // If email confirm is off in supabase, they can login.
+         // If we don't auto-login here, switch to login mode.
+        toggleMode(); 
+      }, 1500);
     }
   } catch (err) {
     if (typeof err === 'string') {

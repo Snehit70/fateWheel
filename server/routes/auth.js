@@ -3,12 +3,11 @@ const router = express.Router();
 const User = require('../models/User');
 
 // Login and Register are now handled client-side via Supabase.
-// The backend automatically syncs users via the auth middleware on first request.
 
 // Get User
 router.get('/me', require('../middleware/auth'), async (req, res) => {
     try {
-        const user = await User.findById(req.user.id); // Password not selected by default or doesn't matter
+        const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         res.json({

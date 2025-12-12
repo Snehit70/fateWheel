@@ -4,7 +4,6 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    // Warn but don't crash immediately, to allow for build steps or missing envs in dev
     console.warn('Supabase credentials (SUPABASE_URL, SUPABASE_SERVICE_KEY) are missing from environment variables.');
 }
 

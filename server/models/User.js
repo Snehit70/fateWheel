@@ -12,16 +12,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true,
         index: true,
-        sparse: true // Allows null/undefined for legacy users if any
+        sparse: true
     },
     password: {
         type: String,
-        required: false, // Now optional as we use Supabase Auth
+        required: false, // Optional, managed by Supabase
         minlength: 8
     },
     balance: {
         type: Number,
-        default: 0, // Initial balance
+        default: 0,
         min: 0,
         set: v => Math.floor(v)
     },

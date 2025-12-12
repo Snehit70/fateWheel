@@ -6,9 +6,9 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const GameLoop = require('./game/GameLoop');
-const jwt = require('jsonwebtoken'); // Kept for legacy or utility if needed, otherwise can remove
+const jwt = require('jsonwebtoken'); // Kept for legacy or utility if needed
 const { RateLimiterMemory, RateLimiterRedis } = require('rate-limiter-flexible');
-const logger = require('./utils/logger'); // Import logger at the top
+const logger = require('./utils/logger');
 const supabase = require('./utils/supabase');
 const User = require('./models/User');
 

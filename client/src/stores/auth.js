@@ -4,6 +4,9 @@ import socket from '../services/socket';
 // Supabase client import
 import { supabase } from '@/lib/supabase';
 
+// Helper to proxy username to email
+const toEmail = (username) => `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@roulette.game`;
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
@@ -62,25 +65,32 @@ export const useAuthStore = defineStore('auth', {
                 socket.setToken(null);
             }
         },
-        async login(email, password) {
+        async login(username, password) {
+            const email = toEmail(username);
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
-            if (error) throw error;
+            if (error) {
+                if (error.message.includes('Invalid login credentials')) {
+                    throw "Invalid username or password";
+                }
+                throw error.message;
+            }
             return data;
         },
-        async register(email, password, username) {
+        async register(username, password) {
+            const email = toEmail(username);
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: {
-                        username: username // Store username in metadata
+                        username: username // Store original username in metadata
                     }
                 }
             });
-            if (error) throw error;
+            if (error) throw error.message;
             return data;
         },
         async logout() {
