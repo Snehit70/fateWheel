@@ -45,14 +45,27 @@ import { onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from './stores/auth';
 import { useAudio } from './composables/useAudio';
 
+import { watch } from 'vue';
+import { useToast } from './composables/useToast';
+
 const authStore = useAuthStore();
 const { tryUnlockAudio, isAudioUnlocked } = useAudio();
+const toast = useToast();
 
 const handleInteraction = () => {
     if (!isAudioUnlocked.value) {
         tryUnlockAudio();
     }
 };
+
+// Watch for pending/rejected status to notify user
+watch(() => authStore.pendingStatus, (status) => {
+    if (status === 'pending') {
+        toast.info("Registration successful. Your account is pending admin approval.", 5000);
+    } else if (status === 'rejected') {
+        toast.error("Your account has been rejected.", 5000);
+    }
+});
 
 onMounted(() => {
     authStore.init();

@@ -84,10 +84,6 @@ export const useAuthStore = defineStore('auth', {
                 }
                 this._syncController = new AbortController();
 
-                // Skip sync if already in progress (debounce rapid calls)
-                if (this._syncInProgress) {
-                    return;
-                }
                 this._syncInProgress = true;
 
                 try {
