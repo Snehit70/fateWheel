@@ -27,18 +27,7 @@
             {{ f.label }}
             </Button>
         </div>
-        <div class="flex items-center gap-2 ml-auto sm:ml-0">
-            <span class="text-sm text-muted-foreground whitespace-nowrap">Count:</span>
-            <input 
-                type="number" 
-                v-model="limit" 
-                min="1" 
-                class="flex h-8 w-16 rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <Button size="sm" variant="secondary" @click="fetchHistory" :disabled="loading" class="h-8">
-                Refresh
-            </Button>
-        </div>
+
       </div>
 
       <Card>
@@ -176,6 +165,15 @@
           </Table>
         </CardContent>
       </Card>
+
+      <div v-if="pagination.totalPages > 1" class="mt-4">
+        <PaginationControls 
+            :current-page="pagination.page" 
+            :total-pages="pagination.totalPages"
+            :loading="loading"
+            @page-change="changePage"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -189,12 +187,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import PaginationControls from '@/components/ui/PaginationControls.vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
 const history = ref([]);
 const loading = ref(true);
-const limit = ref(20);
+const pagination = ref({
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    total: 0
+});
 const activeFilter = ref('all');
 const viewingUserId = computed(() => route.query.userId || null);
 const viewingUsername = computed(() => route.query.username || null);
@@ -206,18 +210,41 @@ const filterOptions = [
 ];
 
 const fetchHistory = async () => {
+  loading.value = true;
   try {
     // If admin is viewing another user's history, use admin endpoint
     const endpoint = viewingUserId.value
       ? `/admin/users/${viewingUserId.value}/history`
-      : `/game/history?limit=${limit.value}`;
-    const res = await api.get(endpoint);
-    history.value = res.data;
+      : `/game/history`;
+      
+    const res = await api.get(endpoint, {
+        params: {
+            page: pagination.value.page,
+            limit: pagination.value.limit
+        }
+    });
+
+    if (res.data.pagination) {
+        history.value = res.data.data;
+        pagination.value = {
+            page: res.data.pagination.page,
+            limit: res.data.pagination.limit,
+            totalPages: res.data.pagination.pages,
+            total: res.data.pagination.total
+        };
+    } else {
+        history.value = res.data;
+    }
   } catch (err) {
     console.error("Failed to fetch history:", err);
   } finally {
     loading.value = false;
   }
+};
+
+const changePage = (newPage) => {
+    pagination.value.page = newPage;
+    fetchHistory();
 };
 
 // Return history directly (server already sorts, but we ensure order here)

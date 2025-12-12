@@ -47,6 +47,15 @@
           </Table>
         </CardContent>
       </Card>
+
+      <div v-if="pagination.totalPages > 1" class="mt-4">
+        <PaginationControls 
+            :current-page="pagination.page" 
+            :total-pages="pagination.totalPages"
+            :loading="logsLoading"
+            @page-change="changePage"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -55,6 +64,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
+import PaginationControls from '@/components/ui/PaginationControls.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -63,17 +73,44 @@ import { Badge } from '@/components/ui/badge';
 const authStore = useAuthStore();
 const logs = ref([]);
 const logsLoading = ref(false);
+const pagination = ref({
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    total: 0
+});
 
 const fetchLogs = async () => {
     logsLoading.value = true;
     try {
-        const res = await api.get('/admin/logs');
-        logs.value = res.data;
+        const res = await api.get('/admin/logs', {
+            params: {
+                page: pagination.value.page,
+                limit: pagination.value.limit
+            }
+        });
+
+        if (res.data.pagination) {
+            logs.value = res.data.data;
+            pagination.value = {
+                page: res.data.pagination.page,
+                limit: res.data.pagination.limit,
+                totalPages: res.data.pagination.pages,
+                total: res.data.pagination.total
+            };
+        } else {
+            logs.value = res.data;
+        }
     } catch (err) {
         console.error("Failed to fetch logs:", err);
     } finally {
         logsLoading.value = false;
     }
+};
+
+const changePage = (newPage) => {
+    pagination.value.page = newPage;
+    fetchLogs();
 };
 
 const getActionVariant = (action) => {
@@ -105,9 +142,12 @@ onMounted(() => {
     
     if (authStore.socket) {
         authStore.socket.on('admin:newLog', (log) => {
-            logs.value.unshift(log);
-            if (logs.value.length > 100) {
-                logs.value.pop();
+            // Only update live if we are on the first page
+            if (pagination.value.page === 1) {
+                logs.value.unshift(log);
+                if (logs.value.length > pagination.value.limit) {
+                    logs.value.pop();
+                }
             }
         });
     }

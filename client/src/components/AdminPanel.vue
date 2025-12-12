@@ -102,6 +102,15 @@
           </Table>
         </CardContent>
       </Card>
+      
+      <div v-if="pagination.totalPages > 1" class="mt-4">
+        <PaginationControls 
+            :current-page="pagination.page" 
+            :total-pages="pagination.totalPages"
+            :loading="loading"
+            @page-change="changePage"
+        />
+      </div>
 
       <!-- Users List - Mobile -->
       <Card class="sm:hidden">
@@ -157,6 +166,16 @@
           </div>
         </CardContent>
       </Card>
+
+      
+      <div v-if="pagination.totalPages > 1 && !loading" class="mt-4 sm:hidden">
+        <PaginationControls 
+            :current-page="pagination.page" 
+            :total-pages="pagination.totalPages"
+            :loading="loading"
+            @page-change="changePage"
+        />
+      </div>
     </div>
 
     <!-- Edit Balance Dialog -->
@@ -230,6 +249,7 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '../stores/auth';
 import { useToast } from '../composables/useToast';
+import PaginationControls from '@/components/ui/PaginationControls.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -247,6 +267,14 @@ const deletingUser = ref(null);
 const newBalance = ref(0);
 const reason = ref('');
 
+const loading = ref(false);
+const pagination = ref({
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    total: 0
+});
+
 const fetchStats = async () => {
   try {
     const res = await api.get('/admin/stats');
@@ -257,13 +285,38 @@ const fetchStats = async () => {
 };
 
 const fetchUsers = async () => {
+  loading.value = true;
   try {
-    const res = await api.get('/admin/users');
-    users.value = res.data;
+    const res = await api.get('/admin/users', {
+        params: {
+            page: pagination.value.page,
+            limit: pagination.value.limit
+        }
+    });
+    
+    if (res.data.pagination) {
+        users.value = res.data.data;
+        pagination.value = {
+            page: res.data.pagination.page,
+            limit: res.data.pagination.limit,
+            totalPages: res.data.pagination.pages,
+            total: res.data.pagination.total
+        };
+    } else {
+        // Fallback or legacy response
+        users.value = res.data;
+    }
   } catch (err) {
     console.error(err);
     toast.error('Failed to fetch users');
+  } finally {
+    loading.value = false;
   }
+};
+
+const changePage = (newPage) => {
+    pagination.value.page = newPage;
+    fetchUsers();
 };
 
 const filteredUsers = computed(() => {
@@ -395,7 +448,12 @@ onMounted(() => {
   if (authStore.socket) {
     authStore.socket.on('admin:userUpdate', handleUserUpdate);
     authStore.socket.on('admin:newUser', (user) => {
-      users.value.unshift(user);
+      if (pagination.value.page === 1) {
+        users.value.unshift(user);
+        if (users.value.length > pagination.value.limit) {
+            users.value.pop();
+        }
+      }
       fetchStats();
     });
     authStore.socket.on('admin:userDeleted', (userId) => {

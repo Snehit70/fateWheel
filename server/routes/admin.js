@@ -52,7 +52,7 @@ const GameStats = require('../models/GameStats');
 router.get('/logs', auth, admin, async (req, res) => {
     try {
         const page = parseInt(req.query.page);
-        const limit = parseInt(req.query.limit) || 100;
+        const limit = parseInt(req.query.limit) || 20;
 
         if (page) {
             const skip = (page - 1) * limit;
@@ -292,9 +292,58 @@ const GameResult = require('../models/GameResult');
 // @access  Admin
 router.get('/rounds', auth, admin, async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 100;
+        const page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit) || 20;
 
-        // Get all game results ordered by round number descending
+        if (page) {
+            const skip = (page - 1) * limit;
+            const [rounds, total] = await Promise.all([
+                GameResult.find()
+                    .sort({ roundNumber: -1 })
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+                GameResult.countDocuments()
+            ]);
+
+            // Stats calculation...
+            const roundsWithStats = await Promise.all(rounds.map(async (round) => {
+                if (round.stats && round.stats.totalBets !== undefined) {
+                    return round;
+                }
+
+                // Fallback: Calculate stats dynamically for legacy records
+                const bets = await Bet.find({ roundId: round.roundId }).lean();
+                const totalBets = bets.length;
+                const totalWagered = bets.reduce((sum, b) => sum + b.amount, 0);
+                const totalPayout = bets.reduce((sum, b) => sum + (b.payout || 0), 0);
+                const netProfit = totalWagered - totalPayout;
+                const uniqueUsers = new Set(bets.map(b => b.user?.toString())).size;
+
+                return {
+                    ...round,
+                    stats: {
+                        totalBets,
+                        totalWagered,
+                        totalPayout,
+                        netProfit,
+                        uniqueUsers
+                    }
+                };
+            }));
+
+            return res.json({
+                data: roundsWithStats,
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    pages: Math.ceil(total / limit)
+                }
+            });
+        }
+
+        // Get all game results ordered by round number descending (fallback/legacy)
         const rounds = await GameResult.find()
             .sort({ roundNumber: -1 })
             .limit(limit)

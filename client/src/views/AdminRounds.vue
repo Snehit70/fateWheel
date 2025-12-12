@@ -109,6 +109,15 @@
           </Table>
         </CardContent>
       </Card>
+
+      <div v-if="pagination.totalPages > 1" class="mt-4">
+        <PaginationControls 
+            :current-page="pagination.page" 
+            :total-pages="pagination.totalPages"
+            :loading="loading"
+            @page-change="changePage"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -116,6 +125,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
+import PaginationControls from '@/components/ui/PaginationControls.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -123,18 +133,46 @@ import { Badge } from '@/components/ui/badge';
 
 const rounds = ref([]);
 const loading = ref(true);
+const pagination = ref({
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    total: 0
+});
 const expandedRound = ref(null);
 const expandedBets = ref([]);
 
 const fetchRounds = async () => {
+  loading.value = true;
   try {
-    const res = await api.get('/admin/rounds');
-    rounds.value = res.data;
+    const res = await api.get('/admin/rounds', {
+        params: {
+            page: pagination.value.page,
+            limit: pagination.value.limit
+        }
+    });
+
+    if (res.data.pagination) {
+        rounds.value = res.data.data;
+        pagination.value = {
+            page: res.data.pagination.page,
+            limit: res.data.pagination.limit,
+            totalPages: res.data.pagination.pages,
+            total: res.data.pagination.total
+        };
+    } else {
+        rounds.value = res.data;
+    }
   } catch (err) {
     console.error('Failed to fetch rounds:', err);
   } finally {
     loading.value = false;
   }
+};
+
+const changePage = (newPage) => {
+    pagination.value.page = newPage;
+    fetchRounds();
 };
 
 const toggleExpand = async (roundId) => {
