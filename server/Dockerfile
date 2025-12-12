@@ -11,3 +11,5 @@ COPY . .
 EXPOSE 3000
 
 CMD ["sh", "-c", "node seedAdmin.js && npm start"]
+
+
