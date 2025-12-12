@@ -355,6 +355,7 @@ const getRoundDisplayNumber = (item) => {
 
 
 
+const handleGameState = (data) => {
     if (data.state === 'RESULT') {
         fetchHistory();
     }
