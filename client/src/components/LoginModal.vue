@@ -8,6 +8,7 @@
         </DialogDescription>
       </DialogHeader>
 
+
       <form @submit.prevent="handleSubmit" class="space-y-4 py-4">
         <div class="space-y-2">
           <label class="text-xs font-bold text-muted-foreground uppercase">Username</label>
@@ -21,12 +22,24 @@
         
         <div class="space-y-2">
           <label class="text-xs font-bold text-muted-foreground uppercase">Password</label>
-          <Input 
-            v-model="password" 
-            type="password" 
-            placeholder="Enter your password"
-            required
-          />
+          <div class="relative">
+            <Input 
+              v-model="password" 
+              :type="showPassword ? 'text' : 'password'" 
+              placeholder="Enter your password"
+              required
+              class="pr-10"
+            />
+            <button 
+              type="button"
+              @click="showPassword = !showPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+              tabindex="-1"
+            >
+              <Eye v-if="!showPassword" class="h-4 w-4" />
+              <EyeOff v-else class="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div v-if="error" class="text-destructive text-sm text-center bg-destructive/10 py-2 rounded border border-destructive/20">
@@ -78,6 +91,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Eye, EyeOff } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -85,6 +99,7 @@ const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
 const username = ref('');
 const password = ref('');
+const showPassword = ref(false);
 const error = ref('');
 const loading = ref(false);
 const isSuccess = ref(false);
@@ -108,6 +123,7 @@ const toggleMode = () => {
 const resetForm = () => {
   username.value = '';
   password.value = '';
+  showPassword.value = false;
   error.value = '';
   isLogin.value = true;
 };
