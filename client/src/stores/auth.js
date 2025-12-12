@@ -4,8 +4,14 @@ import socket from '../services/socket';
 // Supabase client import
 import { supabase } from '@/lib/supabase';
 
-// Helper to proxy username to email
-const toEmail = (username) => `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@roulette.game`;
+// Helper to proxy username to email with validation
+const toEmail = (username) => {
+    const sanitized = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (sanitized.length < 3) {
+        throw new Error('Username must contain at least 3 alphanumeric characters');
+    }
+    return `${sanitized}@roulette.game`;
+};
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -14,35 +20,57 @@ export const useAuthStore = defineStore('auth', {
         isInitialized: false,
         isLoginModalOpen: false,
         pendingStatus: null, // 'pending' | 'rejected' | null
+        // Private state (reactive)
+        _syncInProgress: false,
+        _listenersSetup: false,
+        _authSubscription: null,
+        _syncController: null,
     }),
+
+    getters: {
+        isAuthenticated: (state) => !!state.user && !!state.session,
+        isAdmin: (state) => state.user?.role === 'admin',
+        currentBalance: (state) => state.user?.balance ?? 0,
+        isPending: (state) => state.pendingStatus === 'pending',
+        isRejected: (state) => state.pendingStatus === 'rejected',
+    },
+
     actions: {
         async init() {
-            // Get initial session
-            const { data: { session } } = await supabase.auth.getSession();
+            try {
+                // Get initial session
+                const { data: { session } } = await supabase.auth.getSession();
 
-            // If we have a session, try to refresh it to ensure token is valid
-            if (session) {
-                const { data: refreshData, error } = await supabase.auth.refreshSession();
-                if (error || !refreshData.session) {
-                    // Token is truly invalid, clear it
-                    console.warn("Session expired, clearing...");
-                    await supabase.auth.signOut();
-                    this.isInitialized = true;
-                    return;
+                // If we have a session, try to refresh it to ensure token is valid
+                if (session) {
+                    const { data: refreshData, error } = await supabase.auth.refreshSession();
+                    if (error || !refreshData.session) {
+                        // Token is truly invalid, clear it
+                        console.warn("Session expired, clearing...");
+                        await supabase.auth.signOut();
+                        this.isInitialized = true;
+                        return;
+                    }
+                    // Use the refreshed session
+                    await this.handleSession(refreshData.session);
+                } else {
+                    await this.handleSession(null);
                 }
-                // Use the refreshed session
-                this.handleSession(refreshData.session);
-            } else {
-                this.handleSession(null);
+
+                // Listen for auth changes and store subscription for cleanup
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+                    this.handleSession(session);
+                });
+                this._authSubscription = subscription;
+
+            } catch (error) {
+                console.error("Failed to initialize auth:", error);
+                // Still mark as initialized to prevent app from hanging
+            } finally {
+                this.isInitialized = true;
             }
-
-            // Listen for auth changes
-            supabase.auth.onAuthStateChange((_event, session) => {
-                this.handleSession(session);
-            });
-
-            this.isInitialized = true;
         },
+
         async handleSession(session) {
             this.session = session;
 
@@ -50,7 +78,13 @@ export const useAuthStore = defineStore('auth', {
                 api.defaults.headers.common['x-auth-token'] = session.access_token;
                 socket.setToken(session.access_token);
 
-                // Skip sync if already in progress (debounce)
+                // Cancel previous sync request if still in progress
+                if (this._syncController) {
+                    this._syncController.abort();
+                }
+                this._syncController = new AbortController();
+
+                // Skip sync if already in progress (debounce rapid calls)
                 if (this._syncInProgress) {
                     return;
                 }
@@ -58,7 +92,9 @@ export const useAuthStore = defineStore('auth', {
 
                 try {
                     // Sync with backend and get user details (balance, etc.)
-                    const response = await api.get('/auth/me');
+                    const response = await api.get('/auth/me', {
+                        signal: this._syncController.signal
+                    });
                     this.user = response.data;
 
                     // Setup socket listeners only once
@@ -73,6 +109,11 @@ export const useAuthStore = defineStore('auth', {
                     }
 
                 } catch (err) {
+                    // Ignore aborted requests (expected when a new session comes in quickly)
+                    if (err.name === 'AbortError' || err.name === 'CanceledError') {
+                        return;
+                    }
+
                     console.error("Failed to sync user with backend:", err);
 
                     // If 401, token is invalid - logout user gracefully
@@ -103,6 +144,7 @@ export const useAuthStore = defineStore('auth', {
                     }
                 } finally {
                     this._syncInProgress = false;
+                    this._syncController = null;
                 }
             } else {
                 this.user = null;
@@ -110,6 +152,7 @@ export const useAuthStore = defineStore('auth', {
                 socket.setToken(null);
             }
         },
+
         async login(username, password) {
             const email = toEmail(username);
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -124,7 +167,13 @@ export const useAuthStore = defineStore('auth', {
             }
             return data;
         },
+
         async register(username, password) {
+            // Client-side validation
+            if (password.length < 6) {
+                throw "Password must be at least 6 characters";
+            }
+
             const email = toEmail(username);
             const { data, error } = await supabase.auth.signUp({
                 email,
@@ -135,24 +184,64 @@ export const useAuthStore = defineStore('auth', {
                     }
                 }
             });
-            if (error) throw error.message;
+
+            if (error) {
+                // Friendly error messages
+                if (error.message.includes('already registered')) {
+                    throw "Username already taken";
+                }
+                if (error.message.includes('password')) {
+                    throw "Password must be at least 6 characters";
+                }
+                throw error.message;
+            }
             return data;
         },
+
         async logout() {
+            // Remove socket listener before logout
+            socket.off('balanceUpdate');
+            this._listenersSetup = false;
+
+            // Clear pending status
+            this.pendingStatus = null;
+
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
             // handleSession(null) will be triggered by onAuthStateChange
         },
+
         updateBalance(newBalance) {
             if (this.user) {
                 this.user.balance = newBalance;
             }
         },
+
         openLoginModal() {
             this.isLoginModalOpen = true;
         },
+
         closeLoginModal() {
             this.isLoginModalOpen = false;
+        },
+
+        // Cleanup method for when the app unmounts
+        cleanup() {
+            // Unsubscribe from auth state changes
+            if (this._authSubscription) {
+                this._authSubscription.unsubscribe();
+                this._authSubscription = null;
+            }
+
+            // Remove socket listeners
+            socket.off('balanceUpdate');
+            this._listenersSetup = false;
+
+            // Cancel any pending sync
+            if (this._syncController) {
+                this._syncController.abort();
+                this._syncController = null;
+            }
         }
     }
 });

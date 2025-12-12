@@ -65,6 +65,8 @@ onUnmounted(() => {
     window.removeEventListener('click', handleInteraction);
     window.removeEventListener('keydown', handleInteraction);
     window.removeEventListener('touchstart', handleInteraction);
+    // Cleanup auth store listeners to prevent memory leaks
+    authStore.cleanup();
 });
 </script>
 
