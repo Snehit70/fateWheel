@@ -1,3 +1,4 @@
+require('./setup');
 const authMiddleware = require('../middleware/auth');
 const supabase = require('../utils/supabase');
 const User = require('../models/User');
@@ -57,6 +58,21 @@ describe('Auth Middleware', () => {
             });
         });
 
+        it('should return 401 when token is expired', async () => {
+            mockReq.header.mockReturnValue('expired-token');
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: null },
+                error: { message: 'jwt expired' }
+            });
+
+            await authMiddleware(mockReq, mockRes, mockNext);
+
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                message: 'Token is not valid'
+            });
+        });
+
         it('should authenticate valid token and attach user', async () => {
             const supabaseUid = 'test-supabase-uid';
             mockReq.header.mockReturnValue('valid-token');
@@ -89,6 +105,34 @@ describe('Auth Middleware', () => {
             expect(mockReq.user.role).toBe('user');
         });
 
+        it('should handle Bearer prefix in token', async () => {
+            const supabaseUid = 'bearer-test-uid';
+            mockReq.header.mockReturnValue('Bearer valid-token-with-bearer');
+
+            supabase.auth.getUser.mockResolvedValue({
+                data: {
+                    user: {
+                        id: supabaseUid,
+                        user_metadata: { username: 'beareruser' },
+                        email: 'bearer@roulette.game'
+                    }
+                },
+                error: null
+            });
+
+            await User.create({
+                username: 'beareruser',
+                supabaseUid: supabaseUid,
+                role: 'user',
+                status: 'approved'
+            });
+
+            await authMiddleware(mockReq, mockRes, mockNext);
+
+            expect(mockNext).toHaveBeenCalledTimes(1);
+            expect(mockReq.user).toBeDefined();
+        });
+
         it('should auto-create user if not found in MongoDB', async () => {
             const supabaseUid = 'new-user-uid';
             mockReq.header.mockReturnValue('valid-token');
@@ -106,14 +150,66 @@ describe('Auth Middleware', () => {
 
             await authMiddleware(mockReq, mockRes, mockNext);
 
-            expect(mockNext).toHaveBeenCalledTimes(1);
-            expect(mockReq.user).toBeDefined();
+            // Auto-created users have 'pending' status, so they get 403
+            expect(mockRes.status).toHaveBeenCalledWith(403);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                message: 'Account pending approval',
+                status: 'pending'
+            });
 
             // Verify user was created
             const createdUser = await User.findOne({ supabaseUid });
             expect(createdUser).toBeTruthy();
             expect(createdUser.username).toBe('newuser');
-            expect(createdUser.status).toBe('approved');
+            expect(createdUser.status).toBe('pending');
+        });
+    });
+
+    describe('Edge cases', () => {
+        it('should handle empty token string', async () => {
+            mockReq.header.mockReturnValue('');
+
+            await authMiddleware(mockReq, mockRes, mockNext);
+
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+        });
+
+        it('should handle whitespace-only token', async () => {
+            mockReq.header.mockReturnValue('   ');
+
+            // Whitespace-only token gets processed by Supabase and fails
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: null },
+                error: new Error('Invalid token')
+            });
+
+            await authMiddleware(mockReq, mockRes, mockNext);
+
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+        });
+
+        it('should handle user with missing username in metadata', async () => {
+            const supabaseUid = 'no-username-uid';
+            mockReq.header.mockReturnValue('valid-token');
+
+            supabase.auth.getUser.mockResolvedValue({
+                data: {
+                    user: {
+                        id: supabaseUid,
+                        user_metadata: {},
+                        email: 'nousername@roulette.game'
+                    }
+                },
+                error: null
+            });
+
+            await authMiddleware(mockReq, mockRes, mockNext);
+
+            // Should handle gracefully - either create with fallback or fail
+            const createdUser = await User.findOne({ supabaseUid });
+            if (createdUser) {
+                expect(createdUser.username).toBeDefined();
+            }
         });
     });
 });

@@ -1,3 +1,5 @@
+require('./setup');
+const mongoose = require('mongoose');
 const adminMiddleware = require('../middleware/admin');
 const User = require('../models/User');
 
@@ -69,7 +71,8 @@ describe('Admin Middleware', () => {
         });
 
         it('should return 404 when user not found', async () => {
-            mockReq.user = { id: '507f1f77bcf86cd799439011' }; // Valid ObjectId that doesn't exist
+            // Use mongoose.Types.ObjectId for proper ObjectId generation
+            mockReq.user = { id: new mongoose.Types.ObjectId() };
 
             await adminMiddleware(mockReq, mockRes, mockNext);
 
@@ -80,6 +83,39 @@ describe('Admin Middleware', () => {
         });
     });
 
+    describe('Edge cases', () => {
+        it('should handle missing req.user', async () => {
+            mockReq.user = undefined;
+
+            await adminMiddleware(mockReq, mockRes, mockNext);
+
+            // Middleware returns 401 when auth hasn't run (no req.user)
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'Unauthorized. Authentication required.' });
+        });
+
+        it('should handle null req.user', async () => {
+            mockReq.user = null;
+
+            await adminMiddleware(mockReq, mockRes, mockNext);
+
+            // Middleware returns 401 when auth hasn't run (no req.user)
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'Unauthorized. Authentication required.' });
+        });
+
+        it('should handle empty user object with no id or role', async () => {
+            mockReq.user = {};
+
+            await adminMiddleware(mockReq, mockRes, mockNext);
+
+            // Empty object has no role, so DB lookup happens with undefined id
+            // findById(undefined) returns null, triggering 404
+            expect(mockRes.status).toHaveBeenCalledWith(404);
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'User not found' });
+        });
+    });
+
     describe('Error handling', () => {
         it('should return 500 on database error', async () => {
             mockReq.user = { id: 'invalid-id' }; // This will cause a CastError
@@ -87,7 +123,8 @@ describe('Admin Middleware', () => {
             await adminMiddleware(mockReq, mockRes, mockNext);
 
             expect(mockRes.status).toHaveBeenCalledWith(500);
-            expect(mockRes.send).toHaveBeenCalledWith('Server Error');
+            // Middleware uses .json() not .send()
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'Server Error' });
         });
     });
 });

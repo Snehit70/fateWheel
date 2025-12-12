@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
+// Increase timeout for MongoDB memory server operations
+jest.setTimeout(30000);
+
 let mongoServer;
 
 beforeAll(async () => {
@@ -23,9 +26,12 @@ afterEach(async () => {
     }
 });
 
-// Mock Supabase for tests
+// Mock Supabase for tests with extended methods
 jest.mock('../utils/supabase', () => ({
     auth: {
-        getUser: jest.fn()
+        getUser: jest.fn(),
+        signUp: jest.fn(),
+        signInWithPassword: jest.fn(),
+        signOut: jest.fn()
     }
 }));

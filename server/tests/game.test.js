@@ -1,3 +1,4 @@
+require('./setup');
 const { SEGMENTS, PAYOUTS, TIMING } = require('../constants/game');
 
 describe('Game Constants', () => {
@@ -22,6 +23,12 @@ describe('Game Constants', () => {
             expect(greenSegments).toHaveLength(1);
             expect(greenSegments[0].number).toBe(0);
         });
+
+        it('should have balanced red and black segments', () => {
+            const redCount = SEGMENTS.filter(s => s.color === 'red').length;
+            const blackCount = SEGMENTS.filter(s => s.color === 'black').length;
+            expect(redCount).toBe(blackCount);
+        });
     });
 
     describe('PAYOUTS', () => {
@@ -36,6 +43,12 @@ describe('Game Constants', () => {
         it('should have correct type payout (even/odd)', () => {
             expect(PAYOUTS.TYPE).toBe(2);
         });
+
+        it('payout multipliers should be positive numbers', () => {
+            expect(PAYOUTS.NUMBER).toBeGreaterThan(0);
+            expect(PAYOUTS.COLOR).toBeGreaterThan(0);
+            expect(PAYOUTS.TYPE).toBeGreaterThan(0);
+        });
     });
 
     describe('TIMING', () => {
@@ -43,6 +56,15 @@ describe('Game Constants', () => {
             expect(TIMING.WAITING_TIME).toBeGreaterThan(0);
             expect(TIMING.SPIN_DURATION).toBeGreaterThan(0);
             expect(TIMING.RESULT_DURATION).toBeGreaterThan(0);
+        });
+
+        it('timing values should be in seconds (reasonable range)', () => {
+            // Timings are in seconds (see game.js comments)
+            // Waiting: 1-120 seconds, Spin/Result: 1-30 seconds
+            expect(TIMING.WAITING_TIME).toBeGreaterThanOrEqual(1);
+            expect(TIMING.WAITING_TIME).toBeLessThanOrEqual(120);
+            expect(TIMING.SPIN_DURATION).toBeGreaterThanOrEqual(1);
+            expect(TIMING.RESULT_DURATION).toBeGreaterThanOrEqual(1);
         });
     });
 });
@@ -71,19 +93,29 @@ describe('Payout Calculations', () => {
         const payout = Math.floor(betAmount * PAYOUTS.NUMBER);
         expect(payout).toBe(210);
     });
+
+    it('should handle minimum bet payout', () => {
+        const betAmount = 11; // Minimum bet
+        const payout = Math.floor(betAmount * PAYOUTS.NUMBER);
+        expect(payout).toBe(154); // 11 * 14 = 154
+    });
 });
 
 describe('Bet Validation Logic', () => {
+    // Validation function matching expected behavior
     const validateBet = (type, value, amount) => {
-        if (!amount || isNaN(amount) || amount < 11 || !Number.isInteger(amount)) {
+        // Check amount first
+        if (amount === null || amount === undefined || isNaN(amount) || amount < 11 || !Number.isInteger(amount)) {
             return 'Invalid bet amount (minimum is 11)';
         }
 
+        // Check type
         const VALID_TYPES = ['number', 'color', 'type'];
-        if (!VALID_TYPES.includes(type)) {
+        if (type === null || type === undefined || !VALID_TYPES.includes(type)) {
             return 'Invalid bet type';
         }
 
+        // Validate value based on type
         if (type === 'number') {
             if (!Number.isInteger(value) || value < 0 || value > 14) {
                 return 'Invalid number bet (must be 0-14)';
@@ -110,8 +142,54 @@ describe('Bet Validation Logic', () => {
             expect(validateBet('number', 5, 10.5)).toBe('Invalid bet amount (minimum is 11)');
         });
 
+        it('should reject zero amount', () => {
+            expect(validateBet('number', 5, 0)).toBe('Invalid bet amount (minimum is 11)');
+        });
+
+        it('should reject negative amount', () => {
+            expect(validateBet('number', 5, -100)).toBe('Invalid bet amount (minimum is 11)');
+        });
+
+        it('should reject null amount', () => {
+            expect(validateBet('number', 5, null)).toBe('Invalid bet amount (minimum is 11)');
+        });
+
+        it('should reject undefined amount', () => {
+            expect(validateBet('number', 5, undefined)).toBe('Invalid bet amount (minimum is 11)');
+        });
+
+        it('should reject NaN amount', () => {
+            expect(validateBet('number', 5, NaN)).toBe('Invalid bet amount (minimum is 11)');
+        });
+
         it('should accept valid amount', () => {
             expect(validateBet('number', 5, 100)).toBeNull();
+        });
+
+        it('should accept minimum valid amount (11)', () => {
+            expect(validateBet('number', 5, 11)).toBeNull();
+        });
+
+        it('should accept large amounts', () => {
+            expect(validateBet('number', 5, 1000000)).toBeNull();
+        });
+    });
+
+    describe('Type validation', () => {
+        it('should reject null bet type', () => {
+            expect(validateBet(null, 5, 100)).toBe('Invalid bet type');
+        });
+
+        it('should reject undefined bet type', () => {
+            expect(validateBet(undefined, 5, 100)).toBe('Invalid bet type');
+        });
+
+        it('should reject invalid bet type', () => {
+            expect(validateBet('invalid', 5, 100)).toBe('Invalid bet type');
+        });
+
+        it('should reject empty string bet type', () => {
+            expect(validateBet('', 5, 100)).toBe('Invalid bet type');
         });
     });
 
@@ -129,6 +207,14 @@ describe('Bet Validation Logic', () => {
         it('should reject negative numbers', () => {
             expect(validateBet('number', -1, 100)).toBe('Invalid number bet (must be 0-14)');
         });
+
+        it('should reject float numbers', () => {
+            expect(validateBet('number', 5.5, 100)).toBe('Invalid number bet (must be 0-14)');
+        });
+
+        it('should reject string numbers', () => {
+            expect(validateBet('number', '5', 100)).toBe('Invalid number bet (must be 0-14)');
+        });
     });
 
     describe('Color bets', () => {
@@ -141,6 +227,14 @@ describe('Bet Validation Logic', () => {
         it('should reject invalid colors', () => {
             expect(validateBet('color', 'blue', 100)).toBe('Invalid color bet');
         });
+
+        it('should reject uppercase colors', () => {
+            expect(validateBet('color', 'RED', 100)).toBe('Invalid color bet');
+        });
+
+        it('should reject null color', () => {
+            expect(validateBet('color', null, 100)).toBe('Invalid color bet');
+        });
     });
 
     describe('Type bets', () => {
@@ -151,6 +245,14 @@ describe('Bet Validation Logic', () => {
 
         it('should reject invalid types', () => {
             expect(validateBet('type', 'prime', 100)).toBe('Invalid type bet (must be even or odd)');
+        });
+
+        it('should reject uppercase even/odd', () => {
+            expect(validateBet('type', 'EVEN', 100)).toBe('Invalid type bet (must be even or odd)');
+        });
+
+        it('should reject null type value', () => {
+            expect(validateBet('type', null, 100)).toBe('Invalid type bet (must be even or odd)');
         });
     });
 });
