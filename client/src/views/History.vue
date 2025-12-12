@@ -88,18 +88,7 @@
 
                 <!-- Value -->
                 <TableCell>
-const formatValue = (bet) => {
-    if (bet.type === 'type') return bet.value.toUpperCase();
-    if (bet.type === 'color') return bet.value.toUpperCase();
-    return bet.value;
-};
-
-const formatBalance = (balance) => {
-  if (balance === null || balance === undefined) {
-    return '-';
-  }
-  return `${balance}`;
-};
+                  {{ formatValue(item) }}
                 </TableCell>
 
                 <!-- Amount -->
@@ -366,10 +355,23 @@ const getRoundDisplayNumber = (item) => {
 
 
 
-const handleGameState = (data) => {
     if (data.state === 'RESULT') {
         fetchHistory();
     }
+};
+
+const formatValue = (bet) => {
+    if (isTransaction(bet)) return '-';
+    if (bet.type === 'type') return bet.value?.toUpperCase();
+    if (bet.type === 'color') return bet.value?.toUpperCase();
+    return bet.value;
+};
+
+const formatBalance = (balance) => {
+  if (balance === null || balance === undefined) {
+    return '-';
+  }
+  return `${balance}`;
 };
 
 onMounted(() => {
