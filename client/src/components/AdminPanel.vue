@@ -1,8 +1,32 @@
 <template>
   <div class="min-h-screen bg-background text-foreground p-6">
     <div class="max-w-7xl mx-auto space-y-8">
-      <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <div class="flex items-center gap-4">
+          <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
+          
+          <!-- Header Stats -->
+          <div class="flex items-center gap-2">
+            <div class="px-3 py-1 rounded-full bg-secondary text-xs font-medium border border-border">
+              Total: {{ stats.totalUsers }}
+            </div>
+            
+            <div 
+              @click="filterPending"
+              class="px-3 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors flex items-center gap-1.5"
+              :class="[
+                stats.pendingUsers > 0 ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20' : 'text-muted-foreground border-border bg-secondary hover:bg-secondary/80',
+                showPendingOnly ? 'ring-2 ring-yellow-500/50' : ''
+              ]"
+            >
+              <span>Pending: {{ stats.pendingUsers }}</span>
+              <svg v-if="showPendingOnly" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <div class="flex gap-2">
           <Button variant="outline" size="sm" as-child>
             <router-link to="/admin/rounds">Rounds</router-link>
@@ -14,45 +38,7 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-3 gap-2 sm:gap-6">
-        <Card class="p-2 sm:p-0">
-          <CardHeader class="p-2 sm:p-6 sm:pb-2 space-y-0">
-            <CardTitle class="text-xs sm:text-sm font-medium">Total Users</CardTitle>
-          </CardHeader>
-          <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
-            <div class="text-lg sm:text-2xl font-bold">{{ stats.totalUsers }}</div>
-          </CardContent>
-        </Card>
-        <Card class="p-2 sm:p-0">
-          <CardHeader class="p-2 sm:p-6 sm:pb-2 space-y-0">
-            <CardTitle class="text-xs sm:text-sm font-medium">Pending</CardTitle>
-          </CardHeader>
-          <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
-              <div class="text-lg sm:text-2xl font-bold text-yellow-500">{{ stats.pendingUsers }}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                @click="filterPending"
-                :class="{ 'bg-yellow-500/10 border-yellow-500/50 text-yellow-500': showPendingOnly }"
-                class="text-xs h-7 px-2 sm:h-8 sm:px-3"
-              >
-                Filter
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        <Card class="p-2 sm:p-0">
-          <CardHeader class="p-2 sm:p-6 sm:pb-2 space-y-0">
-            <CardTitle class="text-xs sm:text-sm font-medium">Net Profit</CardTitle>
-          </CardHeader>
-          <CardContent class="p-2 pt-0 sm:p-6 sm:pt-0">
-            <div class="text-lg sm:text-2xl font-bold" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
-              {{ stats.netProfit >= 0 ? '+' : '' }}{{ Math.floor(stats.netProfit) }}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+
 
       <!-- Users Table - Desktop -->
       <Card class="hidden sm:block">

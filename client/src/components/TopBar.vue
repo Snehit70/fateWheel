@@ -28,6 +28,14 @@
         </Button>
 
       <template v-if="authStore.user">
+        <!-- Admin Net Profit Display -->
+        <div v-if="authStore.user.role === 'admin'" class="flex items-center bg-secondary/50 rounded-lg px-2 md:px-4 py-1.5 md:py-2 border border-border">
+            <span class="text-xs md:text-sm font-medium mr-2 text-muted-foreground">Net Profit:</span>
+            <span class="font-outfit font-bold text-sm md:text-base" :class="netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
+                {{ netProfit >= 0 ? '+' : '' }}{{ Math.floor(netProfit) }}
+            </span>
+        </div>
+
         <!-- Balance Display -->
         <div v-if="authStore.user.role !== 'admin'" class="flex items-center bg-secondary/50 rounded-lg px-2 md:px-4 py-1.5 md:py-2 border border-border">
             <span class="text-green-500 font-medium mr-1 md:mr-2 font-outfit text-sm md:text-base"></span>
@@ -100,10 +108,45 @@ import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { useAudio } from '../composables/useAudio';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import api from '../services/api';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const { toggleMute, isMuted } = useAudio();
+const netProfit = ref(0);
+
+const fetchStats = async () => {
+    if (authStore.user?.role !== 'admin') return;
+    try {
+        const res = await api.get('/admin/stats');
+        netProfit.value = res.data.netProfit;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+onMounted(() => {
+    if (authStore.user?.role === 'admin') {
+        fetchStats();
+    }
+    
+    if (authStore.socket) {
+        authStore.socket.on('admin:statsUpdate', fetchStats);
+    }
+});
+
+watch(() => authStore.user, (newUser) => {
+    if (newUser?.role === 'admin') {
+        fetchStats();
+    }
+});
+
+onUnmounted(() => {
+    if (authStore.socket) {
+        authStore.socket.off('admin:statsUpdate', fetchStats);
+    }
+});
 
 const handleLogout = () => {
     authStore.logout();
