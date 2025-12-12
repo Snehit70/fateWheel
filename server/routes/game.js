@@ -16,7 +16,29 @@ router.get("/history", auth, async (req, res) => {
   try {
     let page = parseInt(req.query.page);
     let limit = parseInt(req.query.limit) || 20;
+    const { date, roundId } = req.query;
+
     if (limit < 1) limit = 20;
+
+    // Build queries
+    const betQuery = { user: req.user.id };
+    const txQuery = { user: req.user.id };
+
+    if (roundId) {
+      betQuery.roundId = roundId;
+      // Transactions don't have roundId, so we can either exclude them or return empty
+      // If filtering by roundId, likely only interested in bets
+    }
+
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      betQuery.createdAt = { $gte: startDate, $lte: endDate };
+      txQuery.createdAt = { $gte: startDate, $lte: endDate };
+    }
 
     if (page) {
       // Pagination Strategy for Merged Collections:
@@ -30,17 +52,23 @@ router.get("/history", auth, async (req, res) => {
 
       const fetchLimit = page * limit;
 
+      // If filtering by roundId, transactions are irrelevant
+      const txPromise = roundId
+        ? Promise.resolve([])
+        : Transaction.find(txQuery).sort({ createdAt: -1 }).limit(fetchLimit).lean();
+
+      const txCountPromise = roundId
+        ? Promise.resolve(0)
+        : Transaction.countDocuments(txQuery);
+
       const [bets, transactions, betCount, txCount] = await Promise.all([
-        Bet.find({ user: req.user.id })
+        Bet.find(betQuery)
           .sort({ createdAt: -1 })
           .limit(fetchLimit)
           .lean(),
-        Transaction.find({ user: req.user.id })
-          .sort({ createdAt: -1 })
-          .limit(fetchLimit)
-          .lean(),
-        Bet.countDocuments({ user: req.user.id }),
-        Transaction.countDocuments({ user: req.user.id })
+        txPromise,
+        Bet.countDocuments(betQuery),
+        txCountPromise
       ]);
 
       const combinedTotal = betCount + txCount;
@@ -67,15 +95,18 @@ router.get("/history", auth, async (req, res) => {
     }
 
     // Legacy behavior (just limit)
-    const bets = await Bet.find({ user: req.user.id })
+    // Legacy behavior (just limit)
+    const bets = await Bet.find(betQuery)
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
 
-    const transactions = await Transaction.find({ user: req.user.id })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const transactions = roundId
+      ? []
+      : await Transaction.find(txQuery)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
 
     // Combine and sort
     const history = [...bets, ...transactions].sort((a, b) => {

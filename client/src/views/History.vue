@@ -30,6 +30,25 @@
 
       </div>
 
+      <div class="flex items-center gap-2">
+        <Input 
+          type="date" 
+          v-model="selectedDate" 
+          @change="() => { pagination.page = 1; fetchHistory(); }"
+          class="w-auto h-8 text-xs" 
+        />
+        <Input 
+          type="text" 
+          placeholder="Round ID" 
+          v-model="filterRoundId" 
+          @keydown.enter="() => { pagination.page = 1; fetchHistory(); }"
+          @blur="() => { pagination.page = 1; fetchHistory(); }" 
+          class="w-32 h-8 text-xs" 
+        />
+      </div>
+
+      </div>
+
       <Card>
         <CardContent class="p-0">
           <Table>
@@ -186,6 +205,7 @@ import socket from '../services/socket';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
 import { formatDate, formatOnlyDate, formatOnlyTime } from '../utils/formatters';
@@ -211,6 +231,9 @@ const filterOptions = [
   { value: 'transactions', label: 'Transactions' }
 ];
 
+const selectedDate = ref('');
+const filterRoundId = ref('');
+
 const fetchHistory = async () => {
   loading.value = true;
 
@@ -223,7 +246,9 @@ const fetchHistory = async () => {
     const res = await api.get(endpoint, {
         params: {
             page: pagination.value.page,
-            limit: pagination.value.limit
+            limit: pagination.value.limit,
+            date: selectedDate.value || undefined,
+            roundId: filterRoundId.value || undefined
         }
     });
 
