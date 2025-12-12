@@ -13,7 +13,14 @@
       <div class="relative z-10">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <Suspense>
+              <template #default>
+                <component :is="Component" />
+              </template>
+              <template #fallback>
+                <LoadingSpinner />
+              </template>
+            </Suspense>
           </transition>
         </router-view>
       </div>
@@ -33,6 +40,7 @@
 import TopBar from './components/TopBar.vue';
 import LoginModal from './components/LoginModal.vue';
 import ToastContainer from './components/ToastContainer.vue';
+import LoadingSpinner from './components/LoadingSpinner.vue';
 import { onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from './stores/auth';
 import { useAudio } from './composables/useAudio';
