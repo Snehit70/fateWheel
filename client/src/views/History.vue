@@ -247,9 +247,10 @@ const fetchHistory = async () => {
       
     let startDate, endDate;
     if (selectedDate.value) {
-        const [y, m, d] = selectedDate.value.split('-').map(Number);
-        const start = new Date(y, m - 1, d, 0, 0, 0, 0);
-        const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+        // Use UTC date boundaries to match server/table display
+        const start = new Date(selectedDate.value);
+        const end = new Date(selectedDate.value);
+        end.setUTCDate(end.getUTCDate() + 1);
         
         startDate = start.toISOString();
         endDate = end.toISOString();

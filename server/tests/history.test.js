@@ -161,11 +161,42 @@ describe('GET /api/game/history Filters', () => {
         expect(res.body.data[0].roundId).toBe('range-match');
     });
 
-    it('should return empty list when no matches found', async () => {
-        const res = await request(app).get('/api/game/history').query({ roundId: 'non-existent', page: 1 });
+    it('should filter correctly using UTC boundaries (regression test)', async () => {
+        // Create bet on Dec 12, 20:00 UTC
+        const dec12_20h = new Date('2025-12-12T20:00:00.000Z');
 
-        expect(res.status).toBe(200);
-        expect(res.body.data).toHaveLength(0);
+        await Bet.create({
+            user: user._id,
+            username: 'utc-test',
+            type: 'number',
+            value: 5,
+            amount: 100,
+            roundId: 'utc-test-bet',
+            status: 'completed',
+            createdAt: dec12_20h
+        });
+
+        // Filter for Dec 13 UTC (should NOT find it)
+        const dec13_start = new Date('2025-12-13T00:00:00.000Z').toISOString();
+        const dec13_end = new Date('2025-12-14T00:00:00.000Z').toISOString();
+
+        const res1 = await request(app).get('/api/game/history').query({
+            startDate: dec13_start,
+            endDate: dec13_end,
+            page: 1
+        });
+        expect(res1.body.data.find(b => b.roundId === 'utc-test-bet')).toBeUndefined();
+
+        // Filter for Dec 12 UTC (should find it)
+        const dec12_start = new Date('2025-12-12T00:00:00.000Z').toISOString();
+        const dec12_end = new Date('2025-12-13T00:00:00.000Z').toISOString();
+
+        const res2 = await request(app).get('/api/game/history').query({
+            startDate: dec12_start,
+            endDate: dec12_end,
+            page: 1
+        });
+        expect(res2.body.data.find(b => b.roundId === 'utc-test-bet')).toBeDefined();
     });
 
     it('should return results in { data: [...] } format when page is specified', async () => {
