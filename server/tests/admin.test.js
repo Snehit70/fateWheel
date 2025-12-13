@@ -118,6 +118,7 @@ describe('Admin Middleware', () => {
 
     describe('Error handling', () => {
         it('should return 500 on database error', async () => {
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
             mockReq.user = { id: 'invalid-id' }; // This will cause a CastError
 
             await adminMiddleware(mockReq, mockRes, mockNext);
@@ -125,6 +126,9 @@ describe('Admin Middleware', () => {
             expect(mockRes.status).toHaveBeenCalledWith(500);
             // Middleware uses .json() not .send()
             expect(mockRes.json).toHaveBeenCalledWith({ message: 'Server Error' });
+
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
         });
     });
 });
