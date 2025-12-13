@@ -32,7 +32,6 @@
           <Input 
             type="date" 
             v-model="selectedDate" 
-            @change="() => { pagination.page = 1; fetchHistory(); }"
             class="w-auto h-8 text-xs" 
           />
           <Input 
@@ -235,6 +234,12 @@ watch(filterRoundId, useDebounceFn(() => {
     pagination.value.page = 1;
     fetchHistory();
 }, 300));
+
+// Filter for Date
+watch(selectedDate, () => {
+    pagination.value.page = 1;
+    fetchHistory();
+});
 
 const fetchHistory = async () => {
   loading.value = true;
