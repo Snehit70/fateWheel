@@ -17,7 +17,6 @@ router.get("/history", auth, async (req, res) => {
     let page = parseInt(req.query.page);
     let limit = parseInt(req.query.limit) || 20;
     const { date, startDate, endDate, roundId } = req.query;
-    console.log('[DEBUG] /history params:', { date, startDate, endDate, roundId });
 
     if (limit < 1) limit = 20;
 
@@ -45,8 +44,6 @@ router.get("/history", auth, async (req, res) => {
       betQuery.createdAt = { $gte: start, $lt: end };
       txQuery.createdAt = { $gte: start, $lt: end };
     }
-
-    console.log('[DEBUG] Constructed queries:', JSON.stringify({ betQuery, txQuery }));
 
     if (page) {
       // Pagination Strategy for Merged Collections:
