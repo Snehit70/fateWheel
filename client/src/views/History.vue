@@ -29,21 +29,12 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Custom Date Input Wrapper -->
-          <div class="relative">
-            <div class="flex h-8 w-32 items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm">
-                <span :class="!selectedDate ? 'text-muted-foreground' : ''">
-                    {{ selectedDate ? formatOnlyDate(selectedDate) : 'dd/mm/yyyy' }}
-                </span>
-            </div>
-            <Input 
-              type="date" 
-              v-model="selectedDate" 
-              @change="() => { pagination.page = 1; fetchHistory(); }"
-              class="absolute inset-0 h-full w-full opacity-0 cursor-pointer" 
-            />
-          </div>
-
+          <Input 
+            type="date" 
+            v-model="selectedDate" 
+            @change="() => { pagination.page = 1; fetchHistory(); }"
+            class="w-auto h-8 text-xs" 
+          />
           <Input 
             type="text" 
             placeholder="Round ID" 
