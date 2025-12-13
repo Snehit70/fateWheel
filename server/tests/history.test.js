@@ -161,7 +161,7 @@ describe('GET /api/game/history Filters', () => {
         expect(res.body.data[0].roundId).toBe('range-match');
     });
 
-    it('should filter correctly using UTC boundaries (regression test)', async () => {
+    it('should filter correctly using strict ISO boundaries', async () => {
         // Create bet on Dec 12, 20:00 UTC
         const dec12_20h = new Date('2025-12-12T20:00:00.000Z');
 
@@ -176,7 +176,7 @@ describe('GET /api/game/history Filters', () => {
             createdAt: dec12_20h
         });
 
-        // Filter for Dec 13 UTC (should NOT find it)
+        // Filter for Dec 13 UTC strict range
         const dec13_start = new Date('2025-12-13T00:00:00.000Z').toISOString();
         const dec13_end = new Date('2025-12-14T00:00:00.000Z').toISOString();
 
@@ -187,7 +187,7 @@ describe('GET /api/game/history Filters', () => {
         });
         expect(res1.body.data.find(b => b.roundId === 'utc-test-bet')).toBeUndefined();
 
-        // Filter for Dec 12 UTC (should find it)
+        // Filter for Dec 12 UTC strict range
         const dec12_start = new Date('2025-12-12T00:00:00.000Z').toISOString();
         const dec12_end = new Date('2025-12-13T00:00:00.000Z').toISOString();
 
