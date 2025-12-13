@@ -272,6 +272,7 @@ const fetchHistory = async () => {
     });
 
     if (res.data.pagination) {
+        console.log('[DEBUG] History Response (Paginated):', res.data.data.length, 'items. First:', res.data.data[0]?.createdAt);
         history.value = res.data.data;
         pagination.value = {
             page: res.data.pagination.page,
@@ -280,6 +281,7 @@ const fetchHistory = async () => {
             total: res.data.pagination.total
         };
     } else {
+        console.log('[DEBUG] History Response (Legacy):', res.data.length, 'items. First:', res.data[0]?.createdAt);
         history.value = res.data;
     }
   } catch (err) {
