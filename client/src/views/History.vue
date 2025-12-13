@@ -245,11 +245,22 @@ const fetchHistory = async () => {
       ? `/admin/users/${viewingUserId.value}/history`
       : `/game/history`;
       
+    let startDate, endDate;
+    if (selectedDate.value) {
+        const [y, m, d] = selectedDate.value.split('-').map(Number);
+        const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+        const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+        
+        startDate = start.toISOString();
+        endDate = end.toISOString();
+    }
+
     const res = await api.get(endpoint, {
         params: {
             page: pagination.value.page,
             limit: pagination.value.limit,
-            date: selectedDate.value || undefined,
+            startDate,
+            endDate,
             roundId: filterRoundId.value || undefined
         }
     });

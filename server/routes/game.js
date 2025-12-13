@@ -16,7 +16,7 @@ router.get("/history", auth, async (req, res) => {
   try {
     let page = parseInt(req.query.page);
     let limit = parseInt(req.query.limit) || 20;
-    const { date, roundId } = req.query;
+    const { date, startDate, endDate, roundId } = req.query;
 
     if (limit < 1) limit = 20;
 
@@ -29,7 +29,10 @@ router.get("/history", auth, async (req, res) => {
       betQuery.roundId = { $regex: roundId, $options: 'i' };
     }
 
-    if (date) {
+    if (startDate && endDate) {
+      betQuery.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      txQuery.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    } else if (date) {
       // Assume date is YYYY-MM-DD. Create UTC range.
       // We match any time within that UTC date.
       // Note: exact matching depends on whether stored dates are UTC (standard Mongoose behavior)

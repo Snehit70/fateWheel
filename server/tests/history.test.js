@@ -116,6 +116,51 @@ describe('GET /api/game/history Filters', () => {
         expect(res.body.data[0].roundId).toBe('today-round');
     });
 
+    it('should filter by explicit startDate and endDate range', async () => {
+        const now = new Date();
+        // Ensure strictly separate times
+        const past = new Date(now.getTime() - 1000000);
+        const future = new Date(now.getTime() + 1000000);
+
+        // Create bet "now" (in range)
+        await Bet.create({
+            user: user._id,
+            username: 'testuser',
+            type: 'number',
+            value: 5,
+            amount: 100,
+            roundId: 'range-match',
+            status: 'completed',
+            createdAt: now
+        });
+
+        // Create bet "future" (out of range)
+        await Bet.create({
+            user: user._id,
+            username: 'testuser',
+            type: 'number',
+            value: 5,
+            amount: 100,
+            roundId: 'range-miss',
+            status: 'completed',
+            createdAt: future
+        });
+
+        // Define range covering "now" but not "future"
+        // Start: past, End: now + 500ms
+        const rangeEnd = new Date(now.getTime() + 500);
+
+        const res = await request(app).get('/api/game/history').query({
+            startDate: past.toISOString(),
+            endDate: rangeEnd.toISOString(),
+            page: 1
+        });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.data[0].roundId).toBe('range-match');
+    });
+
     it('should return empty list when no matches found', async () => {
         const res = await request(app).get('/api/game/history').query({ roundId: 'non-existent', page: 1 });
 
