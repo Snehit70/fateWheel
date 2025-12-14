@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-background text-foreground pt-24 px-4 pb-12">
-    <div class="max-w-6xl mx-auto space-y-6">
+  <div class="min-h-screen bg-background text-foreground pt-16 px-2 pb-2">
+    <div class="max-w-6xl mx-auto space-y-2">
       <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold font-mono tracking-wider">
           <span v-if="viewingUsername">{{ viewingUsername }}'s </span>BET HISTORY

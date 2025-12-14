@@ -6,13 +6,13 @@
     <StatusBanner :status="authStore.pendingStatus" />
 
     <!-- Game Area -->
-    <div class="w-full relative flex flex-col gap-2 lg:gap-4">
+    <div class="w-full relative flex flex-col gap-1 lg:gap-2">
         
         <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
-        <div class="flex flex-col lg:flex-row gap-2 lg:gap-4 items-stretch">
+        <div class="flex flex-col lg:flex-row gap-1 lg:gap-2 items-stretch">
             <!-- Left: Wheel -->
             <Card 
-                class="w-full lg:w-[60%] p-1 sm:p-4 relative min-h-[180px] sm:min-h-[300px] md:min-h-[350px] flex items-center justify-center transition-all duration-500"
+                class="w-full lg:w-[60%] p-0 sm:p-2 relative min-h-[160px] sm:min-h-[250px] md:min-h-[300px] flex items-center justify-center transition-all duration-500"
                 :class="{ 'ring-2 ring-yellow-500/20 shadow-[0_0_50px_rgba(255,215,0,0.1)]': isSpinning }"
             >
                 <RouletteWheel 
@@ -26,23 +26,23 @@
 
             <!-- Right: History & Betting Controls -->
             <div 
-                class="w-full lg:w-[40%] flex flex-col gap-2 lg:gap-4 transition-all duration-500"
+                class="w-full lg:w-[40%] flex flex-col gap-1 lg:gap-2 transition-all duration-500"
                 :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
             >
                 <!-- History Section (Mobile) -->
-                <div class="lg:hidden bg-secondary/30 rounded-lg p-1 sm:p-2 flex items-center gap-2 sm:gap-3 overflow-hidden border border-border/50">
-                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap pl-2">History</h3>
-                    <HistoryBar :history="spinHistory" class="h-10 sm:h-12 flex-1" />
+                <div class="lg:hidden bg-secondary/30 rounded-lg p-1 flex items-center gap-1 sm:gap-2 overflow-hidden border border-border/50">
+                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap pl-1">History</h3>
+                    <HistoryBar :history="spinHistory" class="h-8 sm:h-10 flex-1" />
                 </div>
 
                 <!-- History Section (Desktop) -->
-                <div class="hidden lg:flex bg-secondary/30 rounded-lg p-3 items-center gap-4 overflow-hidden border border-border/50">
-                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs whitespace-nowrap pl-2">History</h3>
-                    <HistoryBar :history="spinHistory" class="h-14 flex-1" />
+                <div class="hidden lg:flex bg-secondary/30 rounded-lg p-2 items-center gap-2 overflow-hidden border border-border/50">
+                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs whitespace-nowrap pl-1">History</h3>
+                    <HistoryBar :history="spinHistory" class="h-10 flex-1" />
                 </div>
 
                 <!-- Betting Controls Section -->
-                <Card class="p-2 sm:p-3 flex-1 flex flex-col">
+                <Card class="p-1 sm:p-2 flex-1 flex flex-col">
                      <BettingControls 
                         :balance="authStore.user?.balance || 0"
                         :is-logged-in="!!authStore.user"

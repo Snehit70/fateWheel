@@ -2,7 +2,7 @@
   <div class="bg-background min-h-screen text-text-main font-sans selection:bg-primary selection:text-white">
     <TopBar />
     
-    <main class="p-4 lg:px-10 lg:pb-10 lg:pt-2 min-h-[calc(100vh-80px)] relative">
+    <main class="p-2 lg:px-4 lg:pb-2 lg:pt-0 min-h-[calc(100vh-64px)] relative">
       <!-- Background Elements -->
       <div class="fixed inset-0 pointer-events-none z-0">
         <div class="absolute top-0 left-0 w-full h-full bg-[url('/noise.png')] opacity-[0.03]"></div>

@@ -1,5 +1,5 @@
 <template>
-  <header class="h-16 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
+  <header class="h-14 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
     <!-- Left: Logo & Brand -->
     <router-link to="/" class="flex items-center space-x-3 group">
       <img src="/logo.svg" alt="Probability Game Logo" class="h-10 w-10 transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_10px_rgba(255,62,62,0.5)]" />

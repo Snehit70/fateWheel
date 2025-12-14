@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-background text-foreground p-6">
-    <div class="max-w-7xl mx-auto space-y-8">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-        <div class="flex items-center gap-4">
-          <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Admin Panel</h1>
+  <div class="min-h-screen bg-background text-foreground p-2">
+    <div class="max-w-7xl mx-auto space-y-2">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Admin</h1>
           
           <!-- Header Stats -->
           <div class="flex items-center gap-2">

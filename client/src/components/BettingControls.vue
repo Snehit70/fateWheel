@@ -35,8 +35,8 @@
     </div>
 
     <!-- Input & Multipliers -->
-    <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
-        <div class="flex items-center gap-2">
+    <div class="flex flex-col gap-1" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
+        <div class="flex items-center gap-1">
             <div class="relative flex-1">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-xl z-10"></span>
                 <Input 
@@ -44,7 +44,7 @@
                     inputmode="numeric"
                     v-model.number="betAmount"
                     @keypress="onlyAllowNumbers"
-                    class="pl-10 pr-10 font-mono text-xl sm:text-2xl font-bold h-10 sm:h-14 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    class="pl-10 pr-10 font-mono text-xl sm:text-2xl font-bold h-8 sm:h-12 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0"
                     :min="BET_LIMITS.MIN"
                     :max="BET_LIMITS.MAX"
@@ -66,7 +66,7 @@
                 variant="secondary" 
                 size="sm" 
                 @click="$emit('clear-bets')" 
-                class="h-10 sm:h-14 px-4 sm:px-6 text-xs sm:text-sm font-bold uppercase tracking-wider"
+                class="h-8 sm:h-12 px-4 sm:px-6 text-xs sm:text-sm font-bold uppercase tracking-wider"
                 :disabled="!isLoggedIn || isSpinning"
             >
                 Clear Board
@@ -78,16 +78,16 @@
     </div>
 
     <!-- Quick Chips -->
-    <div class="grid grid-cols-5 gap-2 sm:gap-3" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
+    <div class="grid grid-cols-5 gap-1 sm:gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <Button 
             v-for="chip in chips" 
             :key="chip.value" 
             variant="outline" 
-            class="h-auto py-1 sm:py-2 flex items-center justify-center hover:border-primary/50"
+            class="h-auto py-1 flex items-center justify-center hover:border-primary/50"
             @click="addAmount(chip.value)"
             :disabled="!isLoggedIn || isSpinning"
         >
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-xs sm:text-sm font-bold text-white group-hover:border-primary transition-colors">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-600 shadow-lg flex items-center justify-center text-xs sm:text-sm font-bold text-white group-hover:border-primary transition-colors">
                 +{{ chip.label }}
             </div>
         </Button>
