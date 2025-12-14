@@ -23,6 +23,17 @@
         </div>
     </div>
 
+    <!-- Restricted Overlay -->
+    <div 
+        v-if="isRestricted" 
+        class="absolute inset-0 z-20 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg border border-white/10 gap-2"
+    >
+        <div class="font-bold text-lg px-8 py-4 text-orange-500 border border-orange-500/50 bg-orange-500/10 rounded-md text-center">
+            ACCOUNT RESTRICTED
+        </div>
+        <p class="text-sm text-muted-foreground font-semibold">Contact Admin for support</p>
+    </div>
+
     <!-- Input & Multipliers -->
     <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !isLoggedIn || isSpinning }">
         <div class="flex items-center gap-2">
@@ -143,6 +154,12 @@ const isOutOfRange = computed(() => {
 
 const isAdmin = computed(() => {
     return authStore.user && authStore.user.role === 'admin';
+});
+
+const isRestricted = computed(() => {
+    return authStore.user && 
+           authStore.user.role !== 'admin' && 
+           authStore.user.status !== 'approved';
 });
 
 

@@ -338,6 +338,9 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
         // Emit update to admin panel
         req.io.to('admin-room').emit('admin:userUpdate', user);
 
+        // Notify the user about the status change
+        req.io.to(`user:${user._id}`).emit('statusUpdate', { status: status });
+
         res.json(user);
     } catch (err) {
         console.error(err.message);

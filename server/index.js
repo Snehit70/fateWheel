@@ -157,14 +157,29 @@ io.on('connection', (socket) => {
             return callback({ error: "Please login to bet" });
         }
 
-        // Input sanitization - only extract expected fields
-        const sanitizedBetData = {
-            type: betData?.type,
-            value: betData?.value,
-            amount: betData?.amount
-        };
-
         try {
+            // Re-fetch user to ensure status is up-to-date (critical for blocking banned/rejected users)
+            const user = await User.findById(socket.user.id);
+
+            if (!user) {
+                return callback({ error: "User not found" });
+            }
+
+            if (user.status !== 'approved') {
+                return callback({ error: "Account restricted. Contact admin." });
+            }
+
+            // Update socket user with latest data just in case
+            socket.user.role = user.role;
+            socket.user.status = user.status;
+
+            // Input sanitization - only extract expected fields
+            const sanitizedBetData = {
+                type: betData?.type,
+                value: betData?.value,
+                amount: betData?.amount
+            };
+
             const newBalance = await gameLoop.placeBet(socket.user, sanitizedBetData);
             callback({ success: true, newBalance });
         } catch (err) {

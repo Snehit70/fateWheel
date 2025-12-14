@@ -102,6 +102,12 @@ export const useAuthStore = defineStore('auth', {
                                 this.user.balance = payload.balance;
                             }
                         });
+
+                        socket.on('statusUpdate', (payload) => {
+                            if (this.user) {
+                                this.user.status = payload.status;
+                            }
+                        });
                     }
 
                 } catch (err) {
@@ -197,6 +203,7 @@ export const useAuthStore = defineStore('auth', {
         async logout() {
             // Remove socket listener before logout
             socket.off('balanceUpdate');
+            socket.off('statusUpdate');
             this._listenersSetup = false;
 
             // Clear pending status
@@ -231,6 +238,7 @@ export const useAuthStore = defineStore('auth', {
 
             // Remove socket listeners
             socket.off('balanceUpdate');
+            socket.off('statusUpdate');
             this._listenersSetup = false;
 
             // Cancel any pending sync
