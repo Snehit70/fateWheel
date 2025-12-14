@@ -167,6 +167,18 @@ export const useAuthStore = defineStore('auth', {
                 }
                 throw error.message;
             }
+
+            // Sync with backend to check status immediately
+            if (data.session) {
+                await this.handleSession(data.session);
+
+                // If the backend rejected us (403), pendingStatus will be set and user will be null
+                if (this.pendingStatus) {
+                    const status = this.pendingStatus === 'rejected' ? 'Rejected' : 'Pending Approval';
+                    throw `Account ${status}. Please contact admin.`;
+                }
+            }
+
             return data;
         },
 
