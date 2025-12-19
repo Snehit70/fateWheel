@@ -20,7 +20,9 @@ const io = new Server(server, {
     cors: {
         origin: CLIENT_URL,
         methods: ["GET", "POST"]
-    }
+    },
+    pingInterval: 25000,
+    pingTimeout: 60000
 });
 
 // Redis Adapter for Scalability
