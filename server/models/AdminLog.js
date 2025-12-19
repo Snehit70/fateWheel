@@ -9,7 +9,7 @@ const AdminLogSchema = new mongoose.Schema({
   },
   action: {
     type: String,
-    enum: ["approve_user", "reject_user", "delete_user", "update_balance"],
+    enum: ["approve_user", "reject_user", "delete_user", "update_balance", "toggle_reset"],
     required: true,
   },
   targetUserId: {

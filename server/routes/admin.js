@@ -245,6 +245,9 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
         // Emit update to admin panel
         req.io.to('admin-room').emit('admin:userUpdate', user);
 
+        // Emit update to user
+        req.io.to(`user:${user._id}`).emit('userUpdate', user);
+
         res.json(user);
     } catch (err) {
         console.error(err.message);
@@ -267,15 +270,23 @@ router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
             return res.status(400).json({ msg: 'Cannot enable password reset for approved users' });
         }
 
-        user.allowPasswordReset = allowPasswordReset;
-        await user.save();
+        // Use findByIdAndUpdate to avoid validation errors on partial updates (e.g. missing password)
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { allowPasswordReset: allowPasswordReset },
+            { new: true }
+        );
+
+        // Update the user variable for logging
+        // We can just use the updatedUser
+        if (!updatedUser) return res.status(404).json({ msg: 'User not found' });
 
         // Log Admin Action
         const log = new AdminLog({
             adminId: req.user.id,
             action: 'toggle_reset',
-            targetUserId: user._id,
-            targetUsername: user.username,
+            targetUserId: updatedUser._id,
+            targetUsername: updatedUser.username,
             details: `Set allowPasswordReset to ${allowPasswordReset}`
         });
         await log.save();
@@ -285,9 +296,9 @@ router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
         req.io.to('admin-room').emit('admin:newLog', populatedLog);
 
         // Emit update to admin panel
-        req.io.to('admin-room').emit('admin:userUpdate', user);
+        req.io.to('admin-room').emit('admin:userUpdate', updatedUser);
 
-        res.json(user);
+        res.json(updatedUser);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

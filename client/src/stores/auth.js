@@ -28,6 +28,17 @@ export const useAuthStore = defineStore('auth', {
                         }
                     });
 
+                    // Listen for user profile updates (status, role, etc)
+                    socket.on('userUpdate', (updatedUser) => {
+                        if (this.user && this.user.id === updatedUser.id) {
+                            // Merge updates
+                            Object.assign(this.user, updatedUser);
+                        } else if (this.user && this.user._id === updatedUser._id) {
+                            // Fallback if id vs _id mismatch
+                            Object.assign(this.user, updatedUser);
+                        }
+                    });
+
                     // Refresh user data on reconnection (fixes sync issues after server restart)
                     socket.on('connect', async () => {
                         if (this.token) {
@@ -96,6 +107,13 @@ export const useAuthStore = defineStore('auth', {
             socket.on('balanceUpdate', (payload) => {
                 if (this.user) {
                     this.user.balance = payload.balance;
+                }
+            });
+
+            // Listen for user profile updates
+            socket.on('userUpdate', (updatedUser) => {
+                if (this.user && (this.user.id === updatedUser.id || this.user._id === updatedUser._id)) {
+                    Object.assign(this.user, updatedUser);
                 }
             });
         },
