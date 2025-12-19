@@ -252,6 +252,48 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
     }
 });
 
+// @route   PUT api/admin/users/:id/allow-reset
+// @desc    Toggle allowPasswordReset for user
+// @access  Admin
+router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
+    try {
+        const { allowPasswordReset } = req.body;
+
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Only allow toggling for pending or rejected users
+        if (user.status === 'approved') {
+            return res.status(400).json({ msg: 'Cannot enable password reset for approved users' });
+        }
+
+        user.allowPasswordReset = allowPasswordReset;
+        await user.save();
+
+        // Log Admin Action
+        const log = new AdminLog({
+            adminId: req.user.id,
+            action: 'toggle_reset',
+            targetUserId: user._id,
+            targetUsername: user.username,
+            details: `Set allowPasswordReset to ${allowPasswordReset}`
+        });
+        await log.save();
+
+        // Emit new log
+        const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
+        req.io.to('admin-room').emit('admin:newLog', populatedLog);
+
+        // Emit update to admin panel
+        req.io.to('admin-room').emit('admin:userUpdate', user);
+
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 const GameResult = require('../models/GameResult');
 
 // @route   GET api/admin/rounds

@@ -2,9 +2,11 @@
   <Dialog :open="isOpen" @update:open="handleOpenChange">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle class="text-3xl font-bold text-center mb-2">{{ isLogin ? 'Welcome Back' : 'Create Account' }}</DialogTitle>
+        <DialogTitle class="text-3xl font-bold text-center mb-2">
+          {{ isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Create Account') }}
+        </DialogTitle>
         <DialogDescription class="text-center">
-          {{ isLogin ? 'Sign in to continue playing' : 'Join us and start winning today' }}
+          {{ isForgotPassword ? 'Enter your username and new password' : (isLogin ? 'Sign in to continue playing' : 'Join us and start winning today') }}
         </DialogDescription>
       </DialogHeader>
 
@@ -20,12 +22,14 @@
         </div>
         
         <div class="space-y-2">
-          <label class="text-xs font-bold text-muted-foreground uppercase">Password</label>
+          <label class="text-xs font-bold text-muted-foreground uppercase">
+            {{ isForgotPassword ? 'New Password' : 'Password' }}
+          </label>
           <div class="relative">
             <Input 
               v-model="password" 
               :type="showPassword ? 'text' : 'password'" 
-              placeholder="Enter your password"
+              :placeholder="isForgotPassword ? 'Enter new password' : 'Enter your password'"
               required
               class="pr-10"
             />
@@ -41,8 +45,34 @@
           </div>
         </div>
 
+        <div v-if="isForgotPassword" class="space-y-2">
+          <label class="text-xs font-bold text-muted-foreground uppercase">Confirm Password</label>
+          <div class="relative">
+            <Input 
+              v-model="confirmPassword" 
+              :type="showConfirmPassword ? 'text' : 'password'" 
+              placeholder="Confirm new password"
+              required
+              class="pr-10"
+            />
+            <button 
+              type="button"
+              @click="showConfirmPassword = !showConfirmPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+              tabindex="-1"
+            >
+              <Eye v-if="!showConfirmPassword" class="h-4 w-4" />
+              <EyeOff v-else class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
         <div v-if="error" class="text-destructive text-sm text-center bg-destructive/10 py-2 rounded border border-destructive/20">
           {{ error }}
+        </div>
+        
+        <div v-if="successMessage" class="text-green-500 text-sm text-center bg-green-500/10 py-2 rounded border border-green-500/20">
+          {{ successMessage }}
         </div>
 
         <Button 
@@ -56,20 +86,41 @@
           :disabled="loading || isSuccess"
         >
           <span v-if="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Processing...</span>
-          <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> {{ isLogin ? 'Success' : 'Success' }}</span>
-          <span v-else>{{ isLogin ? 'Sign In' : 'Sign Up' }}</span>
+          <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> Success</span>
+          <span v-else>{{ isForgotPassword ? 'Reset Password' : (isLogin ? 'Sign In' : 'Sign Up') }}</span>
         </Button>
       </form>
 
-      <DialogFooter class="sm:justify-center">
-        <div class="text-sm text-muted-foreground">
-          {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
-          <button 
-            @click="toggleMode" 
-            class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
-          >
-            {{ isLogin ? 'Sign Up' : 'Sign In' }}
-          </button>
+      <DialogFooter class="sm:justify-center flex-col gap-2">
+        <!-- Forgot Password Link -->
+        <div v-if="isLogin && !isForgotPassword" class="text-center w-full">
+            <button 
+              @click="switchToForgot" 
+              class="text-sm text-muted-foreground hover:text-foreground hover:underline focus:outline-none"
+            >
+              Forgot Password?
+            </button>
+        </div>
+
+        <div class="text-sm text-muted-foreground text-center">
+          <span v-if="isForgotPassword">
+            Remember your password?
+            <button 
+              @click="switchToLogin" 
+              class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
+            >
+              Sign In
+            </button>
+          </span>
+          <span v-else>
+            {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
+            <button 
+              @click="toggleMode" 
+              class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
+            >
+              {{ isLogin ? 'Sign Up' : 'Sign In' }}
+            </button>
+          </span>
         </div>
       </DialogFooter>
     </DialogContent>
@@ -79,6 +130,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import api from '../services/api';
 
 import {
   Dialog,
@@ -96,10 +148,17 @@ const authStore = useAuthStore();
 
 const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
+const isForgotPassword = ref(false);
+
 const username = ref('');
 const password = ref('');
+const confirmPassword = ref('');
+
 const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+
 const error = ref('');
+const successMessage = ref('');
 const loading = ref(false);
 const isSuccess = ref(false);
 
@@ -116,23 +175,68 @@ const close = () => {
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value;
+  isForgotPassword.value = false;
   error.value = '';
+  successMessage.value = '';
+};
+
+const switchToForgot = () => {
+    isForgotPassword.value = true;
+    error.value = '';
+    successMessage.value = '';
+    password.value = '';
+    confirmPassword.value = '';
+};
+
+const switchToLogin = () => {
+    isForgotPassword.value = false;
+    isLogin.value = true;
+    error.value = '';
+    successMessage.value = '';
 };
 
 const resetForm = () => {
   username.value = '';
   password.value = '';
+  confirmPassword.value = '';
   showPassword.value = false;
+  showConfirmPassword.value = false;
   error.value = '';
+  successMessage.value = '';
   isLogin.value = true;
+  isForgotPassword.value = false;
+  isSuccess.value = false;
 };
 
 const handleSubmit = async () => {
   loading.value = true;
   error.value = '';
+  successMessage.value = '';
   
   try {
-    if (isLogin.value) {
+    if (isForgotPassword.value) {
+        // Handle Forgot Password
+        if (password.value !== confirmPassword.value) {
+            throw new Error("Passwords do not match");
+        }
+        
+        await api.post('/auth/reset-password', {
+            username: username.value,
+            newPassword: password.value,
+            confirmPassword: confirmPassword.value
+        });
+        
+        isSuccess.value = true;
+        successMessage.value = "Password reset successful! Redirecting to login...";
+        
+        setTimeout(() => {
+            isSuccess.value = false;
+            switchToLogin();
+            // Pre-fill username might be nice, it's already there since we use same v-model
+            password.value = ''; // clear password
+        }, 2000);
+        
+    } else if (isLogin.value) {
       // Login with Username
       await authStore.login(username.value, password.value);
       close();
@@ -140,23 +244,18 @@ const handleSubmit = async () => {
       // Register with Username
       await authStore.register(username.value, password.value);
       isSuccess.value = true;
+      successMessage.value = "Registration successful!";
       
-      // Since we disabled email verification or assuming auto-login/immediate verification
       setTimeout(() => {
         isSuccess.value = false;
-         // Try to login automatically or allow user to switch to login.
-         // If Supabase sends confirmation email, this needs to be clear.
-         // Given "username" preference, user likely wants immediate play.
-         // If email confirm is off in supabase, they can login.
-         // If we don't auto-login here, switch to login mode.
-        toggleMode(); 
+        toggleMode(); // Switch to login
       }, 1500);
     }
   } catch (err) {
     if (typeof err === 'string') {
         error.value = err;
     } else {
-        error.value = err.message || 'An error occurred';
+        error.value = err.response?.data?.message || err.message || 'An error occurred';
     }
     isSuccess.value = false;
   } finally {

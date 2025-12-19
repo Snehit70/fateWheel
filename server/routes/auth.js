@@ -114,3 +114,51 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 });
 
 module.exports = router;
+
+// Reset Password
+router.post('/reset-password', authLimiter, async (req, res) => {
+    try {
+        const { username, newPassword, confirmPassword } = req.body;
+
+        // Check if passwords match
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ message: 'Passwords do not match' });
+        }
+
+        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters and include at least one number and one special character' });
+        }
+
+        // Find user
+        const user = await User.findOne({ username });
+        if (!user) {
+            // Keep generic to prevent enumeration, though username is known in this context usually
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        // Check permission
+        if (!user.allowPasswordReset) {
+            return res.status(403).json({ message: 'Contact admin to reset password' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update password and disable reset flag
+        user.password = hashedPassword;
+        user.allowPasswordReset = false;
+        await user.save();
+
+        // Emit update to admin panel so the toggle flips off automatically
+        if (req.io) {
+            req.io.to('admin-room').emit('admin:userUpdate', user);
+        }
+
+        res.json({ message: 'Password reset successful. You can now login.' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});

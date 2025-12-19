@@ -1,7 +1,21 @@
-require('./setup');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 const adminMiddleware = require('../middleware/admin');
 const User = require('../models/User');
+
+let mongoServer;
+
+beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.disconnect();
+    await mongoose.connect(uri);
+});
+
+afterAll(async () => {
+    await mongoose.disconnect();
+    await mongoServer.stop();
+});
 
 describe('Admin Middleware', () => {
     let mockReq, mockRes, mockNext;

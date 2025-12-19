@@ -73,4 +73,48 @@ describe('Auth API', () => {
 
         expect(res.statusCode).toEqual(401);
     });
+
+    it('POST /api/auth/reset-password - should fail if not allowed', async () => {
+        const res = await request(app)
+            .post('/api/auth/reset-password')
+            .send({
+                username: testUser.username,
+                newPassword: 'NewPassword123!',
+                confirmPassword: 'NewPassword123!'
+            });
+
+        expect(res.statusCode).toEqual(403);
+        expect(res.body).toHaveProperty('message', 'Contact admin to reset password');
+    });
+
+    it('POST /api/auth/reset-password - should succeed if allowed', async () => {
+        // Enable reset permission manually
+        const User = require('../models/User');
+        await User.findOneAndUpdate({ username: testUser.username }, { allowPasswordReset: true });
+
+        const res = await request(app)
+            .post('/api/auth/reset-password')
+            .send({
+                username: testUser.username,
+                newPassword: 'NewPassword123!',
+                confirmPassword: 'NewPassword123!'
+            });
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toHaveProperty('message', 'Password reset successful. You can now login.');
+
+        // Verify permission is revoked
+        const user = await User.findOne({ username: testUser.username });
+        expect(user.allowPasswordReset).toBe(false);
+
+        // Verify new password works
+        const loginRes = await request(app)
+            .post('/api/auth/login')
+            .send({
+                username: testUser.username,
+                password: 'NewPassword123!'
+            });
+
+        expect(loginRes.statusCode).toEqual(200);
+    });
 });

@@ -58,6 +58,7 @@
                 <TableHead>Username</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Balance</TableHead>
+                <TableHead>Reset</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>History</TableHead>
                 <TableHead>Actions</TableHead>
@@ -82,6 +83,27 @@
                   </Select>
                 </TableCell>
                 <TableCell class="font-mono text-green-500 font-bold">{{ Math.floor(user.balance) }}</TableCell>
+                
+                <!-- Reset Password Toggle -->
+                 <TableCell>
+                  <div v-if="user.status !== 'approved'" class="flex items-center space-x-2">
+                    <button 
+                      @click="toggleResetPermission(user)"
+                      class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                      :class="user.allowPasswordReset ? 'bg-primary' : 'bg-input'"
+                    >
+                      <span
+                        class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
+                        :class="user.allowPasswordReset ? 'translate-x-5' : 'translate-x-0.5'"
+                      />
+                    </button>
+                    <span class="text-xs text-muted-foreground">{{ user.allowPasswordReset ? 'On' : 'Off' }}</span>
+                  </div>
+                  <div v-else class="text-xs text-muted-foreground">
+                    -
+                  </div>
+                </TableCell>
+
                 <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
                 <TableCell>
                   <Button size="sm" variant="ghost" @click="viewUserHistory(user)">
@@ -155,6 +177,25 @@
               </Select>
               <span class="text-xs text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</span>
             </div>
+
+            <!-- Mobile Reset Toggle -->
+            <div v-if="user.status !== 'approved'" class="flex items-center justify-between mb-3 p-2 bg-secondary/50 rounded">
+                <span class="text-sm font-medium">Allow Password Reset</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-muted-foreground">{{ user.allowPasswordReset ? 'Allowed' : 'Denied' }}</span>
+                    <button 
+                      @click="toggleResetPermission(user)"
+                      class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                      :class="user.allowPasswordReset ? 'bg-primary' : 'bg-input'"
+                    >
+                      <span
+                        class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
+                        :class="user.allowPasswordReset ? 'translate-x-5' : 'translate-x-0.5'"
+                      />
+                    </button>
+                </div>
+            </div>
+
             <div class="flex gap-2 flex-wrap">
               <Button size="sm" variant="ghost" @click="viewUserHistory(user)" class="flex-1">
                 History
@@ -396,6 +437,24 @@ const updateStatus = async (user, status) => {
   } catch (err) {
     console.error(err);
     toast.error('Failed to update status');
+  }
+};
+
+const toggleResetPermission = async (user) => {
+  try {
+    const newValue = !user.allowPasswordReset;
+    const res = await api.put(`/admin/users/${user._id}/allow-reset`, { 
+        allowPasswordReset: newValue 
+    });
+    
+    // Optimistic update (though handled by socket usually)
+    const index = users.value.findIndex(u => u._id === user._id);
+    if (index !== -1) {
+      users.value[index].allowPasswordReset = newValue;
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error('Failed to toggle reset permission: ' + (err.response?.data?.msg || err.message));
   }
 };
 
