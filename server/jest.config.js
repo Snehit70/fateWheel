@@ -9,7 +9,9 @@ module.exports = {
         '!jest.config.js',
         '!seedAdmin.js'
     ],
-    setupFilesAfterEnv: ['./tests/setup.js'],
+    coveragePathIgnorePatterns: [
+        "/node_modules/"
+    ],
     testTimeout: 30000,
     verbose: true,
     forceExit: true,

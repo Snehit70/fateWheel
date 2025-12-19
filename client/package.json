@@ -14,7 +14,6 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.87.1",
     "@tanstack/vue-table": "^8.21.3",
     "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",

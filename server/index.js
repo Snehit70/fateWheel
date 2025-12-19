@@ -7,8 +7,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const GameLoop = require('./game/GameLoop');
 const logger = require('./utils/logger');
-const supabase = require('./utils/supabase');
 const User = require('./models/User');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Railway)
@@ -93,37 +93,34 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Internal Server Error' });
 });
 
-// Initialize Game Loop
-const gameLoop = new GameLoop(io);
-
-// Crash Recovery: Refund any active bets from previous session
-gameLoop.refundActiveBets();
-
 // Socket.io Middleware for Auth (Optional for connection, required for betting)
-io.use(async (socket, next) => {
+io.use((socket, next) => {
     const token = socket.handshake.auth.token;
     if (token) {
         try {
-            const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
-
-            if (supabaseUser && !error) {
-                // Find user in MongoDB to get internal ID and Role
-                const user = await User.findOne({ supabaseUid: supabaseUser.id });
-                if (user) {
-                    socket.user = {
-                        id: user.id,
-                        role: user.role,
-                        supabaseUid: user.supabaseUid
-                    };
-                }
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            // Validate JWT payload structure
+            if (decoded.user && decoded.user.id) {
+                socket.user = decoded.user;
             }
         } catch (err) {
             // Invalid token, but we allow connection for spectating
-            logger.warn(`Socket auth failed: ${err.message}`);
         }
     }
     next();
 });
+
+if (require.main === module) {
+    // Initialize Game Loop
+    const gameLoop = new GameLoop(io);
+
+    // Crash Recovery: Refund any active bets from previous session
+    gameLoop.refundActiveBets();
+
+    server.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT}`);
+    });
+}
 
 io.on('connection', (socket) => {
     logger.info(`A user connected: ${socket.id} ${socket.user ? `(User: ${socket.user.id})` : '(Guest)'}`);
@@ -248,6 +245,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+    server.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = { app, server };

@@ -1,50 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const User = require('../models/User');
-const Transaction = require('../models/Transaction');
-const Bet = require('../models/Bet');
-const AdminLog = require('../models/AdminLog');
-const GameStats = require('../models/GameStats');
-const GameResult = require('../models/GameResult');
-const supabase = require('../utils/supabase');
-
-// Allowed status values for user status updates
-const ALLOWED_STATUSES = ['pending', 'approved', 'rejected'];
-
-// Helper to validate MongoDB ObjectId
-const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @route   GET api/admin/users
 // @desc    Get all users
 // @access  Admin
 router.get('/users', auth, admin, async (req, res) => {
     try {
-        const page = parseInt(req.query.page);
-        const limit = parseInt(req.query.limit) || 20;
-
-        // If page is provided, return paginated structure
-        if (page) {
-            const skip = (page - 1) * limit;
-            const [users, total] = await Promise.all([
-                User.find().select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
-                User.countDocuments()
-            ]);
-
-            return res.json({
-                data: users,
-                pagination: {
-                    total,
-                    page,
-                    limit,
-                    pages: Math.ceil(total / limit)
-                }
-            });
-        }
-
-        // If no pagination parameters are provided, return all users (Legacy support)
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
@@ -53,40 +17,19 @@ router.get('/users', auth, admin, async (req, res) => {
     }
 });
 
+const Transaction = require('../models/Transaction');
+const Bet = require('../models/Bet');
+const AdminLog = require('../models/AdminLog');
+
 // @route   GET api/admin/logs
 // @desc    Get admin action logs
 // @access  Admin
 router.get('/logs', auth, admin, async (req, res) => {
     try {
-        const page = parseInt(req.query.page);
-        const limit = parseInt(req.query.limit) || 20;
-
-        if (page) {
-            const skip = (page - 1) * limit;
-            const [logs, total] = await Promise.all([
-                AdminLog.find()
-                    .populate('adminId', 'username')
-                    .sort({ createdAt: -1 })
-                    .skip(skip)
-                    .limit(limit),
-                AdminLog.countDocuments()
-            ]);
-
-            return res.json({
-                data: logs,
-                pagination: {
-                    total,
-                    page,
-                    limit,
-                    pages: Math.ceil(total / limit)
-                }
-            });
-        }
-
         const logs = await AdminLog.find()
             .populate('adminId', 'username')
             .sort({ createdAt: -1 })
-            .limit(limit); // Use limit from query even if not paginating structure
+            .limit(100);
         res.json(logs);
     } catch (err) {
         console.error(err.message);
@@ -99,17 +42,35 @@ router.get('/logs', auth, admin, async (req, res) => {
 // @access  Admin
 router.get('/stats', auth, admin, async (req, res) => {
     try {
-        const stats = await GameStats.getStats();
-
-        // Recalculate accurate user counts dynamically (excluding admins)
         const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
         const pendingUsers = await User.countDocuments({ status: 'pending' });
 
-        // Return mixed stats (dynamic counts + cached aggregations)
+        // Calculate Net Profit (Total Deposits - Total Withdrawals)
+        // Or simpler: Total User Losses - Total User Wins
+        // For now, let's use: Total Deposits - Total Withdrawals based on Transactions
+        // Calculate Net Profit using Bets
+        // Net Profit = Total Bets Amount - Total Payouts
+        const betStats = await Bet.aggregate([
+            {
+                $match: { status: { $ne: 'refunded' } }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalBets: { $sum: '$amount' },
+                    totalPayouts: { $sum: '$payout' }
+                }
+            }
+        ]);
+
+        const netProfit = betStats.length > 0
+            ? betStats[0].totalBets - betStats[0].totalPayouts
+            : 0;
+
         res.json({
-            ...stats.toObject(),
             totalUsers,
-            pendingUsers
+            pendingUsers,
+            netProfit
         });
     } catch (err) {
         console.error(err.message);
@@ -123,10 +84,6 @@ router.get('/stats', auth, admin, async (req, res) => {
 router.get('/users/:id/history', auth, admin, async (req, res) => {
     try {
         const userId = req.params.id;
-
-        if (!isValidObjectId(userId)) {
-            return res.status(400).json({ msg: 'Invalid user ID' });
-        }
 
         const bets = await Bet.find({ user: userId })
             .sort({ createdAt: -1 })
@@ -154,22 +111,9 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
 // @desc    Update user balance
 // @access  Admin
 router.put('/users/:id/balance', auth, admin, async (req, res) => {
-    if (!isValidObjectId(req.params.id)) {
-        return res.status(400).json({ msg: 'Invalid user ID' });
-    }
     try {
-        let { balance: rawBalance, reason } = req.body;
-
-        // Loosely parse number: remove all non-numeric characters except dot and minus
-        if (typeof rawBalance === 'string') {
-            rawBalance = rawBalance.replace(/,/g, '');
-        }
-
-        const balance = Math.floor(Number(rawBalance));
-
-        if (balance === undefined || balance === null || isNaN(balance) || balance < 0) {
-            return res.status(400).json({ msg: 'Please provide a valid positive balance' });
-        }
+        const { balance: rawBalance, reason } = req.body;
+        const balance = Math.floor(rawBalance);
 
         if (!reason || reason.trim() === '') {
             return res.status(400).json({ msg: 'Reason is required' });
@@ -177,23 +121,21 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
         // Get old user to calculate difference
         const oldUser = await User.findById(req.params.id);
-        if (!oldUser) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
+        if (!oldUser) return res.status(404).json({ msg: 'User not found' });
 
         const difference = balance - oldUser.balance;
 
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { balance: balance },
-            { new: true, runValidators: true }
+            { new: true }
         ).select('-password');
 
         // Log Transaction
         if (difference !== 0) {
             const transaction = new Transaction({
                 user: user._id,
-                type: difference > 0 ? 'deposit' : 'withdraw',
+                type: difference > 0 ? 'deposit' : 'withdraw', // Or 'adjustment'
                 amount: Math.abs(difference),
                 balanceAfter: user.balance,
                 description: `Admin ${difference > 0 ? 'added' : 'removed'} funds`
@@ -210,21 +152,20 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
             });
             await log.save();
 
-            // Update Net Profit in GameStats
-            // If admin ADDS money (deposit), it's a LIABILITY/LOSS for the house?
-            // Actually, manual balance changes are usually excluded from "Net Profit" which tracks GAME performance (Wagered - Payout).
-            // However, we should arguably track it somewhere. For now, we won't touch GameStats netProfit as that is game-logic specific.
+            // Emit new log
+            const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
+            req.io.to('admin-room').emit('admin:newLog', populatedLog);
         }
 
-        // Socket events
-        if (difference !== 0) {
-            // Fetch the latest log to emit with populated admin details
-            const latestLog = await AdminLog.findOne({ adminId: req.user.id, action: 'update_balance' }).sort({ createdAt: -1 }).populate('adminId', 'username');
-            if (latestLog) req.io.to('admin-room').emit('admin:newLog', latestLog);
-        }
-
+        // Emit balance update to user
         req.io.to(`user:${user._id}`).emit('balanceUpdate', { balance: user.balance });
+
+        // Emit update to admin panel
         req.io.to('admin-room').emit('admin:userUpdate', user);
+
+        // Emit new log
+        // This block was added by mistake in previous step, removing it to avoid duplication/errors
+        // if (difference !== 0) { ... } 
 
         res.json(user);
     } catch (err) {
@@ -233,41 +174,15 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
     }
 });
 
-
 // @route   DELETE api/admin/users/:id
 // @desc    Delete user
 // @access  Admin
 router.delete('/users/:id', auth, admin, async (req, res) => {
     try {
-        const userId = req.params.id;
-
-        if (!isValidObjectId(userId)) {
-            return res.status(400).json({ msg: 'Invalid user ID' });
-        }
-
-        const user = await User.findById(userId);
+        const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        // Delete user from Supabase first (if they have a supabaseUid)
-        if (user.supabaseUid) {
-            try {
-                const { error } = await supabase.auth.admin.deleteUser(user.supabaseUid);
-                if (error) {
-                    console.error('Failed to delete user from Supabase:', error.message);
-                    // Continue with MongoDB deletion even if Supabase fails
-                }
-            } catch (supabaseErr) {
-                console.error('Supabase deletion error:', supabaseErr.message);
-                // Continue with MongoDB deletion
-            }
-        }
-
-        // Delete user from MongoDB
-        await User.findByIdAndDelete(userId);
-
-        // Cleanup associated data
-        await Bet.deleteMany({ user: userId });
-        await Transaction.deleteMany({ user: userId });
+        await User.findByIdAndDelete(req.params.id);
 
         // Log Admin Action
         const log = new AdminLog({
@@ -275,18 +190,23 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
             action: 'delete_user',
             targetUserId: user._id,
             targetUsername: user.username,
-            details: 'Deleted user and all associated history'
+            details: 'Deleted user'
         });
         await log.save();
 
+        // Emit user deleted event
         req.io.to('admin-room').emit('admin:userDeleted', user._id);
 
+        // Emit new log
         const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
         req.io.to('admin-room').emit('admin:newLog', populatedLog);
 
+        // Emit stats update (since user count changed)
+        // We can just trigger a stats refresh on client or emit the new stats.
+        // Let's emit a signal to refresh stats.
         req.io.to('admin-room').emit('admin:statsUpdate');
 
-        res.json({ msg: 'User and history removed' });
+        res.json({ msg: 'User removed' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -298,25 +218,12 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
 // @access  Admin
 router.put('/users/:id/status', auth, admin, async (req, res) => {
     try {
-        if (!isValidObjectId(req.params.id)) {
-            return res.status(400).json({ msg: 'Invalid user ID' });
-        }
-
         const { status } = req.body;
-
-        if (!status || !ALLOWED_STATUSES.includes(status)) {
-            return res.status(400).json({ msg: `Invalid status. Allowed values: ${ALLOWED_STATUSES.join(', ')}` });
-        }
-
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { status: status },
             { new: true }
         ).select('-password');
-
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
 
         // Log Admin Action
         const log = new AdminLog({
@@ -338,9 +245,6 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
         // Emit update to admin panel
         req.io.to('admin-room').emit('admin:userUpdate', user);
 
-        // Notify the user about the status change
-        req.io.to(`user:${user._id}`).emit('statusUpdate', { status: status });
-
         res.json(user);
     } catch (err) {
         console.error(err.message);
@@ -348,79 +252,23 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
     }
 });
 
-
+const GameResult = require('../models/GameResult');
 
 // @route   GET api/admin/rounds
 // @desc    Get all rounds with summary stats
 // @access  Admin
 router.get('/rounds', auth, admin, async (req, res) => {
     try {
-        const page = parseInt(req.query.page);
-        const limit = parseInt(req.query.limit) || 20;
-
-        if (page) {
-            const skip = (page - 1) * limit;
-            const [rounds, total] = await Promise.all([
-                GameResult.find()
-                    .sort({ roundNumber: -1 })
-                    .skip(skip)
-                    .limit(limit)
-                    .lean(),
-                GameResult.countDocuments()
-            ]);
-
-            // Stats calculation...
-            const roundsWithStats = await Promise.all(rounds.map(async (round) => {
-                if (round.stats && round.stats.totalBets !== undefined) {
-                    return round;
-                }
-
-                // Fallback: Calculate stats dynamically for legacy records
-                const bets = await Bet.find({ roundId: round.roundId }).lean();
-                const totalBets = bets.length;
-                const totalWagered = bets.reduce((sum, b) => sum + b.amount, 0);
-                const totalPayout = bets.reduce((sum, b) => sum + (b.payout || 0), 0);
-                const netProfit = totalWagered - totalPayout;
-                const uniqueUsers = new Set(bets.map(b => b.user?.toString())).size;
-
-                return {
-                    ...round,
-                    stats: {
-                        totalBets,
-                        totalWagered,
-                        totalPayout,
-                        netProfit,
-                        uniqueUsers
-                    }
-                };
-            }));
-
-            return res.json({
-                data: roundsWithStats,
-                pagination: {
-                    total,
-                    page,
-                    limit,
-                    pages: Math.ceil(total / limit)
-                }
-            });
-        }
-
-        // Get all game results ordered by round number descending (fallback/legacy)
+        // Get all game results ordered by round number descending
         const rounds = await GameResult.find()
             .sort({ roundNumber: -1 })
-            .limit(limit)
+            .limit(100)
             .lean();
 
-        // Optimization: Use pre-calculated stats if available to avoid N+1 queries.
-        // Falls back to on-the-fly calculation for older records.
+        // For each round, calculate betting stats
         const roundsWithStats = await Promise.all(rounds.map(async (round) => {
-            if (round.stats && round.stats.totalBets !== undefined) {
-                return round;
-            }
-
-            // Fallback: Calculate stats dynamically for legacy records that lack pre-calculated data
             const bets = await Bet.find({ roundId: round.roundId }).lean();
+
             const totalBets = bets.length;
             const totalWagered = bets.reduce((sum, b) => sum + b.amount, 0);
             const totalPayout = bets.reduce((sum, b) => sum + (b.payout || 0), 0);

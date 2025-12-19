@@ -1,18 +1,105 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { authLimiter } = require('../middleware/rateLimiter');
 
-// Login and Register are now handled client-side via Supabase.
-
-// @route   GET api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me', auth, async (req, res) => {
+// Register
+router.post('/register', authLimiter, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('username balance role status');
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        const { username, password } = req.body;
 
+        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters and include at least one number and one special character' });
+        }
+
+        // Check if user exists
+        let user = await User.findOne({ username });
+        if (user) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Create user
+        user = new User({
+            username,
+            password: hashedPassword
+        });
+
+        await user.save();
+
+        // Emit new user event to admin
+        // We need to attach io to req in auth routes too. 
+        // server/index.js does `app.use((req, res, next) => { req.io = io; next(); });` before routes, so it should be available.
+        if (req.io) {
+            req.io.to('admin-room').emit('admin:newUser', user);
+            req.io.to('admin-room').emit('admin:statsUpdate');
+        }
+
+        res.json({ message: 'Registration successful. Please wait for admin approval.' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// Login
+router.post('/login', authLimiter, async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        // Check if user exists
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Validate password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Check status
+        if (user.status === 'pending') {
+            return res.status(403).json({ message: 'Account pending approval' });
+        }
+        if (user.status === 'rejected') {
+            return res.status(403).json({ message: 'Account rejected' });
+        }
+
+        // Create token
+        const payload = {
+            user: {
+                id: user.id
+            }
+        };
+
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' },
+            (err, token) => {
+                if (err) throw err;
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role } });
+            }
+        );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// Get User
+router.get('/me', require('../middleware/auth'), async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        // Return consistent format with login response (id instead of _id)
         res.json({
             id: user.id,
             username: user.username,

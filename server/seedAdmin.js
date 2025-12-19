@@ -12,7 +12,7 @@ const createAdmin = async () => {
       console.warn("Usage: MONGO_URL not found, defaulting to localhost.");
     }
 
-    await mongoose.connect(MONGO_URL, { dbName: 'roulette' });
+    await mongoose.connect(MONGO_URL, { dbName: "roulette" });
     console.log("Connected to MongoDB");
 
     const adminUsername = process.env.ADMIN_USERNAME || "admin";
@@ -26,14 +26,22 @@ const createAdmin = async () => {
 
     // Check Supabase for existing user
     console.log("Checking Supabase...");
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    const {
+      data: { users },
+      error: listError,
+    } = await supabase.auth.admin.listUsers();
     if (listError) throw listError;
 
-    const sbUser = users.find(u => u.email === adminEmail);
+    const sbUser = users.find((u) => u.email === adminEmail);
 
     // If both exist and are properly synced, skip
-    if (existingAdmin && sbUser && existingAdmin.supabaseUid === sbUser.id &&
-      existingAdmin.role === 'admin' && existingAdmin.status === 'approved') {
+    if (
+      existingAdmin &&
+      sbUser &&
+      existingAdmin.supabaseUid === sbUser.id &&
+      existingAdmin.role === "admin" &&
+      existingAdmin.status === "approved"
+    ) {
       console.log("Admin already exists and is properly synced. Skipping.");
       await mongoose.disconnect();
       process.exit(0);
@@ -44,12 +52,14 @@ const createAdmin = async () => {
     if (!sbUser) {
       // Create in Supabase
       console.log("Creating Admin in Supabase...");
-      const { data, error: createError } = await supabase.auth.admin.createUser({
-        email: adminEmail,
-        password: adminPassword,
-        email_confirm: true,
-        user_metadata: { username: adminUsername }
-      });
+      const { data, error: createError } = await supabase.auth.admin.createUser(
+        {
+          email: adminEmail,
+          password: adminPassword,
+          email_confirm: true,
+          user_metadata: { username: adminUsername },
+        },
+      );
 
       if (createError) throw createError;
       supabaseUid = data.user.id;
@@ -59,9 +69,10 @@ const createAdmin = async () => {
       console.log("Admin exists in Supabase. Ensuring password...");
       const { error: updateError } = await supabase.auth.admin.updateUserById(
         sbUser.id,
-        { password: adminPassword, user_metadata: { username: adminUsername } }
+        { password: adminPassword, user_metadata: { username: adminUsername } },
       );
-      if (updateError) console.warn("Could not update admin password:", updateError.message);
+      if (updateError)
+        console.warn("Could not update admin password:", updateError.message);
       supabaseUid = sbUser.id;
     }
 
@@ -69,8 +80,8 @@ const createAdmin = async () => {
     if (existingAdmin) {
       // Update existing admin
       existingAdmin.supabaseUid = supabaseUid;
-      existingAdmin.role = 'admin';
-      existingAdmin.status = 'approved';
+      existingAdmin.role = "admin";
+      existingAdmin.status = "approved";
       await existingAdmin.save();
       console.log("MongoDB Admin Updated.");
     } else {
@@ -78,9 +89,9 @@ const createAdmin = async () => {
       const admin = new User({
         username: adminUsername,
         supabaseUid: supabaseUid,
-        role: 'admin',
-        status: 'approved',
-        balance: 0
+        role: "admin",
+        status: "approved",
+        balance: 0,
       });
       await admin.save();
       console.log("MongoDB Admin Created.");
