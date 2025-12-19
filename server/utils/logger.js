@@ -1,40 +1,41 @@
-const getCircularReplacer = () => {
-    const seen = new WeakSet();
-    return (key, value) => {
-        if (typeof value === "object" && value !== null) {
-            if (seen.has(value)) {
-                return '[Circular]';
-            }
-            seen.add(value);
-        }
-        return value;
-    };
-};
+const winston = require('winston');
 
-const safeStringify = (obj) => {
-    try {
-        return JSON.stringify(obj, getCircularReplacer());
-    } catch (err) {
-        return JSON.stringify({ level: 'error', message: 'Logger failed to stringify message', error: err.message });
-    }
-};
+const winstonLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }),
+        winston.format.errors({ stack: true }),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.printf(
+                    info => `${info.timestamp} ${info.level}: ${info.message} ${info.stack ? '\n' + info.stack : ''} ${Object.keys(info).length > 3 ? JSON.stringify(Object.assign({}, info, { level: undefined, message: undefined, timestamp: undefined, stack: undefined })) : ''}`
+                )
+            )
+        })
+    ]
+});
 
 const logger = {
     info: (message, meta = {}) => {
-        console.log(safeStringify({ level: 'info', message, timestamp: new Date().toISOString(), ...meta }));
-    },
-    error: (message, error = null, meta = {}) => {
-        console.error(safeStringify({
-            level: 'error',
-            message,
-            error: error ? (error.message || error) : undefined,
-            stack: error ? error.stack : undefined,
-            timestamp: new Date().toISOString(),
-            ...meta
-        }));
+        winstonLogger.info(message, meta);
     },
     warn: (message, meta = {}) => {
-        console.warn(safeStringify({ level: 'warn', message, timestamp: new Date().toISOString(), ...meta }));
+        winstonLogger.warn(message, meta);
+    },
+    error: (message, error = null, meta = {}) => {
+        if (error instanceof Error) {
+            winstonLogger.error(message, { ...meta, error: error.message, stack: error.stack });
+        } else if (error) {
+            winstonLogger.error(message, { ...meta, error: error });
+        } else {
+            winstonLogger.error(message, meta);
+        }
     }
 };
 

@@ -123,8 +123,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import api from '../services/api';
+import socket from '../services/socket';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
 import { getResultColor, getValueColor } from '../utils/game';
 import { Button } from '@/components/ui/button';
@@ -222,5 +223,18 @@ const getProfitClass = (profit) => {
 
 onMounted(() => {
   fetchRounds();
+  
+  socket.on('admin:newRound', (round) => {
+      if (pagination.value.page === 1) {
+          rounds.value.unshift(round);
+          if (rounds.value.length > pagination.value.limit) {
+              rounds.value.pop();
+          }
+      }
+  });
+});
+
+onUnmounted(() => {
+    socket.off('admin:newRound');
 });
 </script>

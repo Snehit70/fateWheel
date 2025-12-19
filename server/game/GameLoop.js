@@ -318,6 +318,8 @@ class GameLoop {
             });
             await gameResult.save();
 
+            this.io.to('admin-room').emit('admin:newRound', gameResult);
+
             // Update Global Stats
             await GameStats.findOneAndUpdate({}, {
                 $inc: {

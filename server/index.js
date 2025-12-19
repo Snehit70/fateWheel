@@ -112,10 +112,10 @@ io.use((socket, next) => {
     next();
 });
 
-if (require.main === module) {
-    // Initialize Game Loop
-    const gameLoop = new GameLoop(io);
+const PORT = process.env.PORT || 3000;
+const gameLoop = new GameLoop(io);
 
+if (require.main === module) {
     // Crash Recovery: Refund any active bets from previous session
     gameLoop.refundActiveBets();
 
@@ -245,12 +245,6 @@ process.on('unhandledRejection', (reason, promise) => {
     process.exit(1);
 });
 
-const PORT = process.env.PORT || 3000;
-
-if (require.main === module) {
-    server.listen(PORT, () => {
-        logger.info(`Server running on port ${PORT}`);
-    });
-}
+// PORT and listen handled above
 
 module.exports = { app, server };
