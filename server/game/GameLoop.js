@@ -35,6 +35,29 @@ class GameLoop {
         this.maxBetAmount = BET_LIMITS.MAX;
 
         this.init();
+
+        // Initialize locks map
+        this.userLocks = new Map();
+    }
+
+    // Simple mutex implementation
+    async withUserLock(userId, action) {
+        if (!this.userLocks.has(userId)) {
+            this.userLocks.set(userId, Promise.resolve());
+        }
+
+        const promise = this.userLocks.get(userId).then(async () => {
+            try {
+                return await action();
+            } catch (err) {
+                throw err;
+            }
+        });
+
+        // Update the lock pointer, catching errors to keep the chain alive
+        this.userLocks.set(userId, promise.catch(() => { }));
+
+        return promise;
     }
 
     async init() {
@@ -318,140 +341,144 @@ class GameLoop {
     }
 
     async placeBet(user, betData) {
-        if (this.state !== GAME_STATES.WAITING) {
-            throw new Error("Betting is closed");
-        }
-
-        const { type, value, amount } = betData;
-
-        // Validation using centralized constants
-        if (!amount || isNaN(amount) || amount < BET_LIMITS.MIN || !Number.isInteger(amount)) {
-            throw new Error(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
-        }
-
-        // Validate type and value against constants
-        const VALID_TYPES = ['number', 'color', 'type'];
-        if (!VALID_TYPES.includes(type)) {
-            throw new Error("Invalid bet type");
-        }
-
-        if (type === 'number') {
-            if (!Number.isInteger(value) || value < NUMBER_RANGE.MIN || value > NUMBER_RANGE.MAX) {
-                throw new Error(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
+        return this.withUserLock(user.id, async () => {
+            if (this.state !== GAME_STATES.WAITING) {
+                throw new Error("Betting is closed");
             }
-        } else if (type === 'color') {
-            if (!Object.values(COLORS).includes(value)) {
-                throw new Error("Invalid color bet");
+
+            const { type, value, amount } = betData;
+
+            // Validation using centralized constants
+            if (!amount || isNaN(amount) || amount < BET_LIMITS.MIN || !Number.isInteger(amount)) {
+                throw new Error(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
             }
-        } else if (type === 'type') {
-            if (!Object.values(BET_TYPES).includes(value)) {
-                throw new Error("Invalid type bet (must be even or odd)");
+
+            // Validate type and value against constants
+            const VALID_TYPES = ['number', 'color', 'type'];
+            if (!VALID_TYPES.includes(type)) {
+                throw new Error("Invalid bet type");
             }
-        }
 
-        // Check max bet amount limit per user per round (maxBetAmount parsed once in constructor)
-        const userActiveBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
-        const currentTotalBet = userActiveBets.reduce((sum, b) => sum + b.amount, 0);
-
-        if (currentTotalBet + amount > this.maxBetAmount) {
-            const remainingAllowance = this.maxBetAmount - currentTotalBet;
-            if (remainingAllowance <= 0) {
-                throw new Error(`Maximum bet limit of ₹${this.maxBetAmount} reached for this round`);
+            if (type === 'number') {
+                if (!Number.isInteger(value) || value < NUMBER_RANGE.MIN || value > NUMBER_RANGE.MAX) {
+                    throw new Error(`Invalid number bet (must be ${NUMBER_RANGE.MIN}-${NUMBER_RANGE.MAX})`);
+                }
+            } else if (type === 'color') {
+                if (!Object.values(COLORS).includes(value)) {
+                    throw new Error("Invalid color bet");
+                }
+            } else if (type === 'type') {
+                if (!Object.values(BET_TYPES).includes(value)) {
+                    throw new Error("Invalid type bet (must be even or odd)");
+                }
             }
-            throw new Error(`Bet exceeds limit. You can only bet ₹${remainingAllowance} more this round (Max: ₹${this.maxBetAmount})`);
-        }
 
-        // Atomic check and deduct
-        const dbUser = await User.findOneAndUpdate(
-            { _id: user.id, balance: { $gte: amount } },
-            { $inc: { balance: -amount } },
-            { new: true }
-        );
+            // Check max bet amount limit per user per round (maxBetAmount parsed once in constructor)
+            const userActiveBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
+            const currentTotalBet = userActiveBets.reduce((sum, b) => sum + b.amount, 0);
 
-        if (!dbUser) {
-            throw new Error("Insufficient balance");
-        }
+            if (currentTotalBet + amount > this.maxBetAmount) {
+                const remainingAllowance = this.maxBetAmount - currentTotalBet;
+                if (remainingAllowance <= 0) {
+                    throw new Error(`Maximum bet limit of ₹${this.maxBetAmount} reached for this round`);
+                }
+                throw new Error(`Bet exceeds limit. You can only bet ₹${remainingAllowance} more this round (Max: ₹${this.maxBetAmount})`);
+            }
 
-        // Create Bet in DB (Active)
-        const newBet = new Bet({
-            user: user.id,
-            username: dbUser.username,
-            type,
-            value,
-            amount,
-            status: 'active',
-            roundId: this.currentRoundId
-        });
-        await newBet.save();
+            // Atomic check and deduct
+            const dbUser = await User.findOneAndUpdate(
+                { _id: user.id, balance: { $gte: amount } },
+                { $inc: { balance: -amount } },
+                { new: true }
+            );
 
-        // Add to memory for UI
-        // Check if bet already exists to aggregate for UI
-        const existingBet = this.bets.find(b => b.userId === user.id && b.type === type && b.value === value);
+            if (!dbUser) {
+                throw new Error("Insufficient balance");
+            }
 
-        if (existingBet) {
-            existingBet.amount += amount;
-            // Aggregate bets in memory for UI presentation only. 
-            // DB records track individual bets for settlement.
-        } else {
-            const bet = {
-                userId: user.id,
+            // Create Bet in DB (Active)
+            const newBet = new Bet({
+                user: user.id,
                 username: dbUser.username,
                 type,
                 value,
                 amount,
-                _id: newBet._id // Store ID just in case
-            };
-            this.bets.push(bet);
-        }
+                status: 'active',
+                roundId: this.currentRoundId
+            });
+            await newBet.save();
 
-        this.broadcastState();
-        this.io.to('admin-room').emit('admin:userUpdate', dbUser);
-        return dbUser.balance;
+            // Add to memory for UI
+            // Check if bet already exists to aggregate for UI
+            const existingBet = this.bets.find(b => b.userId === user.id && b.type === type && b.value === value);
+
+            if (existingBet) {
+                existingBet.amount += amount;
+                // Aggregate bets in memory for UI presentation only. 
+                // DB records track individual bets for settlement.
+            } else {
+                const bet = {
+                    userId: user.id,
+                    username: dbUser.username,
+                    type,
+                    value,
+                    amount,
+                    _id: newBet._id // Store ID just in case
+                };
+                this.bets.push(bet);
+            }
+
+            this.broadcastState();
+            this.io.to('admin-room').emit('admin:userUpdate', dbUser);
+            return dbUser.balance;
+        });
     }
 
     async clearBets(user) {
-        try {
-            if (this.state !== GAME_STATES.WAITING) {
-                throw new Error("Cannot clear bets now");
+        return this.withUserLock(user.id, async () => {
+            try {
+                if (this.state !== GAME_STATES.WAITING) {
+                    throw new Error("Cannot clear bets now");
+                }
+
+                // Find user's active bets in DB
+                const activeBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
+                if (activeBets.length === 0) return;
+
+                const totalRefund = activeBets.reduce((sum, b) => sum + b.amount, 0);
+
+                // Refund to DB
+                await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
+
+                // Mark bets as refunded
+                await Bet.updateMany(
+                    { user: user.id, status: 'active', roundId: this.currentRoundId },
+                    { status: 'refunded' }
+                );
+
+                // Log Transaction
+                const dbUser = await User.findById(user.id);
+                const transaction = new Transaction({
+                    user: user.id,
+                    type: 'adjustment',
+                    amount: totalRefund,
+                    balanceAfter: dbUser.balance,
+                    description: 'Refund: Bets Cleared'
+                });
+                await transaction.save();
+
+                // Remove bets from memory
+                this.bets = this.bets.filter(b => b.userId !== user.id);
+
+                this.broadcastState();
+
+                this.io.to('admin-room').emit('admin:userUpdate', dbUser);
+                return dbUser.balance;
+            } catch (err) {
+                logger.error("Error clearing bets for user:", user.id, err);
+                throw err;
             }
-
-            // Find user's active bets in DB
-            const activeBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
-            if (activeBets.length === 0) return;
-
-            const totalRefund = activeBets.reduce((sum, b) => sum + b.amount, 0);
-
-            // Refund to DB
-            await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
-
-            // Mark bets as refunded
-            await Bet.updateMany(
-                { user: user.id, status: 'active', roundId: this.currentRoundId },
-                { status: 'refunded' }
-            );
-
-            // Log Transaction
-            const dbUser = await User.findById(user.id);
-            const transaction = new Transaction({
-                user: user.id,
-                type: 'adjustment',
-                amount: totalRefund,
-                balanceAfter: dbUser.balance,
-                description: 'Refund: Bets Cleared'
-            });
-            await transaction.save();
-
-            // Remove bets from memory
-            this.bets = this.bets.filter(b => b.userId !== user.id);
-
-            this.broadcastState();
-
-            this.io.to('admin-room').emit('admin:userUpdate', dbUser);
-            return dbUser.balance;
-        } catch (err) {
-            logger.error("Error clearing bets for user:", user.id, err);
-            throw err;
-        }
+        });
     }
 }
 
