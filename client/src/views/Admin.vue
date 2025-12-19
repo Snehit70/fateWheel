@@ -414,6 +414,11 @@ const saveBalance = async () => {
       reason: reason.value
     });
     
+    // Update local state immediately
+    const index = users.value.findIndex(u => u._id === editingUser.value._id);
+    if (index !== -1) {
+      users.value[index] = res.data;
+    }
     
     editingUser.value = null;
     fetchStats(); // Refresh stats
