@@ -119,34 +119,26 @@ export function useGameLogic() {
     onMounted(() => {
         socket.connect();
 
-        socket.on('gameState', (data) => {
-            // If a clear operation is pending, filter out current user's bets from the broadcast
-            // to preserve the optimistic clear until the server confirms
-            if (isClearPending() && authStore.user?.id) {
-                const userId = authStore.user.id;
-                bets.value = data.bets.filter(b => b.userId !== userId);
-            } else {
-                bets.value = data.bets;
-            }
-            spinHistory.value = data.history;
-
+        const handleGameUpdate = (data) => {
             // Sync Time
             if (data.endTime) {
                 endTime = data.endTime;
             }
 
             if (data.state === 'WAITING') {
-                status.value = 'ROLLING IN';
-                isSpinning.value = false;
-                isAnimating.value = false;
-                lastResult.value = null;
-                winnings.value = 0;
+                if (status.value !== 'ROLLING IN') { // Only reset if changed to prevent jitter
+                    status.value = 'ROLLING IN';
+                    isSpinning.value = false;
+                    isAnimating.value = false;
+                    lastResult.value = null;
+                    winnings.value = 0;
+                }
 
                 if (!countdownInterval) {
                     countdownInterval = setInterval(() => {
                         const remaining = Math.max(0, (endTime - socket.getServerTime()) / 1000);
                         timeLeft.value = remaining;
-                    }, 100); // Update more frequently for smooth timer
+                    }, 100);
                 }
 
             } else if (data.state === 'SPINNING') {
@@ -177,6 +169,46 @@ export function useGameLogic() {
                     countdownInterval = null;
                 }
             }
+        };
+
+        socket.on('gameState', (data) => {
+            // Full Sync
+            if (isClearPending() && authStore.user?.id) {
+                const userId = authStore.user.id;
+                bets.value = data.bets.filter(b => b.userId !== userId);
+            } else {
+                bets.value = data.bets;
+            }
+            spinHistory.value = data.history;
+
+            handleGameUpdate(data);
+        });
+
+        // Light heartbeat
+        socket.on('gameUpdate', (data) => {
+            handleGameUpdate(data);
+        });
+
+        // Delta bet update
+        socket.on('betPlaced', (bet) => {
+            // If we initiated the clear, ignore incoming bets for us strictly until clear resolves
+            // But actually, betPlaced is for specific bets. If we are clearing, we shouldn't receive betPlaced for us unless we placed it.
+
+            // Deduplicate / Update
+            // Check if bet exists in our list (by userId, type, value)
+            const existingIdx = bets.value.findIndex(b => b.userId === bet.userId && b.type === bet.type && b.value === bet.value);
+
+            if (existingIdx !== -1) {
+                // Update amount - Server is authority
+                bets.value[existingIdx].amount = bet.amount;
+            } else {
+                bets.value.push(bet);
+            }
+        });
+
+        // Clear bets update
+        socket.on('betsCleared', (userId) => {
+            bets.value = bets.value.filter(b => b.userId !== userId);
         });
 
         socket.on('spinResult', (data) => {

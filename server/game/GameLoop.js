@@ -136,7 +136,16 @@ class GameLoop {
         }
 
         // Broadcast state every second (or on change)
-        this.broadcastState();
+        this.broadcastUpdate();
+    }
+
+    broadcastUpdate() {
+        this.io.emit('gameUpdate', {
+            state: this.state,
+            endTime: this.endTime,
+            result: this.state === GAME_STATES.RESULT ? this.result : null,
+            targetResult: this.state === GAME_STATES.SPINNING ? this.result : null
+        });
     }
 
     broadcastState() {
@@ -428,7 +437,9 @@ class GameLoop {
                 this.bets.push(bet);
             }
 
-            this.broadcastState();
+            const betToEmit = existingBet || this.bets[this.bets.length - 1]; // Use the bet object from memory
+            this.io.emit('betPlaced', betToEmit);
+
             this.io.to('admin-room').emit('admin:userUpdate', dbUser);
             return dbUser.balance;
         });
@@ -470,7 +481,7 @@ class GameLoop {
                 // Remove bets from memory
                 this.bets = this.bets.filter(b => b.userId !== user.id);
 
-                this.broadcastState();
+                this.io.emit('betsCleared', user.id);
 
                 this.io.to('admin-room').emit('admin:userUpdate', dbUser);
                 return dbUser.balance;
