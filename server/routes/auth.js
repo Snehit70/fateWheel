@@ -86,7 +86,7 @@ router.post('/login', authLimiter, async (req, res) => {
             { expiresIn: '1h' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role } });
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role, status: user.status } });
             }
         );
     } catch (err) {
