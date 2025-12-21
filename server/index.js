@@ -4,7 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
-const { Server } = require('socket.io');
+const socketService = require('./services/socketService');
 const GameLoop = require('./game/GameLoop');
 const logger = require('./utils/logger');
 const User = require('./models/User');
@@ -16,7 +16,8 @@ const server = http.createServer(app);
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
-const io = new Server(server, {
+// Initialize Socket.io via Service
+const io = socketService.init(server, {
     cors: {
         origin: CLIENT_URL,
         methods: ["GET", "POST"]
@@ -46,10 +47,14 @@ app.use(require('helmet')());
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
 
-// Attach IO to request for routes
-app.use((req, res, next) => {
-    req.io = io;
-    next();
+// Routes
+// Note: req.io middleware removed. Routes should import socketService.
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/game', require('./routes/game'));
+app.get('/health', (req, res) => res.json({ status: "running" }))
+app.get('/', (req, res) => {
+    res.send('Roulette Server is running');
 });
 
 // Database Connection
@@ -76,18 +81,11 @@ if (!process.env.CLIENT_URL) {
     process.exit(1);
 }
 
-mongoose.connect(MONGO_URL, { dbName: 'roulette' })
-    .then(() => logger.info('Connected to MongoDB (DB: roulette)'))
-    .catch(err => logger.error('MongoDB connection error:', err));
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/game', require('./routes/game'));
-app.get('/health', (req, res) => res.json({ status: "running" }))
-app.get('/', (req, res) => {
-    res.send('Roulette Server is running');
-});
+if (process.env.NODE_ENV !== 'test') {
+    mongoose.connect(MONGO_URL, { dbName: 'roulette' })
+        .then(() => logger.info('Connected to MongoDB (DB: roulette)'))
+        .catch(err => logger.error('MongoDB connection error:', err));
+}
 
 // Global Error Handler for Express
 app.use((err, req, res, next) => {
@@ -113,11 +111,11 @@ io.use((socket, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const gameLoop = new GameLoop(io);
+const gameLoop = new GameLoop(); // No args needed, uses socketService internally
 
 if (require.main === module) {
-    // Crash Recovery: Refund any active bets from previous session
-    gameLoop.refundActiveBets();
+    // Initialize Game Loop (starts round ID generation, refunding, and loop)
+    gameLoop.init();
 
     server.listen(PORT, () => {
         logger.info(`Server running on port ${PORT}`);
@@ -234,7 +232,6 @@ const gracefulShutdown = async (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Global Error Handlers
 process.on('uncaughtException', (err) => {
     logger.error('Uncaught Exception:', err);
     process.exit(1);
@@ -244,7 +241,5 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
     process.exit(1);
 });
-
-// PORT and listen handled above
 
 module.exports = { app, server };

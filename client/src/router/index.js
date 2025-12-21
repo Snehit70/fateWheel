@@ -20,12 +20,7 @@ const routes = [
         component: () => import('../views/Admin.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
     },
-    {
-        path: '/admin/logs',
-        name: 'AdminLogs',
-        component: () => import('../views/AdminLogs.vue'),
-        meta: { requiresAuth: true, requiresAdmin: true }
-    },
+    // AdminLogs route removed
     {
         path: '/admin/rounds',
         name: 'AdminRounds',

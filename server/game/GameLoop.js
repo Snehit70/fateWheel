@@ -8,6 +8,7 @@ const GameStats = require('../models/GameStats');
 const { SEGMENTS, PAYOUTS, TIMING, COLORS, BET_LIMITS, BET_TYPES, NUMBER_RANGE } = require('../constants/game');
 const logger = require('../utils/logger');
 const { secureRandomInt } = require('../utils/random');
+const socketService = require('../services/socketService');
 
 // Map constants to local variables for easier usage if needed, or use directly
 const GAME_STATES = {
@@ -20,21 +21,18 @@ const GAME_STATES = {
 const HISTORY_LIMIT = 15;
 
 class GameLoop {
-    constructor(io) {
-        this.io = io;
+    constructor() {
         this.state = GAME_STATES.WAITING;
         this.bets = []; // Cache for UI, but source of truth is DB for money
         this.history = [];
         this.endTime = 0; // Timestamp for current phase end
         this.result = null;
-        this.currentRoundId = crypto.randomUUID();
+        this.currentRoundId = null; // Will be set in init()
         this.roundNumber = 0; // Will be set from DB in init()
         this.processing = false;
 
         // Use centralized constants for bet limits
         this.maxBetAmount = BET_LIMITS.MAX;
-
-        this.init();
 
         // Initialize locks map
         this.userLocks = new Map();
@@ -72,7 +70,10 @@ class GameLoop {
             // Initialize to next round number (last + 1), or 1 if no history
             this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber + 1 : 1;
 
-            logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber}`);
+            // Generate initial Round ID
+            this.currentRoundId = await this.generateRoundId();
+
+            logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber} (ID: ${this.currentRoundId})`);
 
             this.startLoop();
         } catch (err) {
@@ -80,6 +81,66 @@ class GameLoop {
             // Retry initialization after delay
             logger.info("Retrying GameLoop initialization in 5 seconds...");
             setTimeout(() => this.init(), 5000);
+        }
+    }
+
+    // Generate sequential daily round ID (YYYYMMDD-XXXX)
+    async generateRoundId() {
+        try {
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
+            // Try to atomically look for today's stats and increment
+            let stats = await GameStats.findOneAndUpdate(
+                { lastDate: dateStr },
+                { $inc: { dailyNonce: 1 } },
+                { new: true }
+            );
+
+            if (!stats) {
+                // If no stats for today (or global stats empty/old date), reset
+                // Use findOneAndUpdate with upsert to handle concurrency implicitly if multiple servers (though logic here favors last write)
+                // but we check lastDate filter.
+
+                // First, try to update if it WAS old date (atomic reset)
+                stats = await GameStats.findOneAndUpdate(
+                    { lastDate: { $ne: dateStr } },
+                    { $set: { lastDate: dateStr, dailyNonce: 1 } },
+                    { new: true }
+                );
+
+                // If still null, it means either:
+                // 1. Another process updated it to today concurrently (so filter lastDate != dateStr failed).
+                // 2. Doc doesn't exist at all.
+
+                if (!stats) {
+                    // Try to fetch existing or create
+                    stats = await GameStats.findOne();
+                    if (!stats) {
+                        // Create
+                        stats = await GameStats.create({ lastDate: dateStr, dailyNonce: 1 });
+                    } else if (stats.lastDate === dateStr) {
+                        // Concurrent update happened, just increment
+                        stats = await GameStats.findOneAndUpdate(
+                            { lastDate: dateStr },
+                            { $inc: { dailyNonce: 1 } },
+                            { new: true }
+                        );
+                    } else {
+                        // Should have been caught by atomic reset... retry recursion once?
+                        // Just force update
+                        stats.lastDate = dateStr;
+                        stats.dailyNonce = 1;
+                        await stats.save();
+                    }
+                }
+            }
+
+            const nonce = String(stats.dailyNonce).padStart(4, '0');
+            return `${dateStr}-${nonce}`;
+        } catch (err) {
+            logger.error("Error generating round ID:", err);
+            return `FALLBACK-${Date.now()}`;
         }
     }
 
@@ -105,7 +166,7 @@ class GameLoop {
                 });
                 await transaction.save();
 
-                this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
+                socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
             }
             logger.info("Refunded all active bets");
         } catch (err) {
@@ -130,6 +191,7 @@ class GameLoop {
                 this.spin();
             }
         } else if (this.state === GAME_STATES.RESULT) {
+            // Wait for processing to be explicitly false before resetting
             if (timeLeft <= 0 && !this.processing) {
                 this.reset();
             }
@@ -140,7 +202,7 @@ class GameLoop {
     }
 
     broadcastUpdate() {
-        this.io.emit('gameUpdate', {
+        socketService.emitToAll('gameUpdate', {
             state: this.state,
             endTime: this.endTime,
             result: this.state === GAME_STATES.RESULT ? this.result : null,
@@ -149,7 +211,7 @@ class GameLoop {
     }
 
     broadcastState() {
-        this.io.emit('gameState', {
+        socketService.emitToAll('gameState', {
             state: this.state,
             endTime: this.endTime, // Send timestamp instead of duration
             bets: this.bets,
@@ -171,7 +233,7 @@ class GameLoop {
         this.result = SEGMENTS[resultIndex];
 
         // Broadcast immediately so clients start animation
-        this.io.emit('spinResult', {
+        socketService.emitToAll('spinResult', {
             result: this.result,
             endTime: this.endTime
         });
@@ -268,8 +330,8 @@ class GameLoop {
                 // Broadcast updates if user exists
                 if (updatedUser) {
                     if (totalWinnings > 0) {
-                        this.io.to(`user:${userId}`).emit('balanceUpdate', { balance: updatedUser.balance });
-                        this.io.to('admin-room').emit('admin:userUpdate', updatedUser);
+                        socketService.emitToUser(userId, 'balanceUpdate', { balance: updatedUser.balance });
+                        socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
                     }
                 }
 
@@ -318,7 +380,7 @@ class GameLoop {
             });
             await gameResult.save();
 
-            this.io.to('admin-room').emit('admin:newRound', gameResult);
+            socketService.emitToRoom('admin-room', 'admin:newRound', gameResult);
 
             // Update Global Stats
             await GameStats.findOneAndUpdate({}, {
@@ -341,13 +403,20 @@ class GameLoop {
         }
     }
 
-    reset() {
+    async reset() {
         this.state = GAME_STATES.WAITING;
         this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
         this.bets = [];
         this.result = null;
         this.roundNumber++; // Increment round number for next round
-        this.currentRoundId = crypto.randomUUID();
+
+        try {
+            this.currentRoundId = await this.generateRoundId();
+        } catch (e) {
+            logger.error("Failed to generate Round ID:", e);
+            this.currentRoundId = crypto.randomUUID(); // Fallback
+        }
+
         this.broadcastState();
     }
 
@@ -440,9 +509,9 @@ class GameLoop {
             }
 
             const betToEmit = existingBet || this.bets[this.bets.length - 1]; // Use the bet object from memory
-            this.io.emit('betPlaced', betToEmit);
+            socketService.emitToAll('betPlaced', betToEmit);
 
-            this.io.to('admin-room').emit('admin:userUpdate', dbUser);
+            socketService.emitToRoom('admin-room', 'admin:userUpdate', dbUser);
             return dbUser.balance;
         });
     }
@@ -483,9 +552,9 @@ class GameLoop {
                 // Remove bets from memory
                 this.bets = this.bets.filter(b => b.userId !== user.id);
 
-                this.io.emit('betsCleared', user.id);
+                socketService.emitToAll('betsCleared', user.id);
 
-                this.io.to('admin-room').emit('admin:userUpdate', dbUser);
+                socketService.emitToRoom('admin-room', 'admin:userUpdate', dbUser);
                 return dbUser.balance;
             } catch (err) {
                 logger.error("Error clearing bets for user:", user.id, err);

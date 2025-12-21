@@ -20,6 +20,15 @@ const gameStatsSchema = new mongoose.Schema({
     totalWagered: {
         type: Number,
         default: 0
+    },
+    // For sequential round ID generation
+    lastDate: {
+        type: String, // Format: YYYYMMDD
+        default: ''
+    },
+    dailyNonce: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true }); // timestamps: true auto-creates updatedAt and createdAt
 

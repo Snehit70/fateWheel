@@ -31,9 +31,7 @@
           <Button variant="outline" size="sm" as-child>
             <router-link to="/admin/rounds">Rounds</router-link>
           </Button>
-          <Button variant="outline" size="sm" as-child>
-            <router-link to="/admin/logs">Logs</router-link>
-          </Button>
+
         </div>
       </div>
 

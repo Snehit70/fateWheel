@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { authLimiter } = require('../middleware/rateLimiter');
+const socketService = require('../services/socketService');
 
 // Register
 router.post('/register', authLimiter, async (req, res) => {
@@ -34,12 +35,8 @@ router.post('/register', authLimiter, async (req, res) => {
         await user.save();
 
         // Emit new user event to admin
-        // We need to attach io to req in auth routes too. 
-        // server/index.js does `app.use((req, res, next) => { req.io = io; next(); });` before routes, so it should be available.
-        if (req.io) {
-            req.io.to('admin-room').emit('admin:newUser', user);
-            req.io.to('admin-room').emit('admin:statsUpdate');
-        }
+        socketService.emitToRoom('admin-room', 'admin:newUser', user);
+        socketService.emitToRoom('admin-room', 'admin:statsUpdate');
 
         res.json({ message: 'Registration successful. Please wait for admin approval.' });
     } catch (err) {
@@ -152,9 +149,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
         await user.save();
 
         // Emit update to admin panel so the toggle flips off automatically
-        if (req.io) {
-            req.io.to('admin-room').emit('admin:userUpdate', user);
-        }
+        socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
 
         res.json({ message: 'Password reset successful. You can now login.' });
     } catch (err) {

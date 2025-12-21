@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const User = require('../models/User');
+const socketService = require('../services/socketService');
 
 // @route   GET api/admin/users
 // @desc    Get all users
@@ -21,21 +22,7 @@ const Transaction = require('../models/Transaction');
 const Bet = require('../models/Bet');
 const AdminLog = require('../models/AdminLog');
 
-// @route   GET api/admin/logs
-// @desc    Get admin action logs
-// @access  Admin
-router.get('/logs', auth, admin, async (req, res) => {
-    try {
-        const logs = await AdminLog.find()
-            .populate('adminId', 'username')
-            .sort({ createdAt: -1 })
-            .limit(100);
-        res.json(logs);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
+// Logs route removed
 
 // @route   GET api/admin/stats
 // @desc    Get dashboard stats
@@ -154,18 +141,14 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
             // Emit new log
             const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-            req.io.to('admin-room').emit('admin:newLog', populatedLog);
+            socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
         }
 
         // Emit balance update to user
-        req.io.to(`user:${user._id}`).emit('balanceUpdate', { balance: user.balance });
+        socketService.emitToUser(user._id, 'balanceUpdate', { balance: user.balance });
 
         // Emit update to admin panel
-        req.io.to('admin-room').emit('admin:userUpdate', user);
-
-        // Emit new log
-        // This block was added by mistake in previous step, removing it to avoid duplication/errors
-        // if (difference !== 0) { ... } 
+        socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
 
         res.json(user);
     } catch (err) {
@@ -195,16 +178,14 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
         await log.save();
 
         // Emit user deleted event
-        req.io.to('admin-room').emit('admin:userDeleted', user._id);
+        socketService.emitToRoom('admin-room', 'admin:userDeleted', user._id);
 
         // Emit new log
         const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        req.io.to('admin-room').emit('admin:newLog', populatedLog);
+        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
 
-        // Emit stats update (since user count changed)
-        // We can just trigger a stats refresh on client or emit the new stats.
-        // Let's emit a signal to refresh stats.
-        req.io.to('admin-room').emit('admin:statsUpdate');
+        // Emit stats update
+        socketService.emitToRoom('admin-room', 'admin:statsUpdate');
 
         res.json({ msg: 'User removed' });
     } catch (err) {
@@ -237,16 +218,16 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
 
         // Emit new log
         const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        req.io.to('admin-room').emit('admin:newLog', populatedLog);
+        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
 
         // Emit stats update (pending count might have changed)
-        req.io.to('admin-room').emit('admin:statsUpdate');
+        socketService.emitToRoom('admin-room', 'admin:statsUpdate');
 
         // Emit update to admin panel
-        req.io.to('admin-room').emit('admin:userUpdate', user);
+        socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
 
         // Emit update to user
-        req.io.to(`user:${user._id}`).emit('userUpdate', user);
+        socketService.emitToUser(user._id, 'userUpdate', user);
 
         res.json(user);
     } catch (err) {
@@ -293,10 +274,10 @@ router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
 
         // Emit new log
         const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        req.io.to('admin-room').emit('admin:newLog', populatedLog);
+        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
 
         // Emit update to admin panel
-        req.io.to('admin-room').emit('admin:userUpdate', updatedUser);
+        socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
 
         res.json(updatedUser);
     } catch (err) {
