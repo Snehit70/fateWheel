@@ -64,12 +64,24 @@ class SocketService {
     }
 
     setToken(token) {
-        if (this.socket) {
-            this.socket.auth = { token };
-            if (this.socket.connected) {
-                this.socket.disconnect().connect();
+        return new Promise((resolve) => {
+            if (this.socket) {
+                this.socket.auth = { token };
+                if (this.socket.connected) {
+                    // Wait for reconnection to complete before resolving
+                    const onReconnect = () => {
+                        this.socket.off('connect', onReconnect);
+                        resolve();
+                    };
+                    this.socket.on('connect', onReconnect);
+                    this.socket.disconnect().connect();
+                } else {
+                    resolve();
+                }
+            } else {
+                resolve();
             }
-        }
+        });
     }
 
     syncTime() {

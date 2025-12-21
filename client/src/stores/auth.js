@@ -62,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
         async login(username, password) {
             try {
                 const response = await api.post('/auth/login', { username, password });
-                this.setAuth(response.data);
+                await this.setAuth(response.data);
             } catch (err) {
                 // Server returned an error response with a message
                 if (err.response?.data?.message) {
@@ -96,12 +96,12 @@ export const useAuthStore = defineStore('auth', {
                 throw err;
             }
         },
-        setAuth(data) {
+        async setAuth(data) {
             this.token = data.token;
             this.user = data.user;
             localStorage.setItem('token', data.token);
             api.defaults.headers.common['x-auth-token'] = data.token;
-            socket.setToken(data.token);
+            await socket.setToken(data.token);
 
             // Listen for balance updates
             socket.on('balanceUpdate', (payload) => {

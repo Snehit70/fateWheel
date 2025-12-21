@@ -1,12 +1,28 @@
 <template>
   <div class="w-full h-full">
-    <div class="flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide">
+    <!-- Mobile: Show 10 items -->
+    <div class="flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide lg:hidden">
         <transition-group name="list">
             <div 
-                v-for="(res, idx) in limitedHistory" 
+                v-for="(res, idx) in mobileHistory" 
                 :key="res.id || idx"
                 :class="[
                     'w-6 h-10 sm:w-8 sm:h-12 rounded-md flex-shrink-0 flex items-center justify-center text-[10px] sm:text-xs font-medium border border-opacity-20 transition-all duration-300',
+                    getColorClass(res.color)
+                ]"
+            >
+                {{ res.number }}
+            </div>
+        </transition-group>
+    </div>
+    <!-- Desktop: Show 15 items -->
+    <div class="hidden lg:flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide">
+        <transition-group name="list">
+            <div 
+                v-for="(res, idx) in desktopHistory" 
+                :key="res.id || idx"
+                :class="[
+                    'w-8 h-12 rounded-md flex-shrink-0 flex items-center justify-center text-xs font-medium border border-opacity-20 transition-all duration-300',
                     getColorClass(res.color)
                 ]"
             >
@@ -27,8 +43,12 @@ const props = defineProps({
     }
 });
 
-const limitedHistory = computed(() => {
+const mobileHistory = computed(() => {
     return props.history.slice(0, 10);
+});
+
+const desktopHistory = computed(() => {
+    return props.history.slice(0, 15);
 });
 
 const getColorClass = (color) => {

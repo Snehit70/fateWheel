@@ -9,7 +9,7 @@
         :class="activeTab === 'red' ? 'bg-[#ff4d4d]/20 text-[#ff4d4d] border border-[#ff4d4d]/50 shadow-[0_0_10px_rgba(255,77,77,0.2)]' : 'text-muted-foreground hover:bg-white/5'"
       >
         <span class="text-[10px] font-bold tracking-wider">RED</span>
-        <span class="text-[9px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("red") }}</span>
+        <span class="text-[9px] font-outfit mt-0.5 opacity-80">{{ getUserBetForColor("red") }}</span>
       </button>
       
       <button 
@@ -18,7 +18,7 @@
         :class="activeTab === 'green' ? 'bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'text-muted-foreground hover:bg-white/5'"
       >
         <span class="text-[10px] font-bold tracking-wider">ZERO</span>
-        <span class="text-[9px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("green") }}</span>
+        <span class="text-[9px] font-outfit mt-0.5 opacity-80">{{ getUserBetForColor("green") }}</span>
       </button>
 
       <button 
@@ -27,7 +27,7 @@
         :class="activeTab === 'black' ? 'bg-[#2d1f3d]/30 text-purple-300 border border-purple-400/50 shadow-[0_0_10px_rgba(138,43,226,0.3)]' : 'text-muted-foreground hover:bg-white/5'"
       >
         <span class="text-[10px] font-bold tracking-wider">BLACK</span>
-        <span class="text-[9px] font-outfit mt-0.5 opacity-80">${{ getUserBetForColor("black") }}</span>
+        <span class="text-[9px] font-outfit mt-0.5 opacity-80">{{ getUserBetForColor("black") }}</span>
       </button>
     </div>
 
