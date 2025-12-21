@@ -47,6 +47,7 @@ if (process.env.REDIS_URL) {
 app.use(require('helmet')());
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
+app.use(logger.requestLogger); // Request logging
 
 // Routes
 // Note: req.io middleware removed. Routes should import socketService.

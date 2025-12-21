@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const User = require('../models/User');
 const socketService = require('../services/socketService');
+const logger = require('../utils/logger');
 
 // @route   GET api/admin/users
 // @desc    Get all users
@@ -13,7 +14,7 @@ router.get('/users', auth, admin, async (req, res) => {
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to get users', err);
         res.status(500).send('Server Error');
     }
 });
@@ -56,7 +57,7 @@ router.get('/logs', auth, admin, async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to get admin logs', err);
         res.status(500).send('Server Error');
     }
 });
@@ -97,7 +98,7 @@ router.get('/stats', auth, admin, async (req, res) => {
             netProfit
         });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to get stats', err);
         res.status(500).send('Server Error');
     }
 });
@@ -126,7 +127,7 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
 
         res.json(history);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to get user history', err, { userId: req.params.id });
         res.status(500).send('Server Error');
     }
 });
@@ -198,7 +199,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 
         res.json(user);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to update user balance', err, { userId: req.params.id });
         res.status(500).send('Server Error');
     }
 });
@@ -235,7 +236,7 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
 
         res.json({ msg: 'User removed' });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to delete user', err, { userId: req.params.id });
         res.status(500).send('Server Error');
     }
 });
@@ -285,7 +286,7 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
 
         res.json(user);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to update user status', err, { userId: req.params.id });
         res.status(500).send('Server Error');
     }
 });
@@ -346,7 +347,7 @@ router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
 
         res.json(updatedUser);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to toggle password reset', err, { userId: req.params.id });
         res.status(500).send('Server Error');
     }
 });
@@ -388,7 +389,7 @@ router.get('/rounds', auth, admin, async (req, res) => {
 
         res.json(roundsWithStats);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to get rounds', err);
         res.status(500).send('Server Error');
     }
 });
@@ -423,7 +424,7 @@ router.get('/rounds/:roundId', auth, admin, async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Failed to get round details', err, { roundId: req.params.roundId });
         res.status(500).send('Server Error');
     }
 });

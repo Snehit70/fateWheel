@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { authLimiter } = require('../middleware/rateLimiter');
 const socketService = require('../services/socketService');
+const logger = require('../utils/logger');
 
 // Register
 router.post('/register', authLimiter, async (req, res) => {
@@ -40,7 +41,7 @@ router.post('/register', authLimiter, async (req, res) => {
 
         res.json({ message: 'Registration successful. Please wait for admin approval.' });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Registration failed', err, { username: req.body?.username });
         res.status(500).send('Server error');
     }
 });
@@ -87,7 +88,7 @@ router.post('/login', authLimiter, async (req, res) => {
             }
         );
     } catch (err) {
-        console.error(err.message);
+        logger.error('Login failed', err);
         res.status(500).send('Server error');
     }
 });
@@ -105,7 +106,7 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
             status: user.status
         });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Get user failed', err, { userId: req.user?.id });
         res.status(500).send('Server error');
     }
 });
@@ -153,7 +154,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
 
         res.json({ message: 'Password reset successful. You can now login.' });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Password reset failed', err, { username: req.body?.username });
         res.status(500).send('Server error');
     }
 });

@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const Bet = require("../models/Bet");
-
 const Transaction = require("../models/Transaction");
+const logger = require("../utils/logger");
 
 router.get("/healthz", (req, res) => {
   res.json({ status: "running" });
@@ -123,7 +123,7 @@ router.get("/history", auth, async (req, res) => {
 
     res.json(finalHistory);
   } catch (err) {
-    console.error(err.message);
+    logger.error("Failed to get game history", err, { userId: req.user?.id });
     res.status(500).send("Server Error");
   }
 });
