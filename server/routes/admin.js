@@ -144,8 +144,17 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
             socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
         }
 
-        // Emit balance update to user
+        // Emit update to user
+        const clientUser = {
+            id: user._id,
+            username: user.username,
+            balance: user.balance,
+            role: user.role,
+            status: user.status,
+            allowPasswordReset: user.allowPasswordReset
+        };
         socketService.emitToUser(user._id, 'balanceUpdate', { balance: user.balance });
+        socketService.emitToUser(user._id, 'userUpdate', clientUser);
 
         // Emit update to admin panel
         socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
@@ -227,7 +236,15 @@ router.put('/users/:id/status', auth, admin, async (req, res) => {
         socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
 
         // Emit update to user
-        socketService.emitToUser(user._id, 'userUpdate', user);
+        const clientUser = {
+            id: user._id,
+            username: user.username,
+            balance: user.balance,
+            role: user.role,
+            status: user.status,
+            allowPasswordReset: user.allowPasswordReset
+        };
+        socketService.emitToUser(user._id, 'userUpdate', clientUser);
 
         res.json(user);
     } catch (err) {
@@ -278,6 +295,17 @@ router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
 
         // Emit update to admin panel
         socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
+
+        // Emit update to user (so they know they can reset now if they are online)
+        const clientUser = {
+            id: updatedUser._id,
+            username: updatedUser.username,
+            balance: updatedUser.balance,
+            role: updatedUser.role,
+            status: updatedUser.status,
+            allowPasswordReset: updatedUser.allowPasswordReset
+        };
+        socketService.emitToUser(updatedUser._id, 'userUpdate', clientUser);
 
         res.json(updatedUser);
     } catch (err) {
