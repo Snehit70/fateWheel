@@ -25,6 +25,9 @@ const AdminLogSchema = new mongoose.Schema({
   details: {
     type: String,
   },
+  reason: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -10,7 +10,62 @@
         </Button>
       </div>
 
-      <Card>
+      <!-- Mobile Card View -->
+      <div class="sm:hidden space-y-2">
+        <div v-if="loading" class="text-center text-muted-foreground py-8">Loading rounds...</div>
+        <div v-else-if="rounds.length === 0" class="text-center text-muted-foreground py-8">No rounds found.</div>
+        <template v-else v-for="round in rounds" :key="round._id">
+          <div 
+            class="p-3 rounded-lg border border-border cursor-pointer transition-colors"
+            :class="expandedRound === round.roundId ? 'bg-surface/50' : ''"
+            @click="toggleExpand(round.roundId)"
+          >
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-sm">#{{ round.roundNumber }}</span>
+                <span :class="['w-6 h-6 inline-flex items-center justify-center rounded-full text-xs font-bold text-white', getResultColor(round.color)]">
+                  {{ round.number }}
+                </span>
+              </div>
+              <span class="text-xs text-muted-foreground">{{ formatDate(round.createdAt) }}</span>
+            </div>
+            <!-- Stats -->
+            <div class="flex items-center justify-between text-sm">
+              <div class="flex gap-3 text-muted-foreground">
+                <span>{{ round.stats?.totalBets || 0 }} bets</span>
+                <span>{{ round.stats?.uniqueUsers || 0 }} users</span>
+              </div>
+              <span class="font-mono font-bold" :class="getProfitClass(round.stats?.netProfit)">
+                {{ round.stats?.netProfit >= 0 ? '+' : '' }}{{ round.stats?.netProfit || 0 }}
+              </span>
+            </div>
+          </div>
+          <!-- Expanded Bets (Mobile) -->
+          <div v-if="expandedRound === round.roundId && expandedBets.length > 0" class="ml-2 pl-3 border-l-2 border-border space-y-2">
+            <div v-for="bet in expandedBets" :key="bet._id" class="p-2 rounded bg-surface/30 text-sm">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium">{{ bet.username }}</span>
+                <Badge v-if="bet.result === 'win'" class="bg-green-500 text-xs">WIN</Badge>
+                <Badge v-else-if="bet.result === 'loss'" variant="destructive" class="text-xs">LOSS</Badge>
+              </div>
+              <div class="flex items-center justify-between text-muted-foreground">
+                <span class="capitalize">{{ bet.type }}: 
+                  <span v-if="bet.type === 'color'" :class="getValueColor(bet.value)">{{ bet.value?.toUpperCase() }}</span>
+                  <span v-else>{{ bet.value }}</span>
+                </span>
+                <span class="font-mono">{{ bet.amount }} → <span :class="bet.payout > 0 ? 'text-green-500' : ''">{{ bet.payout || 0 }}</span></span>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="expandedRound === round.roundId && expandedBets.length === 0" class="ml-2 pl-3 border-l-2 border-border text-sm text-muted-foreground py-2">
+            No bets in this round
+          </div>
+        </template>
+      </div>
+
+      <!-- Desktop Table View -->
+      <Card class="hidden sm:block">
         <CardContent class="p-0">
           <Table>
             <TableHeader>

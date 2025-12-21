@@ -22,7 +22,44 @@ const Transaction = require('../models/Transaction');
 const Bet = require('../models/Bet');
 const AdminLog = require('../models/AdminLog');
 
-// Logs route removed
+// @route   GET api/admin/logs
+// @desc    Get admin audit logs with filtering
+// @access  Admin
+router.get('/logs', auth, admin, async (req, res) => {
+    try {
+        const { page = 1, limit = 20, action, userId } = req.query;
+
+        // Build filter
+        const filter = {};
+        if (action) {
+            filter.action = action;
+        }
+        if (userId) {
+            filter.targetUserId = userId;
+        }
+
+        const total = await AdminLog.countDocuments(filter);
+        const logs = await AdminLog.find(filter)
+            .populate('adminId', 'username')
+            .sort({ createdAt: -1 })
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .limit(parseInt(limit))
+            .lean();
+
+        res.json({
+            data: logs,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
 
 // @route   GET api/admin/stats
 // @desc    Get dashboard stats

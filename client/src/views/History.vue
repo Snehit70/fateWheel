@@ -43,7 +43,59 @@
         </div>
       </div>
 
-      <Card>
+      <!-- Mobile Card View -->
+      <div class="sm:hidden space-y-2">
+        <div v-if="loading" class="text-center text-muted-foreground py-8">Loading history...</div>
+        <div v-else-if="filteredHistory.length === 0" class="text-center text-muted-foreground py-8">No records found.</div>
+        <div 
+          v-else 
+          v-for="item in processedHistory" 
+          :key="item._id" 
+          class="p-3 rounded-lg border border-border"
+          :class="item.rowClass"
+        >
+          <!-- Header Row -->
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span v-if="!isTransaction(item) && item.roundId" class="font-mono text-xs text-muted-foreground">#{{ getRoundDisplayNumber(item) }}</span>
+              <Badge v-if="isTransaction(item)" :class="getTransactionTypeClass(item.type)" variant="outline">
+                {{ item.type }}
+              </Badge>
+              <span v-else class="text-sm font-medium capitalize">{{ item.type }}: {{ formatValue(item) }}</span>
+            </div>
+            <span class="text-xs text-muted-foreground">{{ formatOnlyTime(item.createdAt) }}</span>
+          </div>
+          <!-- Content Row -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-sm">{{ item.amount }}</span>
+              <!-- Result Badge -->
+              <Badge v-if="!isTransaction(item) && item.result" :variant="item.result === 'win' ? 'default' : 'destructive'" :class="item.result === 'win' ? 'bg-green-500' : ''">
+                {{ item.result }}
+              </Badge>
+              <Badge v-else-if="!isTransaction(item) && item.status === 'refunded'" variant="outline" class="text-blue-400 border-blue-400">
+                refunded
+              </Badge>
+            </div>
+            <!-- Net Profit -->
+            <span class="font-mono font-bold" :class="isTransaction(item) ? getTransactionAmountClass(item) : getNetProfitClass(item)">
+              <span v-if="isTransaction(item)">{{ item.type === 'deposit' ? '+' : '-' }}{{ item.amount }}</span>
+              <span v-else-if="item.status === 'refunded'" class="text-blue-400">0</span>
+              <span v-else>{{ formatNetProfit(item) }}</span>
+            </span>
+          </div>
+          <!-- Winning Number (if bet) -->
+          <div v-if="!isTransaction(item) && item.gameResult" class="mt-2 flex items-center gap-2">
+            <span class="text-xs text-muted-foreground">Won:</span>
+            <span :class="['w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold text-white', getResultColor(item.gameResult.color)]">
+              {{ item.gameResult.number }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Table View -->
+      <Card class="hidden sm:block">
         <CardContent class="p-0">
           <Table>
             <TableHeader>
@@ -62,10 +114,10 @@
             </TableHeader>
             <TableBody>
               <TableRow v-if="loading">
-                <TableCell colspan="9" class="h-24 text-center">Loading history...</TableCell>
+                <TableCell colspan="10" class="h-24 text-center">Loading history...</TableCell>
               </TableRow>
               <TableRow v-else-if="filteredHistory.length === 0">
-                <TableCell colspan="9" class="h-24 text-center">No records found.</TableCell>
+                <TableCell colspan="10" class="h-24 text-center">No records found.</TableCell>
               </TableRow>
               <TableRow
                 v-else
