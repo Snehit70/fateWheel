@@ -8,6 +8,7 @@ const socketService = require('./services/socketService');
 const GameLoop = require('./game/GameLoop');
 const logger = require('./utils/logger');
 const User = require('./models/User');
+const Bet = require('./models/Bet');
 const jwt = require('jsonwebtoken');
 
 const app = express();
@@ -122,7 +123,7 @@ if (require.main === module) {
     });
 }
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     logger.info(`A user connected: ${socket.id} ${socket.user ? `(User: ${socket.user.id})` : '(Guest)'}`);
 
     // Join user room if authenticated
@@ -137,11 +138,34 @@ io.on('connection', (socket) => {
         }
     }
 
+    // Load active bets from DB (survives server restart, always fresh)
+    let activeBets = [];
+    try {
+        if (gameLoop.currentRoundId) {
+            const dbBets = await Bet.find({
+                status: 'active',
+                roundId: gameLoop.currentRoundId
+            }).select('user username type value amount').lean();
+
+            // Transform to match UI format
+            activeBets = dbBets.map(b => ({
+                userId: b.user.toString(),
+                username: b.username,
+                type: b.type,
+                value: b.value,
+                amount: b.amount
+            }));
+        }
+    } catch (err) {
+        logger.error('Failed to load bets for new connection:', err);
+        activeBets = gameLoop.bets; // Fallback to memory cache
+    }
+
     // Send initial state
     socket.emit('gameState', {
         state: gameLoop.state,
         timeLeft: gameLoop.timeLeft,
-        bets: gameLoop.bets,
+        bets: activeBets,
         history: gameLoop.history,
         result: gameLoop.result
     });
@@ -208,6 +232,40 @@ io.on('connection', (socket) => {
         // Ensure callback is a function
         if (typeof callback !== 'function') return;
         callback(Date.now());
+    });
+
+    // Re-sync state on visibility change (client requests fresh state when returning to tab)
+    socket.on('requestState', async () => {
+        // Load fresh bets from DB
+        let activeBets = [];
+        try {
+            if (gameLoop.currentRoundId) {
+                const dbBets = await Bet.find({
+                    status: 'active',
+                    roundId: gameLoop.currentRoundId
+                }).select('user username type value amount').lean();
+
+                activeBets = dbBets.map(b => ({
+                    userId: b.user.toString(),
+                    username: b.username,
+                    type: b.type,
+                    value: b.value,
+                    amount: b.amount
+                }));
+            }
+        } catch (err) {
+            logger.error('Failed to load bets for requestState:', err);
+            activeBets = gameLoop.bets;
+        }
+
+        socket.emit('gameState', {
+            state: gameLoop.state,
+            timeLeft: gameLoop.timeLeft,
+            bets: activeBets,
+            history: gameLoop.history,
+            result: gameLoop.result,
+            endTime: gameLoop.endTime
+        });
     });
 });
 

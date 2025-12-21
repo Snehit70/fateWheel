@@ -216,12 +216,30 @@ export function useGameLogic() {
                 console.error('Error in handleSpin from spinResult:', err);
             });
         });
+
+        // Re-sync state when user returns to tab (prevents animation catch-up issues)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // Request fresh state from server
+                socket.emit('requestState');
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Store cleanup function reference
+        socket._visibilityHandler = handleVisibilityChange;
     });
 
     onUnmounted(() => {
         // Remove socket listeners
         socket.off('gameState');
         socket.off('spinResult');
+
+        // Remove visibility change listener
+        if (socket._visibilityHandler) {
+            document.removeEventListener('visibilitychange', socket._visibilityHandler);
+            socket._visibilityHandler = null;
+        }
 
         socket.disconnect();
 

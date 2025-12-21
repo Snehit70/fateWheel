@@ -80,7 +80,7 @@ router.post('/login', authLimiter, async (req, res) => {
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: '1h' },
+            { expiresIn: '1y' },
             (err, token) => {
                 if (err) throw err;
                 res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role, status: user.status } });
