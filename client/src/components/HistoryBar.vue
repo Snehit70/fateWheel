@@ -15,7 +15,7 @@
             </div>
         </transition-group>
     </div>
-    <!-- Desktop: Show 15 items -->
+    <!-- Desktop: Show 14 items -->
     <div class="hidden lg:flex flex-nowrap gap-2 items-center h-full overflow-x-auto scrollbar-hide">
         <transition-group name="list">
             <div 
@@ -48,7 +48,7 @@ const mobileHistory = computed(() => {
 });
 
 const desktopHistory = computed(() => {
-    return props.history.slice(0, 15);
+    return props.history.slice(0, 14);
 });
 
 const getColorClass = (color) => {
