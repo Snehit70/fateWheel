@@ -5,12 +5,13 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        trim: true
+        trim: true,
+        lowercase: true  // Automatically convert to lowercase
     },
     password: {
         type: String,
         required: true,
-        minlength: 6
+        minlength: 8
     },
     balance: {
         type: Number,

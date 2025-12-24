@@ -12,13 +12,15 @@ router.post('/register', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-        if (!passwordRegex.test(password)) {
-            return res.status(400).json({ message: 'Password must be at least 8 characters and include at least one number and one special character' });
+        if (!password || password.length < 8) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters long' });
         }
 
-        // Check if user exists
-        let user = await User.findOne({ username });
+        // Check if user exists (case-insensitive)
+        let user = await User.findOne({
+            username: { $regex: new RegExp(`^${username}$`, 'i') }
+        });
+
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -27,9 +29,9 @@ router.post('/register', authLimiter, async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user
+        // Create user (force lowercase)
         user = new User({
-            username,
+            username: username.toLowerCase(),
             password: hashedPassword
         });
 
@@ -51,8 +53,11 @@ router.post('/login', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // Check if user exists
-        const user = await User.findOne({ username });
+        // Check if user exists (case-insensitive)
+        const user = await User.findOne({
+            username: { $regex: new RegExp(`^${username}$`, 'i') }
+        });
+
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
@@ -123,13 +128,12 @@ router.post('/reset-password', authLimiter, async (req, res) => {
             return res.status(400).json({ message: 'Passwords do not match' });
         }
 
-        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-        if (!passwordRegex.test(newPassword)) {
-            return res.status(400).json({ message: 'Password must be at least 8 characters and include at least one number and one special character' });
+        if (!newPassword || newPassword.length < 8) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters long' });
         }
 
-        // Find user
-        const user = await User.findOne({ username });
+        // Find user (username stored as lowercase)
+        const user = await User.findOne({ username: username.toLowerCase() });
         if (!user) {
             // Keep generic to prevent enumeration, though username is known in this context usually
             return res.status(400).json({ message: 'User not found' });

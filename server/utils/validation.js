@@ -1,13 +1,12 @@
 /**
  * Validates a password against strength requirements.
- * Requirements: At least 8 characters, one number, one special character.
+ * Requirements: At least 8 characters.
  * @param {string} password 
  * @returns {boolean}
  */
 const validatePassword = (password) => {
-    // At least 8 characters, at least one number, at least one non-alphanumeric character
-    const passwordRegex = /^(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/;
-    return passwordRegex.test(password);
+    // At least 8 characters
+    return password && password.length >= 8;
 };
 
 module.exports = {

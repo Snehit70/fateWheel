@@ -13,8 +13,8 @@
         </Button>
       </div>
 
-      <!-- Filters -->
-      <div class="flex items-center gap-2 flex-wrap">
+      <!-- Filters (Admin only) -->
+      <div v-if="isAdmin" class="flex items-center gap-2 flex-wrap">
         <div class="flex flex-wrap gap-2">
             <Button
             v-for="f in filterOptions"
@@ -271,6 +271,11 @@ const pagination = ref({
 const activeFilter = ref('all');
 const viewingUserId = computed(() => route.query.userId || null);
 const viewingUsername = computed(() => route.query.username || null);
+
+// Check if current user is admin
+const isAdmin = computed(() => {
+    return authStore.user && authStore.user.role === 'admin';
+});
 
 const filterOptions = [
   { value: 'all', label: 'All' },

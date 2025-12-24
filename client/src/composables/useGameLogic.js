@@ -117,7 +117,7 @@ export function useGameLogic() {
     };
 
     onMounted(() => {
-        socket.connect();
+        // socket.connect() is now handled in App.vue
 
         const handleGameUpdate = (data) => {
             // Sync Time
@@ -241,7 +241,7 @@ export function useGameLogic() {
             socket._visibilityHandler = null;
         }
 
-        socket.disconnect();
+        // socket.disconnect() is handled in App.vue to keep connection alive across views
 
         if (countdownInterval) {
             clearInterval(countdownInterval);

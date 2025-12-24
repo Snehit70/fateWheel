@@ -34,6 +34,32 @@ describe('Auth API', () => {
         expect(res.body).toHaveProperty('message', 'Registration successful. Please wait for admin approval.');
     });
 
+    it('POST /api/auth/register - should fail for short password (7 chars)', async () => {
+        const shortPassUser = {
+            username: 'shortpass',
+            password: '1234567'
+        };
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(shortPassUser);
+
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toHaveProperty('message', 'Password must be at least 8 characters long');
+    });
+
+    it('POST /api/auth/register - should succeed for 8 char password', async () => {
+        const eightCharUser = {
+            username: 'eightchar',
+            password: '12345678'
+        };
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(eightCharUser);
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toHaveProperty('message', 'Registration successful. Please wait for admin approval.');
+    });
+
     it('POST /api/auth/login - should fail for pending user', async () => {
         const res = await request(app)
             .post('/api/auth/login')

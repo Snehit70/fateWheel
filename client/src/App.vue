@@ -44,6 +44,7 @@ import LoadingSpinner from './components/LoadingSpinner.vue';
 import { onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from './stores/auth';
 import { useAudio } from './composables/useAudio';
+import socket from './services/socket';
 
 import { watch } from 'vue';
 import { useToast } from './composables/useToast';
@@ -69,6 +70,7 @@ watch(() => authStore.pendingStatus, (status) => {
 
 onMounted(() => {
     authStore.init();
+    socket.connect(); // Global socket connection
     window.addEventListener('click', handleInteraction);
     window.addEventListener('keydown', handleInteraction);
     window.addEventListener('touchstart', handleInteraction);
@@ -80,6 +82,7 @@ onUnmounted(() => {
     window.removeEventListener('touchstart', handleInteraction);
     // Cleanup auth store listeners to prevent memory leaks
     authStore.cleanup();
+    socket.disconnect();
 });
 </script>
 
