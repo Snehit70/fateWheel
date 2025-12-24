@@ -128,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import api from '../services/api';
 
@@ -151,6 +151,10 @@ const isLogin = ref(true);
 const isForgotPassword = ref(false);
 
 const username = ref('');
+
+watch(username, (newValue) => {
+  username.value = newValue.toLowerCase().trim();
+});
 const password = ref('');
 const confirmPassword = ref('');
 
@@ -216,14 +220,14 @@ const handleSubmit = async () => {
   try {
     if (isForgotPassword.value) {
         // Handle Forgot Password
-        if (password.value !== confirmPassword.value) {
+        if (password.value.trim() !== confirmPassword.value.trim()) {
             throw new Error("Passwords do not match");
         }
         
         await api.post('/auth/reset-password', {
-            username: username.value,
-            newPassword: password.value,
-            confirmPassword: confirmPassword.value
+            username: username.value, // Already trimmed by watcher
+            newPassword: password.value.trim(),
+            confirmPassword: confirmPassword.value.trim()
         });
         
         isSuccess.value = true;
@@ -238,11 +242,11 @@ const handleSubmit = async () => {
         
     } else if (isLogin.value) {
       // Login with Username
-      await authStore.login(username.value, password.value);
+      await authStore.login(username.value, password.value.trim());
       close();
     } else {
       // Register with Username
-      await authStore.register(username.value, password.value);
+      await authStore.register(username.value, password.value.trim());
       isSuccess.value = true;
       successMessage.value = "Registration successful!";
       

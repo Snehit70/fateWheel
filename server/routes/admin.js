@@ -156,46 +156,51 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
             { new: true }
         ).select('-password');
 
-        // Log Transaction
-        if (difference !== 0) {
-            const transaction = new Transaction({
-                user: user._id,
-                type: difference > 0 ? 'deposit' : 'withdraw', // Or 'adjustment'
-                amount: Math.abs(difference),
-                balanceAfter: user.balance,
-                description: `Admin ${difference > 0 ? 'added' : 'removed'} funds`
-            });
-            await transaction.save();
+        // Log Transaction & Realtime Updates
+        try {
+            if (difference !== 0) {
+                const transaction = new Transaction({
+                    user: user._id,
+                    type: difference > 0 ? 'deposit' : 'withdraw', // Or 'adjustment'
+                    amount: Math.abs(difference),
+                    balanceAfter: user.balance,
+                    description: `Admin ${difference > 0 ? 'added' : 'removed'} funds`
+                });
+                await transaction.save();
 
-            // Log Admin Action
-            const log = new AdminLog({
-                adminId: req.user.id,
-                action: 'update_balance',
-                targetUserId: user._id,
-                targetUsername: user.username,
-                details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference}). Reason: ${reason}`
-            });
-            await log.save();
+                // Log Admin Action
+                const log = new AdminLog({
+                    adminId: req.user.id,
+                    action: 'update_balance',
+                    targetUserId: user._id,
+                    targetUsername: user.username,
+                    details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference}). Reason: ${reason}`
+                });
+                await log.save();
 
-            // Emit new log
-            const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-            socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
+                // Emit new log
+                const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
+                socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
+            }
+
+            // Emit update to user
+            const clientUser = {
+                id: user._id,
+                username: user.username,
+                balance: user.balance,
+                role: user.role,
+                status: user.status,
+                allowPasswordReset: user.allowPasswordReset
+            };
+            socketService.emitToUser(user._id, 'balanceUpdate', { balance: user.balance });
+            socketService.emitToUser(user._id, 'userUpdate', clientUser);
+
+            // Emit update to admin panel
+            socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
+        } catch (secondaryErr) {
+            logger.error('Failed to perform secondary balance update actions', secondaryErr, { userId: user._id });
+            // Continue execution to return the updated user
         }
-
-        // Emit update to user
-        const clientUser = {
-            id: user._id,
-            username: user.username,
-            balance: user.balance,
-            role: user.role,
-            status: user.status,
-            allowPasswordReset: user.allowPasswordReset
-        };
-        socketService.emitToUser(user._id, 'balanceUpdate', { balance: user.balance });
-        socketService.emitToUser(user._id, 'userUpdate', clientUser);
-
-        // Emit update to admin panel
-        socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
 
         res.json(user);
     } catch (err) {
@@ -247,9 +252,15 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
 router.put('/users/:id/status', auth, admin, async (req, res) => {
     try {
         const { status } = req.body;
+
+        const updateData = { status: status };
+        if (status === 'approved') {
+            updateData.allowPasswordReset = false;
+        }
+
         const user = await User.findByIdAndUpdate(
             req.params.id,
-            { status: status },
+            updateData,
             { new: true }
         ).select('-password');
 

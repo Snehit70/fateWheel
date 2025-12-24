@@ -11,6 +11,8 @@ const logger = require('../utils/logger');
 router.post('/register', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
+        const normalizedUsername = username.trim().toLowerCase();
+        const normalizedPassword = password.trim();
 
         if (!password || password.length < 8) {
             return res.status(400).json({ message: 'Password must be at least 8 characters long' });
@@ -18,7 +20,7 @@ router.post('/register', authLimiter, async (req, res) => {
 
         // Check if user exists (case-insensitive)
         let user = await User.findOne({
-            username: { $regex: new RegExp(`^${username}$`, 'i') }
+            username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') }
         });
 
         if (user) {
@@ -27,11 +29,11 @@ router.post('/register', authLimiter, async (req, res) => {
 
         // Hash password
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(normalizedPassword, salt);
 
         // Create user (force lowercase)
         user = new User({
-            username: username.toLowerCase(),
+            username: normalizedUsername,
             password: hashedPassword
         });
 
@@ -52,10 +54,12 @@ router.post('/register', authLimiter, async (req, res) => {
 router.post('/login', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
+        const normalizedUsername = username.trim();
+        const normalizedPassword = password.trim();
 
         // Check if user exists (case-insensitive)
         const user = await User.findOne({
-            username: { $regex: new RegExp(`^${username}$`, 'i') }
+            username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') }
         });
 
         if (!user) {
@@ -63,7 +67,7 @@ router.post('/login', authLimiter, async (req, res) => {
         }
 
         // Validate password
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(normalizedPassword, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
@@ -122,18 +126,21 @@ module.exports = router;
 router.post('/reset-password', authLimiter, async (req, res) => {
     try {
         const { username, newPassword, confirmPassword } = req.body;
+        const normalizedUsername = username.trim();
+        const normalizedNewPassword = newPassword.trim();
+        const normalizedConfirmPassword = confirmPassword.trim();
 
         // Check if passwords match
-        if (newPassword !== confirmPassword) {
+        if (normalizedNewPassword !== normalizedConfirmPassword) {
             return res.status(400).json({ message: 'Passwords do not match' });
         }
 
-        if (!newPassword || newPassword.length < 8) {
+        if (!normalizedNewPassword || normalizedNewPassword.length < 8) {
             return res.status(400).json({ message: 'Password must be at least 8 characters long' });
         }
 
         // Find user (username stored as lowercase)
-        const user = await User.findOne({ username: username.toLowerCase() });
+        const user = await User.findOne({ username: normalizedUsername.toLowerCase() });
         if (!user) {
             // Keep generic to prevent enumeration, though username is known in this context usually
             return res.status(400).json({ message: 'User not found' });
@@ -146,7 +153,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
 
         // Hash new password
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        const hashedPassword = await bcrypt.hash(normalizedNewPassword, salt);
 
         // Update password and disable reset flag
         user.password = hashedPassword;

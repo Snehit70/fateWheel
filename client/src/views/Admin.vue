@@ -107,13 +107,23 @@
 
                 <TableCell class="text-muted-foreground">{{ new Date(user.createdAt).toLocaleDateString() }}</TableCell>
                 <TableCell>
-                  <Button size="sm" variant="ghost" @click="viewUserHistory(user)">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    @click="viewUserHistory(user)"
+                    class="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                  >
                     History
                   </Button>
                 </TableCell>
                 <TableCell>
                   <div class="flex gap-2">
-                    <Button size="sm" variant="outline" @click="openEditBalance(user)">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      @click="openEditBalance(user)"
+                      class="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    >
                       Edit Balance
                     </Button>
                     <Button
@@ -198,10 +208,20 @@
             </div>
 
             <div class="flex gap-2 flex-wrap">
-              <Button size="sm" variant="ghost" @click="viewUserHistory(user)" class="flex-1">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                @click="viewUserHistory(user)" 
+                class="flex-1 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+              >
                 History
               </Button>
-              <Button size="sm" variant="outline" @click="openEditBalance(user)" class="flex-1">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                @click="openEditBalance(user)" 
+                class="flex-1 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+              >
                 Edit Balance
               </Button>
               <Button
@@ -423,6 +443,7 @@ const saveBalance = async () => {
     
     editingUser.value = null;
     fetchStats(); // Refresh stats
+    toast.success('Balance updated successfully');
   } catch (err) {
     console.error(err);
     toast.error('Failed to update balance');
