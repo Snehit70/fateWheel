@@ -71,6 +71,7 @@
             <TableHeader>
               <TableRow>
                 <TableHead class="w-20">Round #</TableHead>
+                <TableHead class="w-32">Round ID</TableHead>
                 <TableHead>Result</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead class="text-right">Bets</TableHead>
@@ -93,7 +94,8 @@
                   class="cursor-pointer hover:bg-surface/50" 
                   @click="toggleExpand(round.roundId)"
                 >
-                  <TableCell class="font-mono font-bold">{{ round.roundNumber }}</TableCell>
+                  <TableCell class="font-mono font-bold">{{ getDailyRoundNumber(round.roundId) }}</TableCell>
+                  <TableCell class="font-mono text-xs text-muted-foreground">{{ round.roundId }}</TableCell>
                   <TableCell>
                     <span :class="[
                       'w-8 h-8 inline-flex items-center justify-center rounded-full text-sm font-bold text-white',
@@ -265,6 +267,17 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+const getDailyRoundNumber = (roundId) => {
+    if (!roundId) return '-';
+    // Format YYYYMMDD-XXXX, we want XXXX
+    const parts = roundId.split('-');
+    if (parts.length === 2) {
+        return parts[1];
+    }
+    // Fallback for older or uuid IDs
+    return roundId.slice(-4).toUpperCase();
 };
 
 

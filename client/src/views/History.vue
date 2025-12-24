@@ -469,11 +469,17 @@ const getNetProfitClass = (item) => {
     return 'text-muted-foreground';
 };
 
-// Get round display number (uses roundNumber if available, otherwise derives from roundId)
 const getRoundDisplayNumber = (item) => {
+    if (item.roundId) {
+        // Daily Round Number check (YYYYMMDD-XXXX)
+        const parts = item.roundId.split('-');
+        if (parts.length === 2 && parts[1].length === 4) {
+            return parts[1];
+        }
+        // Fallback for older IDs
+        return item.roundId.slice(-4).toUpperCase();
+    }
     if (item.roundNumber) return item.roundNumber;
-    // For older items without roundNumber, use last 4 chars of roundId
-    if (item.roundId) return item.roundId.slice(-4).toUpperCase();
     return '-';
 };
 
