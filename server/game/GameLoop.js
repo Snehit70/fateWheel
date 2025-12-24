@@ -476,17 +476,29 @@ class GameLoop {
                 throw new Error("Insufficient balance");
             }
 
-            // Create Bet in DB (Active)
-            const newBet = new Bet({
-                user: user.id,
-                username: dbUser.username,
-                type,
-                value,
-                amount,
-                status: 'active',
-                roundId: this.currentRoundId
-            });
-            await newBet.save();
+            // Create or Update Bet in DB (Aggregate amounts)
+            // If a bet exists for this user/round/type/value, increment the amount
+            const newBet = await Bet.findOneAndUpdate(
+                {
+                    user: user.id,
+                    status: 'active',
+                    roundId: this.currentRoundId,
+                    type,
+                    value
+                },
+                {
+                    $inc: { amount: amount },
+                    $setOnInsert: {
+                        username: dbUser.username,
+                        user: user.id, // Ensure user field is set on insert
+                        status: 'active',
+                        roundId: this.currentRoundId,
+                        type,
+                        value
+                    }
+                },
+                { new: true, upsert: true }
+            );
 
             // Add to memory for UI
             // Check if bet already exists to aggregate for UI
