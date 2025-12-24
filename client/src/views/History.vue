@@ -40,6 +40,15 @@
             v-model="filterRoundId"
             class="w-32 h-8 text-xs" 
           />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            @click="clearFilters"
+            class="h-8 px-2 text-xs"
+            v-if="selectedDate || filterRoundId || activeFilter !== 'all'"
+          >
+            Clear
+          </Button>
         </div>
       </div>
 
@@ -297,6 +306,13 @@ watch(selectedDate, () => {
     pagination.value.page = 1;
     fetchHistory();
 });
+
+const clearFilters = () => {
+    selectedDate.value = '';
+    filterRoundId.value = '';
+    activeFilter.value = 'all';
+    // fetchHistory will be triggered by watchers on these values
+};
 
 const fetchHistory = async () => {
   loading.value = true;
