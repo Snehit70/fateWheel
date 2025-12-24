@@ -109,9 +109,8 @@
                 <TableCell>
                   <Button 
                     size="sm" 
-                    variant="ghost" 
                     @click="viewUserHistory(user)"
-                    class="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                    class="bg-orange-500 hover:bg-orange-600 text-white border-none"
                   >
                     History
                   </Button>
@@ -120,9 +119,8 @@
                   <div class="flex gap-2">
                     <Button 
                       size="sm" 
-                      variant="outline" 
                       @click="openEditBalance(user)"
-                      class="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                      class="bg-orange-500 hover:bg-orange-600 text-white border-none"
                     >
                       Edit Balance
                     </Button>
@@ -210,17 +208,15 @@
             <div class="flex gap-2 flex-wrap">
               <Button 
                 size="sm" 
-                variant="ghost" 
                 @click="viewUserHistory(user)" 
-                class="flex-1 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-none"
               >
                 History
               </Button>
               <Button 
                 size="sm" 
-                variant="outline" 
                 @click="openEditBalance(user)" 
-                class="flex-1 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-none"
               >
                 Edit Balance
               </Button>
