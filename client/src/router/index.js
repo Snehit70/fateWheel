@@ -32,6 +32,12 @@ const routes = [
         component: () => import('../views/AdminRounds.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
     },
+    {
+        path: '/admin/history',
+        name: 'AdminHistory',
+        component: () => import('../views/AdminHistory.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
+    },
     // 404 Catch-all route - must be last
     {
         path: '/:pathMatch(.*)*',
@@ -52,6 +58,7 @@ const pageTitles = {
     'Admin': 'Admin Panel | Roulette',
     'AdminLogs': 'Admin Logs | Roulette',
     'AdminRounds': 'Admin Rounds | Roulette',
+    'AdminHistory': 'Admin Withdrawal History | Roulette',
     'NotFound': 'Page Not Found | Roulette',
 };
 

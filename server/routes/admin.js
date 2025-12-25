@@ -70,11 +70,10 @@ router.get('/stats', auth, admin, async (req, res) => {
         const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
         const pendingUsers = await User.countDocuments({ status: 'pending' });
 
-        // Calculate Net Profit (Total Deposits - Total Withdrawals)
-        // Or simpler: Total User Losses - Total User Wins
-        // For now, let's use: Total Deposits - Total Withdrawals based on Transactions
         // Calculate Net Profit using Bets
-        // Net Profit = Total Bets Amount - Total Payouts
+        // Net Profit = (Total Bets Amount - Total Payouts) - Total Admin Withdrawals
+
+        // 1. Calculate Game Profit (Bets - Payouts)
         const betStats = await Bet.aggregate([
             {
                 $match: { status: { $ne: 'refunded' } }
@@ -88,9 +87,31 @@ router.get('/stats', auth, admin, async (req, res) => {
             }
         ]);
 
-        const netProfit = betStats.length > 0
+        const gameProfit = betStats.length > 0
             ? betStats[0].totalBets - betStats[0].totalPayouts
             : 0;
+
+        // 2. Calculate Admin Withdrawals
+        // Find all users who are admins to filter transactions, or rely on transaction type 'withdraw'
+        // Since 'withdraw' type is only used for admin profit withdrawal in this new system
+        const withdrawalStats = await Transaction.aggregate([
+            {
+                $match: {
+                    type: 'withdraw',
+                    description: 'Admin Profit Withdrawal'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalWithdrawals: { $sum: '$amount' }
+                }
+            }
+        ]);
+
+        const totalWithdrawals = withdrawalStats.length > 0 ? withdrawalStats[0].totalWithdrawals : 0;
+
+        const netProfit = gameProfit - totalWithdrawals;
 
         res.json({
             totalUsers,
@@ -437,6 +458,108 @@ router.get('/rounds/:roundId', auth, admin, async (req, res) => {
         });
     } catch (err) {
         logger.error('Failed to get round details', err, { roundId: req.params.roundId });
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST api/admin/withdraw
+// @desc    Withdraw from Net Profit
+// @access  Admin
+router.post('/withdraw', auth, admin, async (req, res) => {
+    try {
+        const { amount } = req.body;
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ msg: 'Invalid amount' });
+        }
+
+        // Calculate current Net Profit to ensure sufficient funds
+        // 1. Game Profit
+        const betStats = await Bet.aggregate([
+            { $match: { status: { $ne: 'refunded' } } },
+            { $group: { _id: null, total: { $sum: { $subtract: ['$amount', { $ifNull: ['$payout', 0] }] } } } }
+        ]);
+        const gameProfit = betStats.length > 0 ? betStats[0].total : 0;
+
+        // 2. Existing Withdrawals
+        const withdrawalStats = await Transaction.aggregate([
+            { $match: { type: 'withdraw', description: 'Admin Profit Withdrawal' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        const totalWithdrawals = withdrawalStats.length > 0 ? withdrawalStats[0].total : 0;
+
+        const currentNetProfit = gameProfit - totalWithdrawals;
+
+        if (amount > currentNetProfit) {
+            return res.status(400).json({ msg: 'Insufficient Net Profit' });
+        }
+
+        // Create Withdrawal Transaction
+        const transaction = new Transaction({
+            user: req.user.id,
+            type: 'withdraw',
+            amount: amount,
+            balanceAfter: currentNetProfit - amount, // Snapshot of profit after
+            description: 'Admin Profit Withdrawal'
+        });
+        await transaction.save();
+
+        // Log Admin Action
+        const log = new AdminLog({
+            adminId: req.user.id,
+            action: 'withdraw_profit',
+            targetUserId: req.user.id, // Target is self for withdrawal
+            targetUsername: 'System',
+            details: `Withdrew ${amount} from Net Profit`,
+            reason: 'Profit Withdrawal'
+        });
+        await log.save();
+
+        // Emit new log
+        const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
+        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
+
+        // Emit stats update
+        socketService.emitToRoom('admin-room', 'admin:statsUpdate');
+
+        res.json({ msg: 'Withdrawal successful', netProfit: currentNetProfit - amount });
+    } catch (err) {
+        logger.error('Failed to withdraw profit', err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET api/admin/withdrawals
+// @desc    Get admin withdrawal history
+// @access  Admin
+router.get('/withdrawals', auth, admin, async (req, res) => {
+    try {
+        const { page = 1, limit = 20 } = req.query;
+
+        const filter = {
+            type: 'withdraw',
+            description: 'Admin Profit Withdrawal'
+        };
+
+        const total = await Transaction.countDocuments(filter);
+        const withdrawals = await Transaction.find(filter)
+            .populate('user', 'username')
+            .sort({ createdAt: -1 })
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .limit(parseInt(limit))
+            .lean();
+
+        res.json({
+            data: withdrawals,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (err) {
+        logger.error('Failed to get withdrawals', err);
         res.status(500).send('Server Error');
     }
 });

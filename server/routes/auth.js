@@ -127,6 +127,68 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
     }
 });
 
+// Update Credentials (Username/Password)
+router.put('/update-credentials', require('../middleware/auth'), async (req, res) => {
+    try {
+        const { currentPassword, newUsername, newPassword } = req.body;
+        const userId = req.user.id;
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid current password' });
+        }
+
+        // Update Username
+        if (newUsername) {
+            const normalizedUsername = newUsername.trim().toLowerCase();
+            if (normalizedUsername !== user.username) {
+                // Check uniqueness
+                const exists = await User.findOne({ username: normalizedUsername });
+                if (exists) {
+                    return res.status(400).json({ message: 'Username already taken' });
+                }
+                user.username = normalizedUsername;
+            }
+        }
+
+        // Update Password
+        if (newPassword) {
+            const normalizedNewPassword = newPassword.trim();
+            if (normalizedNewPassword.length < 8) {
+                return res.status(400).json({ message: 'New password must be at least 8 characters' });
+            }
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(normalizedNewPassword, salt);
+        }
+
+        await user.save();
+
+        // Emit update if it's an admin (to refresh admin panels)
+        if (user.role === 'admin') {
+            socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
+        }
+
+        res.json({
+            message: 'Credentials updated successfully',
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role
+            }
+        });
+    } catch (err) {
+        logger.error('Failed to update credentials', err, { userId: req.user?.id });
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;
 
 // Reset Password

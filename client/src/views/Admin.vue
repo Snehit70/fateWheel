@@ -39,6 +39,60 @@
       </div>
 
 
+      <!-- Admin Management Card -->
+      <Card class="border-orange-500/20 bg-orange-500/5">
+        <CardHeader>
+          <CardTitle>Admin Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <!-- Admin Details -->
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                 <span class="text-muted-foreground">Admin:</span>
+                 <span class="font-bold text-lg">{{ adminUser?.username || 'Loading...' }}</span>
+              </div>
+               <div class="flex items-center gap-2">
+                 <span class="text-muted-foreground">Net Profit (Balance):</span>
+                 <span class="font-mono font-bold text-xl" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">
+                   {{ Math.floor(stats.netProfit) }}
+                 </span>
+              </div>
+              <div class="text-xs text-muted-foreground">
+                Joined: {{ adminUser?.createdAt ? new Date(adminUser.createdAt).toLocaleDateString() : '-' }}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+               <Button 
+                variant="outline" 
+                size="sm" 
+                @click="openUpdateCredentials"
+                class="flex-1 sm:flex-none border-orange-500/50 hover:bg-orange-500/10 text-orange-500"
+              >
+                Edit Profile
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                @click="$router.push('/admin/history')"
+                class="flex-1 sm:flex-none"
+              >
+                History
+              </Button>
+              <Button 
+                size="sm" 
+                @click="openWithdraw"
+                class="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Withdraw Profit
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Users Table - Desktop -->
       <Card class="hidden sm:block">
         <CardHeader>
@@ -297,6 +351,67 @@
       </DialogContent>
     </Dialog>
 
+    <!-- Withdraw Profit Dialog -->
+    <Dialog :open="showWithdrawModal" @update:open="showWithdrawModal = $event">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Withdraw Profit</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="text-sm text-muted-foreground mb-2">
+            Available Net Profit: <span class="font-mono font-bold" :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'">{{ Math.floor(stats.netProfit) }}</span>
+          </div>
+          <div class="grid grid-cols-4 items-center gap-4">
+            <label class="text-right text-sm font-medium">Amount</label>
+            <Input
+              v-model.number="withdrawAmount"
+              type="number"
+              class="col-span-3"
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showWithdrawModal = false">Cancel</Button>
+          <Button @click="confirmWithdraw" :disabled="!withdrawAmount || withdrawAmount <= 0">Withdraw</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Update Credentials Dialog -->
+    <Dialog :open="showCredentialsModal" @update:open="showCredentialsModal = $event">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Update Profile</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+           <!-- New Username -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium">New Username (Optional)</label>
+            <Input v-model="credForm.newUsername" placeholder="Enter new username" />
+          </div>
+
+          <!-- New Password -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium">New Password (Optional)</label>
+            <Input v-model="credForm.newPassword" type="password" placeholder="Enter new password (min 8 chars)" />
+          </div>
+
+           <div class="border-t my-2"></div>
+
+           <!-- Current Password (Required) -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-orange-500">Current Password (Required)</label>
+            <Input v-model="credForm.currentPassword" type="password" placeholder="Confirm with current password" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showCredentialsModal = false">Cancel</Button>
+          <Button @click="updateCredentials" :disabled="!credForm.currentPassword">Update</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
   </div>
 </template>
 
@@ -338,6 +453,27 @@ const editingUser = ref(null);
 const deletingUser = ref(null);
 const newBalance = ref(0);
 const reason = ref('');
+
+// Admin Management
+const adminUser = computed(() => {
+    // If we have users loaded, try to find the admin user details from the list (if displayed) or just use auth store
+    // authStore user might not have createdAt, so we prefer finding in users list if possible
+    // But typically admins might not see themselves in the user list if filtered out? 
+    // The user list *does* filter out admins in `filteredUsers` computed, but `users` has everyone? 
+    // Let's check fetchUsers: It calls /api/admin/users which returns all users.
+    // So we can find 'admin' role in `users.value`.
+    return users.value.find(u => u.role === 'admin') || authStore.user;
+});
+
+const showWithdrawModal = ref(false);
+const withdrawAmount = ref(null);
+
+const showCredentialsModal = ref(false);
+const credForm = ref({
+    currentPassword: '',
+    newUsername: '',
+    newPassword: ''
+});
 
 const loading = ref(false);
 const pagination = ref({
@@ -497,6 +633,64 @@ const deleteUser = async () => {
     console.error(err);
     toast.error('Failed to delete user');
   }
+};
+
+// Admin Management Actions
+const openWithdraw = () => {
+    withdrawAmount.value = null;
+    showWithdrawModal.value = true;
+};
+
+const confirmWithdraw = async () => {
+    if (!withdrawAmount.value || withdrawAmount.value <= 0) return;
+    
+    if (withdrawAmount.value > stats.value.netProfit) {
+        toast.error('Insufficient Net Profit');
+        return;
+    }
+
+    try {
+        const res = await api.post('/admin/withdraw', { amount: withdrawAmount.value });
+        toast.success(res.data.msg);
+        showWithdrawModal.value = false;
+        // Stats will update via socket, but we can also manually update if needed
+        stats.value.netProfit = res.data.netProfit;
+    } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.msg || 'Withdrawal failed');
+    }
+};
+
+const openUpdateCredentials = () => {
+    credForm.value = {
+        currentPassword: '',
+        newUsername: '',
+        newPassword: ''
+    };
+    showCredentialsModal.value = true;
+};
+
+const updateCredentials = async () => {
+    if (!credForm.value.currentPassword) {
+        toast.warning('Current password is required');
+        return;
+    }
+
+    try {
+        const res = await api.put('/auth/update-credentials', credForm.value);
+        toast.success(res.data.message);
+        showCredentialsModal.value = false;
+        
+        // If username changed, authStore handles it via subscription or we can force update?
+        // Ideally authStore is reactive to 'admin:userUpdate' or we reload page
+        // But for smoothness:
+        if (res.data.user) {
+            authStore.user = { ...authStore.user, ...res.data.user };
+        }
+    } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || 'Update failed');
+    }
 };
 
 const viewUserHistory = (user) => {
