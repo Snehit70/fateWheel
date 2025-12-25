@@ -392,10 +392,17 @@ const GameResult = require('../models/GameResult');
 // @access  Admin
 router.get('/rounds', auth, admin, async (req, res) => {
     try {
-        // Get all game results ordered by round number descending
+        const { page = 1, limit = 20 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        const total = await GameResult.countDocuments();
+
+        // Get paginated game results
         const rounds = await GameResult.find()
             .sort({ roundNumber: -1 })
-            .limit(100)
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum)
             .lean();
 
         // For each round, calculate betting stats
@@ -420,7 +427,15 @@ router.get('/rounds', auth, admin, async (req, res) => {
             };
         }));
 
-        res.json(roundsWithStats);
+        res.json({
+            data: roundsWithStats,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         logger.error('Failed to get rounds', err);
         res.status(500).send('Server Error');
