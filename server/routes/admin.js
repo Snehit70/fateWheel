@@ -130,23 +130,43 @@ router.get('/stats', auth, admin, async (req, res) => {
 router.get('/users/:id/history', auth, admin, async (req, res) => {
     try {
         const userId = req.params.id;
+        const { page = 1, limit = 20 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
 
-        const bets = await Bet.find({ user: userId })
-            .sort({ createdAt: -1 })
-            .limit(100)
-            .lean();
+        // Count totals for pagination
+        const [betCount, txCount] = await Promise.all([
+            Bet.countDocuments({ user: userId }),
+            Transaction.countDocuments({ user: userId })
+        ]);
+        const combinedTotal = betCount + txCount;
 
-        const transactions = await Transaction.find({ user: userId })
-            .sort({ createdAt: -1 })
-            .limit(100)
-            .lean();
+        // Fetch enough data to fill the page after merge
+        const fetchLimit = pageNum * limitNum;
 
-        // Combine and sort by date
+        const [bets, transactions] = await Promise.all([
+            Bet.find({ user: userId }).sort({ createdAt: -1 }).limit(fetchLimit).lean(),
+            Transaction.find({ user: userId }).sort({ createdAt: -1 }).limit(fetchLimit).lean()
+        ]);
+
+        // Combine and sort
         const history = [...bets, ...transactions].sort((a, b) => {
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
-        res.json(history);
+        // Slice for current page
+        const startIndex = (pageNum - 1) * limitNum;
+        const pageData = history.slice(startIndex, startIndex + limitNum);
+
+        res.json({
+            data: pageData,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: combinedTotal,
+                pages: Math.ceil(combinedTotal / limitNum)
+            }
+        });
     } catch (err) {
         logger.error('Failed to get user history', err, { userId: req.params.id });
         res.status(500).send('Server Error');

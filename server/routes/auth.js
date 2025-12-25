@@ -220,6 +220,11 @@ router.post('/reset-password', authLimiter, async (req, res) => {
             return res.status(403).json({ message: 'Contact admin to reset password' });
         }
 
+        // Defense-in-depth: Approved users should use normal login, not reset
+        if (user.status === 'approved') {
+            return res.status(403).json({ message: 'Password reset not available for active accounts. Please login or contact admin.' });
+        }
+
         // Hash new password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(normalizedNewPassword, salt);
