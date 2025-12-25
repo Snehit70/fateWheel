@@ -236,6 +236,11 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
 // @access  Admin
 router.delete('/users/:id', auth, admin, async (req, res) => {
     try {
+        // Prevent admin from deleting themselves
+        if (req.params.id === req.user.id) {
+            return res.status(400).json({ msg: 'Cannot delete your own account' });
+        }
+
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
