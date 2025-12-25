@@ -29,15 +29,27 @@ A full-stack Roulette application built with Vue.js (Frontend) and Node.js/Expre
 
 ## Features
 
-- Real-time betting and game loop
-- User authentication
-- Admin panel for user management
-- Secure random number generation
+- **Real-time Gameplay**: WebSocket-based game loop with synchronized states across all clients.
+- **Dynamic Betting System**: Support for Number, Color (Red/Black), and Parity (Even/Odd) bets.
+- **Admin Dashboard**:
+  - Real-time Net Profit monitoring
+  - User Management (Approve/Reject/Ban/Reset Password)
+  - Detailed Round History and Game Logs
+  - One-click Profit Withdrawal
+- **Interactive UI**:
+  - Validated inputs and responsive design
+  - Sound effects for game phases and interactions
+  - Live history of previous rounds
+- **Security**:
+  - JWT-based Authentication
+  - Role-based Access Control (Admin/User)
+  - Secure Password Hashing with Bcrypt
+  - Rate Limiting
 
 ## Requirements
 
 - Node.js & npm
-- Podman (for MongoDB)
+- Podman (for MongoDB) or local MongoDB instance
 
 ## Environment Variables
 
@@ -65,7 +77,7 @@ To set up the project, create `.env` files in the `client` and `server` director
 | Variable                     | Default Value                        | Description                        |
 | :--------------------------- | :----------------------------------- | :--------------------------------- |
 | `PORT`                       | `3000`                               | Server Port                        |
-| `MONGODB_URI`                | `mongodb://127.0.0.1:27017/roulette` | MongoDB Connection String          |
+| `MONGO_URL`                  | `mongodb://127.0.0.1:27017/roulette` | MongoDB Connection String          |
 | `JWT_SECRET`                 | _(Required)_                         | Secret key for JWT signing         |
 | `CLIENT_URL`                 | `http://localhost:5173`              | Allowed Origin for CORS            |
 | `MAX_BET_AMOUNT`             | `1001`                               | Server-side max bet validation     |
