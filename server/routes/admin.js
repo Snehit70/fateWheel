@@ -11,8 +11,27 @@ const logger = require('../utils/logger');
 // @access  Admin
 router.get('/users', auth, admin, async (req, res) => {
     try {
-        const users = await User.find().select('-password').sort({ createdAt: -1 });
-        res.json(users);
+        const { page = 1, limit = 20 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        const total = await User.countDocuments();
+        const users = await User.find()
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum)
+            .lean();
+
+        res.json({
+            data: users,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum)
+            }
+        });
     } catch (err) {
         logger.error('Failed to get users', err);
         res.status(500).send('Server Error');
