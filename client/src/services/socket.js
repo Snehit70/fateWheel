@@ -4,6 +4,7 @@ class SocketService {
     constructor() {
         this.socket = null;
         this.serverTimeOffset = 0; // Initialize to 0 to prevent NaN before sync
+        this.pendingListeners = []; // Buffer for listeners registered before connect
     }
 
     connect(token = null) {
@@ -35,6 +36,12 @@ class SocketService {
         this.socket.on('connect_error', (error) => {
             console.error('Socket connection error:', error.message);
         });
+
+        // Flush any pending listeners that were registered before connect()
+        this.pendingListeners.forEach(({ event, callback }) => {
+            this.socket.on(event, callback);
+        });
+        this.pendingListeners = [];
     }
 
     disconnect() {
@@ -45,11 +52,24 @@ class SocketService {
     }
 
     on(event, callback) {
-        if (!this.socket) return;
+        if (!this.socket) {
+            // Buffer the listener for when socket connects
+            this.pendingListeners.push({ event, callback });
+            return;
+        }
         this.socket.on(event, callback);
     }
 
     off(event, callback) {
+        // Also remove from pending listeners if socket hasn't connected yet
+        if (callback) {
+            this.pendingListeners = this.pendingListeners.filter(
+                l => !(l.event === event && l.callback === callback)
+            );
+        } else {
+            this.pendingListeners = this.pendingListeners.filter(l => l.event !== event);
+        }
+
         if (!this.socket) return;
         if (callback) {
             this.socket.off(event, callback);
