@@ -59,7 +59,7 @@
 
       <!-- Admin Management Card -->
       <Card class="border-orange-500/20 bg-orange-500/5">
-        <CardContent class="p-3">
+        <CardContent class="p-2">
           <div class="flex items-center justify-between gap-4 text-sm">
             <!-- Left Side: Admin & Net Profit -->
             <div class="flex items-center gap-6">
@@ -102,7 +102,7 @@
 
       <!-- Users Table - Desktop -->
       <Card class="hidden sm:block">
-        <CardHeader>
+        <CardHeader class="pt-3 pb-2">
           <div class="flex items-center justify-between">
             <CardTitle>User Management</CardTitle>
             <div class="w-64">
@@ -225,7 +225,7 @@
 
       <!-- Users List - Mobile -->
       <Card class="sm:hidden">
-        <CardHeader>
+        <CardHeader class="pt-3 pb-2">
           <CardTitle>User Management</CardTitle>
           <div class="mt-3">
             <Input v-model="searchQuery" placeholder="Search users..." />
