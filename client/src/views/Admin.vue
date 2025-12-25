@@ -58,7 +58,7 @@
       </div>
 
       <!-- Admin Management Card -->
-      <Card class="border-orange-500/20 bg-orange-500/5">
+      <Card class="border-orange-500/20 bg-orange-500/5 py-0 gap-0">
         <CardContent class="p-2">
           <div class="flex items-center justify-between gap-4 text-sm">
             <!-- Left Side: Admin & Net Profit -->
@@ -101,7 +101,7 @@
       </Card>
 
       <!-- Users Table - Desktop -->
-      <Card class="hidden sm:block">
+      <Card class="hidden sm:block pt-2 gap-0">
         <CardHeader class="pt-3 pb-2">
           <div class="flex items-center justify-between">
             <CardTitle>User Management</CardTitle>
@@ -224,7 +224,7 @@
       </div>
 
       <!-- Users List - Mobile -->
-      <Card class="sm:hidden">
+      <Card class="sm:hidden pt-2 gap-0">
         <CardHeader class="pt-3 pb-2">
           <CardTitle>User Management</CardTitle>
           <div class="mt-3">
