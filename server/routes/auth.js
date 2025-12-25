@@ -18,6 +18,12 @@ router.post('/register', authLimiter, async (req, res) => {
             return res.status(400).json({ message: 'Password must be at least 8 characters long' });
         }
 
+
+        // Validate alphanumeric
+        if (!/^[a-zA-Z0-9]+$/.test(normalizedUsername)) {
+            return res.status(400).json({ message: 'Username can only contain letters and numbers' });
+        }
+
         // Check if user exists (case-insensitive)
         let user = await User.findOne({
             username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') }
@@ -83,7 +89,8 @@ router.post('/login', authLimiter, async (req, res) => {
         // Create token
         const payload = {
             user: {
-                id: user.id
+                id: user.id,
+                role: user.role
             }
         };
 

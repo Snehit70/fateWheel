@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
         trim: true,
-        lowercase: true  // Automatically convert to lowercase
+        lowercase: true,  // Automatically convert to lowercase
+        match: [/^[a-zA-Z0-9]+$/, 'Username can only contain letters and numbers']
     },
     password: {
         type: String,

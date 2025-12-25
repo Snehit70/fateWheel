@@ -174,7 +174,8 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
                     action: 'update_balance',
                     targetUserId: user._id,
                     targetUsername: user.username,
-                    details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference}). Reason: ${reason}`
+                    details: `Changed balance from ${oldUser.balance} to ${balance} (${difference > 0 ? '+' : ''}${difference})`,
+                    reason: reason
                 });
                 await log.save();
 

@@ -36,11 +36,11 @@
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Time</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead>Target User</TableHead>
                 <TableHead>Details</TableHead>
                 <TableHead>Reason</TableHead>
-                <TableHead>Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -50,7 +50,7 @@
               <TableRow v-else-if="logs.length === 0">
                 <TableCell colspan="5" class="h-24 text-center text-muted-foreground">No logs found</TableCell>
               </TableRow>
-              <TableRow v-else v-for="log in logs" :key="log._id" class="transition-colors">
+                <TableCell class="text-muted-foreground text-xs whitespace-nowrap">{{ formatTime(log.createdAt) }}</TableCell>
                 <TableCell>
                   <Badge :variant="getActionVariant(log.action)">
                     {{ formatAction(log.action) }}
@@ -59,8 +59,6 @@
                 <TableCell class="font-medium">{{ log.targetUsername || '-' }}</TableCell>
                 <TableCell class="text-muted-foreground max-w-[200px] truncate" :title="log.details">{{ log.details || '-' }}</TableCell>
                 <TableCell class="text-muted-foreground max-w-[150px] truncate" :title="getReasonDisplay(log)">{{ getReasonDisplay(log) }}</TableCell>
-                <TableCell class="text-muted-foreground text-xs whitespace-nowrap">{{ formatTime(log.createdAt) }}</TableCell>
-              </TableRow>
             </TableBody>
           </Table>
         </CardContent>
@@ -71,9 +69,9 @@
         <div v-if="loading" class="text-center text-muted-foreground py-8">Loading logs...</div>
         <div v-else-if="logs.length === 0" class="text-center text-muted-foreground py-8">No logs found</div>
         <div v-else v-for="log in logs" :key="log._id" class="p-4 rounded-lg bg-surface border border-border">
-          <div class="flex items-center justify-between mb-2">
-            <Badge :variant="getActionVariant(log.action)">{{ formatAction(log.action) }}</Badge>
+            <div class="flex items-center justify-between mb-2">
             <span class="text-xs text-muted-foreground">{{ formatTime(log.createdAt) }}</span>
+            <Badge :variant="getActionVariant(log.action)">{{ formatAction(log.action) }}</Badge>
           </div>
           <div class="space-y-1 text-sm">
             <div><span class="text-muted-foreground">Target:</span> <span class="font-medium">{{ log.targetUsername || '-' }}</span></div>
