@@ -380,6 +380,7 @@ class GameLoop {
             });
             await gameResult.save();
 
+
             socketService.emitToRoom('admin-room', 'admin:newRound', gameResult);
 
             // Update Global Stats
@@ -390,6 +391,10 @@ class GameLoop {
                     netProfit: roundTotalWagered - roundTotalPayout
                 }
             }, { upsert: true });
+
+            // Notify admins that stats changed (net profit updated)
+            socketService.emitToRoom('admin-room', 'admin:statsUpdate');
+
 
         } catch (err) {
             logger.error("FULL ERROR OBJECT:", err);

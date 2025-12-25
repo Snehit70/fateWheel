@@ -50,6 +50,7 @@
               <TableRow v-else-if="logs.length === 0">
                 <TableCell colspan="5" class="h-24 text-center text-muted-foreground">No logs found</TableCell>
               </TableRow>
+              <TableRow v-else v-for="log in logs" :key="log._id" class="transition-colors">
                 <TableCell class="text-muted-foreground text-xs whitespace-nowrap">{{ formatTime(log.createdAt) }}</TableCell>
                 <TableCell>
                   <Badge :variant="getActionVariant(log.action)">
@@ -59,6 +60,7 @@
                 <TableCell class="font-medium">{{ log.targetUsername || '-' }}</TableCell>
                 <TableCell class="text-muted-foreground max-w-[200px] truncate" :title="log.details">{{ log.details || '-' }}</TableCell>
                 <TableCell class="text-muted-foreground max-w-[150px] truncate" :title="getReasonDisplay(log)">{{ getReasonDisplay(log) }}</TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </CardContent>
