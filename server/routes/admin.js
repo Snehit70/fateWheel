@@ -504,22 +504,26 @@ router.post('/withdraw', auth, admin, async (req, res) => {
         });
         await transaction.save();
 
-        // Log Admin Action
-        const log = new AdminLog({
-            adminId: req.user.id,
-            action: 'withdraw_profit',
-            targetUserId: req.user.id, // Target is self for withdrawal
-            targetUsername: 'System',
-            details: `Withdrew ${amount} from Net Profit`,
-            reason: 'Profit Withdrawal'
-        });
-        await log.save();
+        // Log Admin Action (Non-fatal)
+        try {
+            const log = new AdminLog({
+                adminId: req.user.id,
+                action: 'withdraw_profit',
+                targetUserId: req.user.id,
+                targetUsername: 'System',
+                details: `Withdrew ${amount} from Net Profit`,
+                reason: 'Profit Withdrawal'
+            });
+            await log.save();
 
-        // Emit new log
-        const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
+            // Emit new log
+            const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
+            socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
+        } catch (logErr) {
+            logger.error('Failed to save admin log for withdrawal', logErr);
+        }
 
-        // Emit stats update
+        // Emit stats update (Critical for UI sync)
         socketService.emitToRoom('admin-room', 'admin:statsUpdate');
 
         res.json({ msg: 'Withdrawal successful', netProfit: currentNetProfit - amount });
