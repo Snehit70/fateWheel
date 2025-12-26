@@ -60,7 +60,9 @@
       <!-- Admin Management Card -->
       <Card class="border-orange-500/20 bg-orange-500/5 py-0 gap-0">
         <CardContent class="p-2">
-          <div class="flex items-center justify-between gap-4 text-sm">
+          <div
+            class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm"
+          >
             <!-- Left Side: Admin & Net Profit -->
             <div class="flex items-center gap-6">
               <div class="flex items-center gap-2">
