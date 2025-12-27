@@ -199,8 +199,14 @@ export function useGameLogic() {
             const existingIdx = bets.value.findIndex(b => b.userId === bet.userId && b.type === bet.type && b.value === bet.value);
 
             if (existingIdx !== -1) {
-                // Update amount - Server is authority
-                bets.value[existingIdx].amount = bet.amount;
+                // Update amount - Server is authority, BUT if it's our own bet,
+                // we might have a newer local optimistic value.
+                // To prevent UI jitter (jumping back then forward), we take the max.
+                if (authStore.user?.id === bet.userId) {
+                    bets.value[existingIdx].amount = Math.max(bets.value[existingIdx].amount, bet.amount);
+                } else {
+                    bets.value[existingIdx].amount = bet.amount;
+                }
             } else {
                 bets.value.push(bet);
             }
