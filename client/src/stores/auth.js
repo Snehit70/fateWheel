@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
 import socket from '../services/socket';
+import router from '../router';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -54,6 +55,8 @@ export const useAuthStore = defineStore('auth', {
                     console.error("Failed to fetch user:", err);
                     this.logout();
                     this.isInitialized = true;
+                    // Redirect to home page when auto-logged out
+                    router.push('/');
                 }
             } else {
                 this.isInitialized = true;
