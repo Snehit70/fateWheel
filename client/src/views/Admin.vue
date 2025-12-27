@@ -607,8 +607,10 @@ const saveBalance = async () => {
     }
 
     editingUser.value = null;
-    fetchStats(); // Refresh stats
     toast.success("Balance updated successfully");
+    
+    // Refresh stats separately (non-fatal)
+    fetchStats().catch(() => {});
   } catch (err) {
     console.error(err);
     toast.error("Failed to update balance");
