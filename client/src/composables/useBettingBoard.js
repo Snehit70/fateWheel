@@ -11,6 +11,15 @@ export function useBettingBoard(props, emit) {
         return bet ? bet.amount : 0;
     };
 
+    // Get current user's bet on a specific target (type + value)
+    const getUserBetOnTarget = (type, value) => {
+        const userId = authStore.user?.id;
+        if (!userId) return 0;
+        return props.bets
+            .filter((b) => b.type === type && b.value === value && b.userId === userId)
+            .reduce((sum, b) => sum + b.amount, 0);
+    };
+
     const getBetsForColor = (color) => {
         return props.bets.filter((bet) => {
             if (color === "red") {
@@ -133,6 +142,7 @@ export function useBettingBoard(props, emit) {
 
     return {
         getBetAmount,
+        getUserBetOnTarget,
         getBetsForColor,
         getTotalBetForColor,
         getUniqueUsersCountForColor,

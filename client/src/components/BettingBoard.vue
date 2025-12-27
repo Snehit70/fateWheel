@@ -46,10 +46,10 @@
         >
           <span>RED</span>
           <span
-            v-if="getBetAmount('color', 'red')"
+            v-if="getUserBetOnTarget('color', 'red')"
             class="text-[10px] text-yellow-500 font-medium whitespace-nowrap"
           >
-            {{ getBetAmount("color", "red") }}
+            {{ getUserBetOnTarget("color", "red") }}
           </span>
         </Button>
         <div class="flex-[2] grid grid-cols-7 gap-[2px]">
@@ -62,10 +62,10 @@
           >
             <span class="text-sm font-medium">{{ num }}</span>
             <span
-              v-if="getBetAmount('number', num) > 0"
+              v-if="getUserBetOnTarget('number', num) > 0"
               class="text-[9px] text-yellow-500 font-medium"
             >
-              {{ getBetAmount("number", num) }}
+              {{ getUserBetOnTarget("number", num) }}
             </span>
           </Button>
         </div>
@@ -120,7 +120,7 @@
             class="text-[9px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span v-if="shouldShowAmount(user)" class="text-[9px] font-medium text-red-500 font-outfit">{{
+          <span class="text-[9px] font-medium text-red-500 font-outfit">{{
             user.amount
           }}</span>
         </div>
@@ -145,10 +145,10 @@
         >
           <span>EVEN</span>
           <span
-            v-if="getBetAmount('type', 'even') > 0"
+            v-if="getUserBetOnTarget('type', 'even') > 0"
             class="text-[9px] text-yellow-500 font-medium"
           >
-            {{ getBetAmount("type", "even") }}
+            {{ getUserBetOnTarget("type", "even") }}
           </span>
         </Button>
         <Button
@@ -158,10 +158,10 @@
         >
           <span class="text-sm font-medium">0</span>
           <span
-            v-if="getBetAmount('number', 0) > 0"
+            v-if="getUserBetOnTarget('number', 0) > 0"
             class="text-[9px] text-yellow-500 font-medium"
           >
-            {{ getBetAmount("number", 0) }}
+            {{ getUserBetOnTarget("number", 0) }}
           </span>
         </Button>
         <Button
@@ -175,10 +175,10 @@
         >
           <span>ODD</span>
           <span
-            v-if="getBetAmount('type', 'odd') > 0"
+            v-if="getUserBetOnTarget('type', 'odd') > 0"
             class="text-[9px] text-yellow-500 font-medium"
           >
-            {{ getBetAmount("type", "odd") }}
+            {{ getUserBetOnTarget("type", "odd") }}
           </span>
         </Button>
       </div>
@@ -232,7 +232,7 @@
             class="text-[9px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span v-if="shouldShowAmount(user)" class="text-[9px] font-medium text-green-500 font-outfit">{{
+          <span class="text-[9px] font-medium text-green-500 font-outfit">{{
             user.amount
           }}</span>
         </div>
@@ -253,10 +253,10 @@
         >
           <span>BLACK</span>
           <span
-            v-if="getBetAmount('color', 'black')"
+            v-if="getUserBetOnTarget('color', 'black')"
             class="text-[10px] text-yellow-500 font-medium whitespace-nowrap"
           >
-            {{ getBetAmount("color", "black") }}
+            {{ getUserBetOnTarget("color", "black") }}
           </span>
         </Button>
         <div class="flex-[2] grid grid-cols-7 gap-[2px]">
@@ -269,10 +269,10 @@
           >
             <span class="text-sm font-medium">{{ num }}</span>
             <span
-              v-if="getBetAmount('number', num) > 0"
+              v-if="getUserBetOnTarget('number', num) > 0"
               class="text-[9px] text-yellow-500 font-medium"
             >
-              {{ getBetAmount("number", num) }}
+              {{ getUserBetOnTarget("number", num) }}
             </span>
           </Button>
         </div>
@@ -327,7 +327,7 @@
             class="text-[9px] text-muted-foreground font-bold truncate w-full text-center"
             >{{ user.username || "User" }}</span
           >
-          <span v-if="shouldShowAmount(user)" class="text-[9px] font-medium text-purple-400 font-outfit">{{ user.amount }}</span>
+          <span class="text-[9px] font-medium text-purple-400 font-outfit">{{ user.amount }}</span>
         </div>
       </div>
     </Card>
@@ -386,6 +386,7 @@ const shouldShowAmount = (betUser) => {
 
 const {
     getBetAmount,
+    getUserBetOnTarget,
     getBetsForColor,
     getTotalBetForColor,
     getUniqueUsersCountForColor,
