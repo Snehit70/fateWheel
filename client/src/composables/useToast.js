@@ -6,6 +6,12 @@ let toastId = 0;
 
 export function useToast() {
     const showToast = (message, type = 'error', duration = 3000) => {
+        // Deduplicate: Check if a toast with same message and type already exists
+        const existing = toasts.value.find(t => t.message === message && t.type === type);
+        if (existing) {
+            return existing.id;
+        }
+
         const id = ++toastId;
 
         // Enforce maximum toast limit - remove oldest if at limit
