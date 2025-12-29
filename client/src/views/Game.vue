@@ -46,7 +46,7 @@
                      <BettingControls 
                         :balance="authStore.user?.balance || 0"
                         :is-logged-in="!!authStore.user"
-                        :is-spinning="isSpinning || isLocking"
+                        :is-spinning="isSpinning || isLocking || status === 'RESULT'"
                         :total-bet="totalBetAmount"
                         v-model:amount="currentBetAmount"
                         @clear-input="currentBetAmount = 0"
@@ -60,7 +60,7 @@
         <!-- Bottom Section: Betting Board -->
         <div 
             class="transition-all duration-500"
-            :class="{ 'pointer-events-none': isSpinning || isLocking }"
+            :class="{ 'pointer-events-none': isSpinning || isLocking || status === 'RESULT' }"
         >
             <BettingBoard 
                 :bets="bets"
