@@ -745,8 +745,10 @@ onMounted(() => {
 
   // Refresh data on reconnection
   socket.on("connect", () => {
-    fetchUsers();
-    fetchStats();
+    if (authStore.user?.role === "admin") {
+      fetchUsers();
+      fetchStats();
+    }
   });
 });
 
