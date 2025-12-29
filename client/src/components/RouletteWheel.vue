@@ -53,6 +53,18 @@
             <div class="text-text-muted text-xs sm:text-sm font-thin md:font-light tracking-[0.3em] uppercase hidden sm:block">Rolling In</div>
         </div>
 
+        <!-- Locking Bets State -->
+        <div v-else-if="status === 'LOCKING BETS...'" class="text-center">
+            <div class="text-2xl sm:text-3xl font-outfit font-thin md:font-light tracking-[0.3em] text-amber-400 uppercase animate-pulse">
+                Locking Bets
+            </div>
+            <div class="flex justify-center mt-4 space-x-2">
+                <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+        </div>
+
         <!-- Result State -->
         <div v-else-if="lastResult" class="text-center animate-fade-in">
             <div :class="[

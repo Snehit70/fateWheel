@@ -114,7 +114,8 @@ export function useBetting(bets, isSpinning) {
 
             if (response.error) {
                 console.error(response.error);
-                // If error, the next gameState broadcast will restore the correct state
+                toast.error("Bets locked for this round");
+                socket.emit('requestState'); // Force immediate re-sync to restore chips
             } else if (response.newBalance !== undefined) {
                 authStore.updateBalance(response.newBalance);
             }

@@ -5,6 +5,8 @@ import { SEGMENTS, SEGMENT_ANGLE, ANIMATION, TIMING } from '../constants/game';
 import { isClearPending } from './useBetting';
 import { useAudio } from './useAudio';
 
+const SAFETY_BUFFER_MS = 1000; // 1 second client-ahead buffer
+
 export function useGameLogic() {
     const authStore = useAuthStore();
     const { playWinSound } = useAudio();
@@ -12,6 +14,7 @@ export function useGameLogic() {
     // State
     const bets = ref([]);
     const isSpinning = ref(false);
+    const isLocking = ref(false);
     const isAnimating = ref(false);
     const rotation = ref(0);
     const lastResult = ref(null);
@@ -129,6 +132,7 @@ export function useGameLogic() {
                 if (status.value !== 'ROLLING IN') { // Only reset if changed to prevent jitter
                     status.value = 'ROLLING IN';
                     isSpinning.value = false;
+                    isLocking.value = false;
                     isAnimating.value = false;
                     lastResult.value = null;
                     winnings.value = 0;
@@ -136,14 +140,29 @@ export function useGameLogic() {
 
                 if (!countdownInterval) {
                     countdownInterval = setInterval(() => {
-                        const remaining = Math.max(0, (endTime - socket.getServerTime()) / 1000);
-                        timeLeft.value = remaining;
+                        const now = socket.getServerTime();
+                        const serverTimeLeft = (endTime - now) / 1000;
+                        const displayTimeLeft = Math.max(0, serverTimeLeft - (SAFETY_BUFFER_MS / 1000));
+                        
+                        timeLeft.value = displayTimeLeft;
+
+                        if (displayTimeLeft <= 0 && serverTimeLeft > 0) {
+                            // Buffer zone: client shows 0, server still accepting
+                            if (!isLocking.value) {
+                                status.value = 'LOCKING BETS...';
+                                isLocking.value = true;
+                            }
+                        } else if (displayTimeLeft > 0) {
+                            isLocking.value = false;
+                            if (status.value !== 'ROLLING IN') status.value = 'ROLLING IN';
+                        }
                     }, 100);
                 }
 
             } else if (data.state === 'SPINNING') {
                 status.value = 'ROLLING...';
                 isSpinning.value = true;
+                isLocking.value = false;
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
                     countdownInterval = null;
@@ -163,6 +182,8 @@ export function useGameLogic() {
                         lastResult.value = data.result;
                     }
                 }
+                
+                isLocking.value = false;
 
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
@@ -270,6 +291,7 @@ export function useGameLogic() {
     return {
         bets,
         isSpinning,
+        isLocking,
         rotation,
         lastResult,
         winnings,
