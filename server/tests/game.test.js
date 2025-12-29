@@ -95,9 +95,9 @@ describe('Payout Calculations', () => {
     });
 
     it('should handle minimum bet payout', () => {
-        const betAmount = 11; // Minimum bet
+        const betAmount = 10; // Minimum bet
         const payout = Math.floor(betAmount * PAYOUTS.NUMBER);
-        expect(payout).toBe(154); // 11 * 14 = 154
+        expect(payout).toBe(140); // 10 * 14 = 140
     });
 });
 

@@ -37,8 +37,8 @@ const TIMING = Object.freeze({
 
 // Bet amount limits - synced with client/src/constants/game.js
 const BET_LIMITS = Object.freeze({
-  MIN: parseInt(process.env.MIN_BET_AMOUNT, 10) || 11,
-  MAX: parseInt(process.env.MAX_BET_AMOUNT, 10) || 1001,
+  MIN: parseInt(process.env.MIN_BET_AMOUNT, 10) || 10,
+  MAX: parseInt(process.env.MAX_BET_AMOUNT, 10) || 1000,
 });
 
 // Valid bet types for even/odd bets

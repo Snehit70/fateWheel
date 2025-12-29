@@ -220,11 +220,11 @@ describe('Bet Model', () => {
                 username: testUser.username,
                 type: 'number',
                 value: 5,
-                amount: 11, // Minimum valid amount
+                amount: 10, // Minimum valid amount
                 roundId: 'round-min'
             });
 
-            expect(bet.amount).toBe(11);
+            expect(bet.amount).toBe(10);
         });
     });
 

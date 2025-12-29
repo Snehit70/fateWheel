@@ -141,11 +141,11 @@ const betAmount = computed({
 });
 
 const chips = [
-    { label: `${BET_LIMITS.MIN}`, value: BET_LIMITS.MIN },
-    { label: '21', value: 21 },
-    { label: '51', value: 51 },
-    { label: '101', value: 101 },
-    { label: '201', value: 201 },
+    { label: "10", value: 10 },
+    { label: "20", value: 20 },
+    { label: "50", value: 50 },
+    { label: "100", value: 100 },
+    { label: "200", value: 200 },
 ];
 
 const isOutOfRange = computed(() => {

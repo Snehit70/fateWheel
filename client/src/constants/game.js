@@ -49,6 +49,6 @@ export const getNumbersByColor = (color) => {
 };
 
 export const BET_LIMITS = {
-    MIN: parseInt(import.meta.env.VITE_MIN_BET_AMOUNT) || 11,
-    MAX: parseInt(import.meta.env.VITE_MAX_BET_AMOUNT) || 1001
+    MIN: parseInt(import.meta.env.VITE_MIN_BET_AMOUNT) || 10,
+    MAX: parseInt(import.meta.env.VITE_MAX_BET_AMOUNT) || 1000
 };
