@@ -54,7 +54,7 @@ const betSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'completed', 'refunded'],
+        enum: ['active', 'completed', 'refunded', 'cancelled'],
         default: 'active'
     },
     roundId: {

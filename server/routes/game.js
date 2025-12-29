@@ -21,7 +21,10 @@ router.get("/history", auth, async (req, res) => {
     if (limit < 1) limit = 20;
 
     // Build queries
-    const betQuery = { user: req.user.id };
+    const betQuery = { 
+        user: req.user.id,
+        status: { $ne: 'cancelled' }
+    };
     const txQuery = { user: req.user.id };
 
     if (roundId) {

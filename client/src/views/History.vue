@@ -112,7 +112,7 @@
                 <TableHead>Round</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
-                <TableHead>Type</TableHead>
+                <TableHead>Bet Type</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Result</TableHead>
@@ -151,13 +151,13 @@
                 <!-- Type -->
                 <TableCell class="font-medium capitalize">
                   <span v-if="isTransaction(item)" :class="getTransactionTypeClass(item.type)">
-                    {{ item.type }}
+                    {{ item.type === 'adjustment' && item.description && item.description.includes('Server Restart') ? 'System Refund' : item.type }}
                     <Badge v-if="item.txCount > 1" variant="outline" class="text-[10px] px-1 py-0 ml-1">
                       x{{ item.txCount }}
                     </Badge>
                   </span>
                   <span v-else class="flex items-center gap-1">
-                    {{ item.type }}
+                    {{ item.type === 'type' ? 'Parity' : item.type }}
                     <Badge v-if="item.betCount > 1" variant="outline" class="text-[10px] px-1 py-0">
                       x{{ item.betCount }}
                     </Badge>
@@ -389,6 +389,24 @@ const aggregatedHistory = computed(() => {
   return items;
 });
 
+// Filter based on active filter
+const filteredHistory = computed(() => {
+    let filtered = history.value;
+    
+    // Filter out cancelled bets (user cleared)
+    filtered = filtered.filter(item => item.status !== 'cancelled');
+    
+    // Filter based on active filter selection
+    switch (activeFilter.value) {
+        case 'bets':
+            return filtered.filter(item => !isTransaction(item));
+        case 'transactions':
+            return filtered.filter(item => isTransaction(item));
+        default:
+            return filtered;
+    }
+});
+
 // Pre-process history to add row classes (alternating colors for rounds)
 const processedHistory = computed(() => {
     let lastRoundId = null;
@@ -405,20 +423,6 @@ const processedHistory = computed(() => {
             rowClass: isTransaction(item) ? '' : (isDark ? 'bg-white/5' : 'bg-primary/5')
         };
     });
-});
-
-// Filter based on active filter
-const filteredHistory = computed(() => {
-  const items = aggregatedHistory.value;
-
-  switch (activeFilter.value) {
-    case 'bets':
-      return items.filter(item => !isTransaction(item));
-    case 'transactions':
-      return items.filter(item => isTransaction(item));
-    default:
-      return items;
-  }
 });
 
 // Calculate stats from completed bets only
@@ -441,6 +445,7 @@ const isTransaction = (item) => {
 const getTransactionTypeClass = (type) => {
     if (type === 'deposit') return 'text-green-500 font-bold';
     if (type === 'withdraw') return 'text-red-500 font-bold';
+    if (type === 'adjustment') return 'text-purple-500 font-bold'; // System Refund color
     return 'text-blue-500';
 };
 

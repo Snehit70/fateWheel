@@ -549,28 +549,18 @@ class GameLoop {
                 // Refund to DB
                 await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
 
-                // Mark bets as refunded
+                // Mark bets as cancelled
                 await Bet.updateMany(
                     { user: user.id, status: 'active', roundId: this.currentRoundId },
-                    { status: 'refunded' }
+                    { status: 'cancelled' }
                 );
-
-                // Log Transaction
-                const dbUser = await User.findById(user.id);
-                const transaction = new Transaction({
-                    user: user.id,
-                    type: 'adjustment',
-                    amount: totalRefund,
-                    balanceAfter: dbUser.balance,
-                    description: 'Refund: Bets Cleared'
-                });
-                await transaction.save();
 
                 // Remove bets from memory
                 this.bets = this.bets.filter(b => b.userId !== user.id);
 
                 socketService.emitToAll('betsCleared', user.id);
 
+                const dbUser = await User.findById(user.id);
                 socketService.emitToRoom('admin-room', 'admin:userUpdate', dbUser);
                 return dbUser.balance;
             } catch (err) {
