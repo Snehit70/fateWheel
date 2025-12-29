@@ -74,6 +74,7 @@ export function useBetting(bets, isSpinning) {
 
         const timeoutId = setTimeout(() => {
             if (!callbackFired) {
+                callbackFired = true;
                 console.warn('Bet callback timeout - reverting optimistic update');
                 revertOptimisticBet(type, value, betAmount);
                 toast.error('Bet failed - please try again');
@@ -81,8 +82,12 @@ export function useBetting(bets, isSpinning) {
         }, BET_CALLBACK_TIMEOUT);
 
         socket.emit('placeBet', { type, value, amount: betAmount }, (response) => {
-            callbackFired = true;
             clearTimeout(timeoutId);
+
+            if (callbackFired) {
+                return;
+            }
+            callbackFired = true;
 
             if (response.error) {
                 toast.error(response.error);
