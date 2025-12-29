@@ -723,10 +723,6 @@ const handleUserUpdate = (updatedUser) => {
       users.value[index] = updatedUser;
     }
   }
-  // Removed else if block: Updates to users not on the current page should not seamlessly appear at the top.
-  // New users are handled by 'admin:newUser' event.
-
-  fetchStats(); // Refresh stats on any user update
 };
 
 onMounted(() => {
@@ -741,11 +737,9 @@ onMounted(() => {
         users.value.pop();
       }
     }
-    fetchStats();
   });
   socket.on("admin:userDeleted", (userId) => {
     users.value = users.value.filter((u) => u._id !== userId);
-    fetchStats();
   });
   socket.on("admin:statsUpdate", fetchStats);
 

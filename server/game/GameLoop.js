@@ -38,22 +38,26 @@ class GameLoop {
         this.userLocks = new Map();
     }
 
-    // Simple mutex implementation
     async withUserLock(userId, action) {
         if (!this.userLocks.has(userId)) {
             this.userLocks.set(userId, Promise.resolve());
         }
 
-        const promise = this.userLocks.get(userId).then(async () => {
+        const currentLock = this.userLocks.get(userId);
+        let newLockPromise;
+
+        const promise = currentLock.then(async () => {
             try {
                 return await action();
-            } catch (err) {
-                throw err;
+            } finally {
+                if (this.userLocks.get(userId) === newLockPromise) {
+                    this.userLocks.delete(userId);
+                }
             }
         });
 
-        // Update the lock pointer, catching errors to keep the chain alive
-        this.userLocks.set(userId, promise.catch(() => { }));
+        newLockPromise = promise.catch(() => {});
+        this.userLocks.set(userId, newLockPromise);
 
         return promise;
     }
@@ -155,6 +159,11 @@ class GameLoop {
                 const updatedUser = await User.findByIdAndUpdate(bet.user, { $inc: { balance: bet.amount } }, { new: true });
                 bet.status = 'refunded';
                 await bet.save();
+
+                if (!updatedUser) {
+                    logger.warn(`User ${bet.user} not found during refund - bet ${bet._id} marked refunded but balance not updated`);
+                    continue;
+                }
 
                 // Log Transaction
                 const transaction = new Transaction({
@@ -542,7 +551,10 @@ class GameLoop {
 
                 // Find user's active bets in DB
                 const activeBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
-                if (activeBets.length === 0) return;
+                if (activeBets.length === 0) {
+                    const dbUser = await User.findById(user.id);
+                    return dbUser?.balance ?? 0;
+                }
 
                 const totalRefund = activeBets.reduce((sum, b) => sum + b.amount, 0);
 

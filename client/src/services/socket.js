@@ -1,10 +1,13 @@
 import { io } from "socket.io-client";
 
+const TIME_SYNC_INTERVAL = 5 * 60 * 1000;
+
 class SocketService {
     constructor() {
         this.socket = null;
-        this.serverTimeOffset = 0; // Initialize to 0 to prevent NaN before sync
-        this.pendingListeners = []; // Buffer for listeners registered before connect
+        this.serverTimeOffset = 0;
+        this.pendingListeners = [];
+        this._timeSyncInterval = null;
     }
 
     connect(token = null) {
@@ -27,6 +30,9 @@ class SocketService {
         this.socket.on('connect', () => {
             console.log('Socket connected');
             this.syncTime();
+            
+            if (this._timeSyncInterval) clearInterval(this._timeSyncInterval);
+            this._timeSyncInterval = setInterval(() => this.syncTime(), TIME_SYNC_INTERVAL);
         });
 
         this.socket.on('disconnect', (reason) => {
@@ -37,7 +43,6 @@ class SocketService {
             console.error('Socket connection error:', error.message);
         });
 
-        // Flush any pending listeners that were registered before connect()
         this.pendingListeners.forEach(({ event, callback }) => {
             this.socket.on(event, callback);
         });
@@ -45,6 +50,10 @@ class SocketService {
     }
 
     disconnect() {
+        if (this._timeSyncInterval) {
+            clearInterval(this._timeSyncInterval);
+            this._timeSyncInterval = null;
+        }
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;

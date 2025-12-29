@@ -14,11 +14,9 @@ router.get("/healthz", (req, res) => {
 // @access  Private
 router.get("/history", auth, async (req, res) => {
   try {
-    let page = parseInt(req.query.page);
-    let limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const { date, startDate, endDate, roundId } = req.query;
-
-    if (limit < 1) limit = 20;
 
     // Build queries
     const betQuery = { 
@@ -48,7 +46,7 @@ router.get("/history", auth, async (req, res) => {
       txQuery.createdAt = { $gte: start, $lt: end };
     }
 
-    if (page) {
+    if (req.query.page) {
       // Pagination Strategy for Merged Collections:
       // Since we are merging two separate sorted lists (Bets and Transactions),
       // we cannot simply 'skip' on the DB side because we don't know how many

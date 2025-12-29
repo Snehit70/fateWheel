@@ -84,7 +84,13 @@ if (!process.env.CLIENT_URL) {
 }
 
 if (process.env.NODE_ENV !== 'test') {
-    mongoose.connect(MONGO_URL, { dbName: 'roulette' })
+    mongoose.connect(MONGO_URL, {
+        dbName: 'roulette',
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+    })
         .then(() => logger.info('Connected to MongoDB (DB: roulette)'))
         .catch(err => logger.error('MongoDB connection error:', err));
 }

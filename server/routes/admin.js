@@ -11,25 +11,24 @@ const logger = require('../utils/logger');
 // @access  Admin
 router.get('/users', auth, admin, async (req, res) => {
     try {
-        const { page = 1, limit = 20 } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
 
         const total = await User.countDocuments();
         const users = await User.find()
             .select('-password')
             .sort({ createdAt: -1 })
-            .skip((pageNum - 1) * limitNum)
-            .limit(limitNum)
+            .skip((page - 1) * limit)
+            .limit(limit)
             .lean();
 
         res.json({
             data: users,
             pagination: {
-                page: pageNum,
-                limit: limitNum,
+                page: page,
+                limit: limit,
                 total,
-                pages: Math.ceil(total / limitNum)
+                pages: Math.ceil(total / limit)
             }
         });
     } catch (err) {
@@ -47,7 +46,9 @@ const AdminLog = require('../models/AdminLog');
 // @access  Admin
 router.get('/logs', auth, admin, async (req, res) => {
     try {
-        const { page = 1, limit = 20, action, userId } = req.query;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const { action, userId } = req.query;
 
         // Build filter
         const filter = {};
@@ -62,17 +63,17 @@ router.get('/logs', auth, admin, async (req, res) => {
         const logs = await AdminLog.find(filter)
             .populate('adminId', 'username')
             .sort({ createdAt: -1 })
-            .skip((parseInt(page) - 1) * parseInt(limit))
-            .limit(parseInt(limit))
+            .skip((page - 1) * limit)
+            .limit(limit)
             .lean();
 
         res.json({
             data: logs,
             pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page: page,
+                limit: limit,
                 total,
-                pages: Math.ceil(total / parseInt(limit))
+                pages: Math.ceil(total / limit)
             }
         });
     } catch (err) {
@@ -149,9 +150,8 @@ router.get('/stats', auth, admin, async (req, res) => {
 router.get('/users/:id/history', auth, admin, async (req, res) => {
     try {
         const userId = req.params.id;
-        const { page = 1, limit = 20 } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
 
         // Count totals for pagination
         const [betCount, txCount] = await Promise.all([
@@ -161,7 +161,7 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
         const combinedTotal = betCount + txCount;
 
         // Fetch enough data to fill the page after merge
-        const fetchLimit = pageNum * limitNum;
+        const fetchLimit = page * limit;
 
         const [bets, transactions] = await Promise.all([
             Bet.find({ user: userId }).sort({ createdAt: -1 }).limit(fetchLimit).lean(),
@@ -174,16 +174,16 @@ router.get('/users/:id/history', auth, admin, async (req, res) => {
         });
 
         // Slice for current page
-        const startIndex = (pageNum - 1) * limitNum;
-        const pageData = history.slice(startIndex, startIndex + limitNum);
+        const startIndex = (page - 1) * limit;
+        const pageData = history.slice(startIndex, startIndex + limit);
 
         res.json({
             data: pageData,
             pagination: {
-                page: pageNum,
-                limit: limitNum,
+                page: page,
+                limit: limit,
                 total: combinedTotal,
-                pages: Math.ceil(combinedTotal / limitNum)
+                pages: Math.ceil(combinedTotal / limit)
             }
         });
     } catch (err) {
@@ -436,17 +436,16 @@ const GameResult = require('../models/GameResult');
 // @access  Admin
 router.get('/rounds', auth, admin, async (req, res) => {
     try {
-        const { page = 1, limit = 20 } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
 
         const total = await GameResult.countDocuments();
 
         // Get paginated game results
         const rounds = await GameResult.find()
             .sort({ roundNumber: -1 })
-            .skip((pageNum - 1) * limitNum)
-            .limit(limitNum)
+            .skip((page - 1) * limit)
+            .limit(limit)
             .lean();
 
         // For each round, calculate betting stats
@@ -474,10 +473,10 @@ router.get('/rounds', auth, admin, async (req, res) => {
         res.json({
             data: roundsWithStats,
             pagination: {
-                page: pageNum,
-                limit: limitNum,
+                page: page,
+                limit: limit,
                 total,
-                pages: Math.ceil(total / limitNum)
+                pages: Math.ceil(total / limit)
             }
         });
     } catch (err) {
@@ -597,7 +596,8 @@ router.post('/withdraw', auth, admin, async (req, res) => {
 // @access  Admin
 router.get('/withdrawals', auth, admin, async (req, res) => {
     try {
-        const { page = 1, limit = 20 } = req.query;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
 
         const filter = {
             type: 'withdraw',
@@ -608,17 +608,17 @@ router.get('/withdrawals', auth, admin, async (req, res) => {
         const withdrawals = await Transaction.find(filter)
             .populate('user', 'username')
             .sort({ createdAt: -1 })
-            .skip((parseInt(page) - 1) * parseInt(limit))
-            .limit(parseInt(limit))
+            .skip((page - 1) * limit)
+            .limit(limit)
             .lean();
 
         res.json({
             data: withdrawals,
             pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page: page,
+                limit: limit,
                 total,
-                pages: Math.ceil(total / parseInt(limit))
+                pages: Math.ceil(total / limit)
             }
         });
     } catch (err) {

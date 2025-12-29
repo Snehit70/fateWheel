@@ -11,6 +11,22 @@ export const useAuthStore = defineStore('auth', {
         isLoginModalOpen: false,
     }),
     actions: {
+        _setupSocketListeners() {
+            socket.off('balanceUpdate');
+            socket.off('userUpdate');
+            
+            socket.on('balanceUpdate', (payload) => {
+                if (this.user) {
+                    this.user.balance = payload.balance;
+                }
+            });
+
+            socket.on('userUpdate', (updatedUser) => {
+                if (this.user && (this.user.id === updatedUser.id || this.user._id === updatedUser._id)) {
+                    Object.assign(this.user, updatedUser);
+                }
+            });
+        },
         async init() {
             if (this.token) {
                 api.defaults.headers.common['x-auth-token'] = this.token;
@@ -19,28 +35,9 @@ export const useAuthStore = defineStore('auth', {
                     this.user = response.data;
                     this.isInitialized = true;
 
-                    // Initialize socket with token
                     socket.setToken(this.token);
+                    this._setupSocketListeners();
 
-                    // Listen for balance updates
-                    socket.on('balanceUpdate', (payload) => {
-                        if (this.user) {
-                            this.user.balance = payload.balance;
-                        }
-                    });
-
-                    // Listen for user profile updates (status, role, etc)
-                    socket.on('userUpdate', (updatedUser) => {
-                        if (this.user && this.user.id === updatedUser.id) {
-                            // Merge updates
-                            Object.assign(this.user, updatedUser);
-                        } else if (this.user && this.user._id === updatedUser._id) {
-                            // Fallback if id vs _id mismatch
-                            Object.assign(this.user, updatedUser);
-                        }
-                    });
-
-                    // Refresh user data on reconnection (fixes sync issues after server restart)
                     socket.on('connect', async () => {
                         if (this.token) {
                             try {
@@ -55,7 +52,6 @@ export const useAuthStore = defineStore('auth', {
                     console.error("Failed to fetch user:", err);
                     this.logout();
                     this.isInitialized = true;
-                    // Redirect to home page when auto-logged out
                     router.push('/');
                 }
             } else {
@@ -105,20 +101,7 @@ export const useAuthStore = defineStore('auth', {
             localStorage.setItem('token', data.token);
             api.defaults.headers.common['x-auth-token'] = data.token;
             await socket.setToken(data.token);
-
-            // Listen for balance updates
-            socket.on('balanceUpdate', (payload) => {
-                if (this.user) {
-                    this.user.balance = payload.balance;
-                }
-            });
-
-            // Listen for user profile updates
-            socket.on('userUpdate', (updatedUser) => {
-                if (this.user && (this.user.id === updatedUser.id || this.user._id === updatedUser._id)) {
-                    Object.assign(this.user, updatedUser);
-                }
-            });
+            this._setupSocketListeners();
         },
         logout() {
             this.token = null;
