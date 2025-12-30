@@ -255,6 +255,9 @@ export function useGameLogic() {
 
         // Store cleanup function reference
         socket._visibilityHandler = handleVisibilityChange;
+
+        // Request current game state immediately on mount to restore history after navigation
+        socket.emit('requestState');
     });
 
     onUnmounted(() => {
