@@ -9,7 +9,7 @@ import './setup';
 
 type MockResponse = Pick<Response, 'json' | 'send' | 'status'>;
 type MockUser = { id?: string; role?: string };
-type MockRequest = Partial<Request> & { user?: MockUser };
+type MockRequest = Omit<Partial<Request>, 'user'> & { user?: MockUser };
 type CreatedUser = { id: string };
 
 describe('Admin Middleware', () => {
@@ -75,7 +75,7 @@ describe('Admin Middleware', () => {
         password: hashedPassword,
         role: 'admin',
       })) as CreatedUser;
-      mockReq.user = { id: adminUser.id, role: 'user' };
+      mockReq.user = { id: adminUser.id };
 
       await adminMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
@@ -91,7 +91,7 @@ describe('Admin Middleware', () => {
         password: hashedPassword,
         role: 'user',
       })) as CreatedUser;
-      mockReq.user = { id: regularUser.id, role: 'user' };
+      mockReq.user = { id: regularUser.id };
 
       await adminMiddleware(mockReq as Request, mockRes as Response, mockNext);
 

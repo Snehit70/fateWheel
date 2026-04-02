@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 
 import type { GameStatsAttrs, GameStatsDocument, GameStatsModel } from '../types/models';
 
+const GAME_STATS_SINGLETON_ID = new mongoose.Types.ObjectId('000000000000000000000001');
+
 const gameStatsSchema = new mongoose.Schema<GameStatsAttrs, GameStatsModel>(
   {
     totalUsers: {
@@ -32,6 +34,10 @@ const gameStatsSchema = new mongoose.Schema<GameStatsAttrs, GameStatsModel>(
       type: Number,
       default: 0,
     },
+    withdrawalLockUntil: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -39,8 +45,17 @@ const gameStatsSchema = new mongoose.Schema<GameStatsAttrs, GameStatsModel>(
 gameStatsSchema.statics.getStats = async function getStats(): Promise<GameStatsDocument> {
   try {
     const stats = await this.findOneAndUpdate(
-      {},
-      { $setOnInsert: { totalUsers: 0, pendingUsers: 0, netProfit: 0, totalBets: 0, totalWagered: 0 } },
+      { _id: GAME_STATS_SINGLETON_ID },
+      {
+        $setOnInsert: {
+          _id: GAME_STATS_SINGLETON_ID,
+          totalUsers: 0,
+          pendingUsers: 0,
+          netProfit: 0,
+          totalBets: 0,
+          totalWagered: 0,
+        },
+      },
       { upsert: true, new: true }
     );
 

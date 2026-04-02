@@ -10,8 +10,23 @@ import logger from '../utils/logger';
 import auth = require('../middleware/auth');
 
 const router = express.Router();
+const USERNAME_PATTERN = /^[a-zA-Z0-9]+$/;
 
 const normalizeText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+const getJwtSecret = (): string | null => {
+  const jwtSecret = process.env.JWT_SECRET?.trim();
+  return jwtSecret || null;
+};
+const sanitizeAdminUser = (user: { toObject: () => Record<string, unknown>; id: string; username: string; balance: number; role: string }) => {
+  const { password: _password, ...safeUser } = user.toObject();
+  return {
+    ...safeUser,
+    id: user.id,
+    username: user.username,
+    balance: user.balance,
+    role: user.role,
+  };
+};
 
 router.post('/register', authLimiter, async (req: Request, res: Response) => {
   try {
@@ -22,13 +37,11 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
-    if (!username || !/^[a-zA-Z0-9]+$/.test(username)) {
+    if (!username || !USERNAME_PATTERN.test(username)) {
       return res.status(400).json({ message: 'Username can only contain letters and numbers' });
     }
 
-    let user = await User.findOne({
-      username: { $regex: new RegExp(`^${username}$`, 'i') },
-    });
+    let user = await User.findOne({ username });
 
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
@@ -44,7 +57,7 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
 
     await user.save();
 
-    socketService.emitToRoom('admin-room', 'admin:newUser', user);
+    socketService.emitToRoom('admin-room', 'admin:newUser', sanitizeAdminUser(user));
     socketService.emitToRoom('admin-room', 'admin:statsUpdate', {});
 
     return res.json({ message: 'Registration successful. You can now login.' });
@@ -56,12 +69,15 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
 
 router.post('/login', authLimiter, async (req: Request, res: Response) => {
   try {
-    const username = normalizeText(req.body?.username);
+    const username = normalizeText(req.body?.username).toLowerCase();
     const password = normalizeText(req.body?.password);
+    const jwtSecret = getJwtSecret();
 
-    const user = await User.findOne({
-      username: { $regex: new RegExp(`^${username}$`, 'i') },
-    });
+    if (!jwtSecret) {
+      return res.status(500).send('Server error');
+    }
+
+    const user = await User.findOne({ username });
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -80,7 +96,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response) => {
     };
 
     const token = await new Promise<string>((resolve, reject) => {
-      jwt.sign(payload, process.env.JWT_SECRET ?? '', { expiresIn: '1y' }, (error, signedToken) => {
+      jwt.sign(payload, jwtSecret, { expiresIn: '1y' }, (error, signedToken) => {
         if (error || !signedToken) {
           reject(error ?? new Error('Token generation failed'));
           return;
@@ -146,6 +162,9 @@ router.put('/update-credentials', auth, async (req: Request, res: Response) => {
 
     if (newUsername) {
       const normalizedUsername = newUsername.toLowerCase();
+      if (!USERNAME_PATTERN.test(normalizedUsername)) {
+        return res.status(400).json({ message: 'Username can only contain letters and numbers' });
+      }
       if (normalizedUsername !== user.username) {
         const exists = await User.findOne({ username: normalizedUsername });
         if (exists) {
@@ -166,7 +185,7 @@ router.put('/update-credentials', auth, async (req: Request, res: Response) => {
     await user.save();
 
     if (user.role === 'admin') {
-      socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
+      socketService.emitToRoom('admin-room', 'admin:userUpdate', sanitizeAdminUser(user));
     }
 
     return res.json({

@@ -15,35 +15,34 @@ async function createAdmin(): Promise<void> {
       console.warn('Usage: MONGO_URL not found, defaulting to localhost.');
     }
 
-    await mongoose.connect(mongoUrl, { dbName: 'fatewheel' });
+    await mongoose.connect(mongoUrl);
     console.log('Connected to MongoDB');
 
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'adminpassword123';
+    const adminUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminUsername || !adminPassword) {
+      throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD must be set');
+    }
 
     console.log(`Checking Admin: ${adminUsername}`);
 
-    const existingAdmin = await User.findOne({ username: adminUsername });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-    if (existingAdmin) {
-      existingAdmin.role = 'admin';
-      await existingAdmin.save();
-      console.log('Admin user exists. Updated role to ensure access.');
-    } else {
-      console.log('Creating new Admin...');
-
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(adminPassword, salt);
-
-      const admin = new User({
-        username: adminUsername,
-        password: hashedPassword,
-        role: 'admin',
-        balance: 10000,
-      });
-      await admin.save();
-      console.log('MongoDB Admin Created.');
-    }
+    await User.findOneAndUpdate(
+      { username: adminUsername },
+      {
+        $set: { role: 'admin' },
+        $setOnInsert: {
+          username: adminUsername,
+          password: hashedPassword,
+          balance: 10000,
+        },
+      },
+      { upsert: true, new: true, runValidators: true }
+    );
+    console.log('MongoDB Admin Created or Updated.');
 
     await mongoose.disconnect();
     console.log('Seeding completed successfully.');

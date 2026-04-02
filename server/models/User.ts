@@ -27,10 +27,6 @@ const userSchema = new mongoose.Schema<UserAttrs>(
       enum: ['user', 'admin'],
       default: 'user',
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
   },
   { timestamps: true }
 );

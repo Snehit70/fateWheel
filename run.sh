@@ -57,6 +57,8 @@ fi
 # Seed Admin User
 echo "Checking/Seeding Admin User..."
 cd server
+export ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
+export ADMIN_PASSWORD="${ADMIN_PASSWORD:-adminpassword123}"
 npm run seed:admin
 if [ $? -eq 0 ]; then
   echo "Admin user check completed."
@@ -164,8 +166,8 @@ echo "  PUT  /api/admin/users/:id/balance"
 echo ""
 echo "=================================================="
 echo "Admin Credentials:"
-echo "Username: admin"
-echo "Password: adminpassword123"
+echo "Username: $ADMIN_USERNAME"
+echo "Password: $ADMIN_PASSWORD"
 echo "=================================================="
 echo ""
 echo "Logs available at: $BACKEND_LOG and $FRONTEND_LOG"

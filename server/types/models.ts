@@ -90,6 +90,7 @@ export interface GameStatsAttrs {
   totalWagered: number;
   lastDate: string;
   dailyNonce: number;
+  withdrawalLockUntil?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

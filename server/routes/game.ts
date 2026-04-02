@@ -23,6 +23,7 @@ type QueryWithCreatedAt = {
   roundId?: { $regex: string; $options: string };
   createdAt?: { $gte: Date; $lte?: Date; $lt?: Date };
 };
+const MAX_HISTORY_FETCH_LIMIT = 1000;
 
 router.get('/healthz', (_req: Request, res: Response) => {
   res.json({ status: 'running' });
@@ -62,7 +63,7 @@ router.get('/history', auth, async (req: Request<unknown, unknown, unknown, Hist
     }
 
     if (req.query.page) {
-      const fetchLimit = page * limit;
+      const fetchLimit = Math.min(page * limit, MAX_HISTORY_FETCH_LIMIT);
       const txPromise = roundId
         ? Promise.resolve<HistoryRecord[]>([])
         : Transaction.find(txQuery).sort({ createdAt: -1 }).limit(fetchLimit).lean<HistoryRecord[]>();

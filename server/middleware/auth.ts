@@ -21,13 +21,18 @@ const isAuthTokenPayload = (value: unknown): value is AuthTokenPayload => {
 
 function auth(req: Request, res: Response, next: NextFunction): Response | void {
   const token = req.header('x-auth-token');
+  const jwtSecret = process.env.JWT_SECRET?.trim();
 
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });
   }
 
+  if (!jwtSecret) {
+    return res.status(500).json({ message: 'Server misconfigured' });
+  }
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET ?? '');
+    const decoded = jwt.verify(token, jwtSecret);
     if (!isAuthTokenPayload(decoded)) {
       return res.status(401).json({ message: 'Token is not valid' });
     }

@@ -1,10 +1,12 @@
 import express, { type Request, type Response } from 'express';
+import mongoose from 'mongoose';
 
 import admin = require('../middleware/admin');
 import auth = require('../middleware/auth');
 import AdminLog from '../models/AdminLog';
 import Bet from '../models/Bet';
 import GameResult from '../models/GameResult';
+import GameStats from '../models/GameStats';
 import Transaction from '../models/Transaction';
 import User from '../models/User';
 import * as socketService from '../services/socketService';
@@ -52,6 +54,23 @@ type LeanRound = {
   createdAt: Date | string;
   stats?: RoundStats;
 };
+const GAME_STATS_SINGLETON_ID = new mongoose.Types.ObjectId('000000000000000000000001');
+const WITHDRAW_LOCK_WINDOW_MS = 30_000;
+const MAX_HISTORY_FETCH_LIMIT = 1000;
+const DEFAULT_GAME_STATS = {
+  _id: GAME_STATS_SINGLETON_ID,
+  totalUsers: 0,
+  pendingUsers: 0,
+  netProfit: 0,
+  totalBets: 0,
+  totalWagered: 0,
+};
+const toAdminUserPayload = (user: LeanUser | { _id: unknown; username: string; balance: number; role: string }) => ({
+  id: String(user._id),
+  username: user.username,
+  balance: user.balance,
+  role: user.role,
+});
 
 const parsePage = (value: string | undefined): number => Math.max(1, Number.parseInt(value ?? '', 10) || 1);
 const parseLimit = (value: string | undefined): number =>
@@ -182,7 +201,7 @@ router.get(
         Transaction.countDocuments({ user: userId }),
       ]);
       const combinedTotal = betCount + txCount;
-      const fetchLimit = page * limit;
+      const fetchLimit = Math.min(page * limit, MAX_HISTORY_FETCH_LIMIT);
 
       const [bets, transactions] = await Promise.all([
         Bet.find({ user: userId }).sort({ createdAt: -1 }).limit(fetchLimit).lean<HistoryRecord[]>(),
@@ -213,11 +232,17 @@ router.put('/users/:id/balance', auth, admin, async (req: Request<{ id: string }
   try {
     const rawBalance = req.body?.balance;
     const reason = typeof req.body?.reason === 'string' ? req.body.reason : '';
-    const balance = Math.floor(Number(rawBalance));
+    const parsedBalance = Number(rawBalance);
 
     if (!reason.trim()) {
       return res.status(400).json({ msg: 'Reason is required' });
     }
+
+    if (rawBalance === '' || rawBalance === null || rawBalance === undefined || !Number.isFinite(parsedBalance)) {
+      return res.status(400).json({ msg: 'Valid balance is required' });
+    }
+
+    const balance = Math.floor(parsedBalance);
 
     const oldUser = await User.findById(req.params.id);
     if (!oldUser) {
@@ -226,12 +251,12 @@ router.put('/users/:id/balance', auth, admin, async (req: Request<{ id: string }
 
     const difference = balance - oldUser.balance;
 
-    const user = await User.findByIdAndUpdate(req.params.id, { balance }, { new: true }).select('-password');
-    if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
-    }
-
     try {
+      const user = await User.findByIdAndUpdate(req.params.id, { balance }, { new: true }).select('-password');
+      if (!user) {
+        return res.status(404).json({ msg: 'User not found' });
+      }
+
       if (difference !== 0) {
         const transaction = new Transaction({
           user: user._id,
@@ -256,20 +281,22 @@ router.put('/users/:id/balance', auth, admin, async (req: Request<{ id: string }
         socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
       }
 
-      const clientUser = {
-        id: user._id,
-        username: user.username,
-        balance: user.balance,
-        role: user.role,
-      };
-      socketService.emitToUser(String(user._id), 'balanceUpdate', { balance: user.balance });
-      socketService.emitToUser(String(user._id), 'userUpdate', clientUser);
-      socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
-    } catch (secondaryErr) {
-      logger.error('Failed to perform secondary balance update actions', secondaryErr, { userId: user._id });
-    }
+      const clientUser = toAdminUserPayload(user);
 
-    return res.json(user);
+      try {
+        socketService.emitToUser(String(user._id), 'balanceUpdate', { balance: user.balance });
+        socketService.emitToUser(String(user._id), 'userUpdate', clientUser);
+        socketService.emitToRoom('admin-room', 'admin:userUpdate', clientUser);
+      } catch (emitErr) {
+        logger.error('Failed to emit balance update events', emitErr, { userId: user._id });
+      }
+
+      return res.json(user);
+    } catch (secondaryErr) {
+      await User.findByIdAndUpdate(req.params.id, { balance: oldUser.balance });
+      logger.error('Failed to update user balance atomically', secondaryErr, { userId: req.params.id });
+      return res.status(500).send('Server Error');
+    }
   } catch (err) {
     logger.error('Failed to update user balance', err, { userId: req.params.id });
     return res.status(500).send('Server Error');
@@ -395,33 +422,51 @@ router.post('/withdraw', auth, admin, async (req: Request, res: Response) => {
       return res.status(400).json({ msg: 'Invalid amount' });
     }
 
-    const betStats = await Bet.aggregate<AggregationTotalRow>([
-      { $match: { status: { $ne: 'refunded' } } },
-      { $group: { _id: null, total: { $sum: { $subtract: ['$amount', { $ifNull: ['$payout', 0] }] } } } },
-    ]);
-    const gameProfit = betStats.length > 0 ? betStats[0].total ?? 0 : 0;
+    const now = new Date();
+    const lockUntil = new Date(now.getTime() + WITHDRAW_LOCK_WINDOW_MS);
+    const lock = await GameStats.findOneAndUpdate(
+      {
+        _id: GAME_STATS_SINGLETON_ID,
+        $or: [{ withdrawalLockUntil: null }, { withdrawalLockUntil: { $lte: now } }],
+      },
+      {
+        $set: { withdrawalLockUntil: lockUntil },
+        $setOnInsert: DEFAULT_GAME_STATS,
+      },
+      { upsert: true, new: true }
+    );
 
-    const withdrawalStats = await Transaction.aggregate<AggregationTotalRow>([
-      { $match: { type: 'withdraw', description: 'Admin Profit Withdrawal' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]);
-    const totalWithdrawals = withdrawalStats.length > 0 ? withdrawalStats[0].total ?? 0 : 0;
-
-    const currentNetProfit = gameProfit - totalWithdrawals;
-    if (amount > currentNetProfit) {
-      return res.status(400).json({ msg: 'Insufficient Net Profit' });
+    if (!lock) {
+      return res.status(409).json({ msg: 'Another withdrawal is already in progress' });
     }
 
-    const transaction = new Transaction({
-      user: req.user?.id,
-      type: 'withdraw',
-      amount,
-      balanceAfter: currentNetProfit - amount,
-      description: 'Admin Profit Withdrawal',
-    });
-    await transaction.save();
-
     try {
+      const betStats = await Bet.aggregate<AggregationTotalRow>([
+        { $match: { status: { $ne: 'refunded' } } },
+        { $group: { _id: null, total: { $sum: { $subtract: ['$amount', { $ifNull: ['$payout', 0] }] } } } },
+      ]);
+      const gameProfit = betStats.length > 0 ? betStats[0].total ?? 0 : 0;
+
+      const withdrawalStats = await Transaction.aggregate<AggregationTotalRow>([
+        { $match: { type: 'withdraw', description: 'Admin Profit Withdrawal' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]);
+      const totalWithdrawals = withdrawalStats.length > 0 ? withdrawalStats[0].total ?? 0 : 0;
+
+      const currentNetProfit = gameProfit - totalWithdrawals;
+      if (amount > currentNetProfit) {
+        return res.status(400).json({ msg: 'Insufficient Net Profit' });
+      }
+
+      const transaction = new Transaction({
+        user: req.user?.id,
+        type: 'withdraw',
+        amount,
+        balanceAfter: currentNetProfit - amount,
+        description: 'Admin Profit Withdrawal',
+      });
+      await transaction.save();
+
       const log = new AdminLog({
         adminId: req.user?.id,
         action: 'withdraw_profit',
@@ -434,13 +479,12 @@ router.post('/withdraw', auth, admin, async (req: Request, res: Response) => {
 
       const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
       socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
-    } catch (logErr) {
-      logger.error('Failed to save admin log for withdrawal', logErr);
+      socketService.emitToRoom('admin-room', 'admin:statsUpdate', {});
+
+      return res.json({ msg: 'Withdrawal successful', netProfit: currentNetProfit - amount });
+    } finally {
+      await GameStats.findByIdAndUpdate(GAME_STATS_SINGLETON_ID, { $set: { withdrawalLockUntil: null } });
     }
-
-    socketService.emitToRoom('admin-room', 'admin:statsUpdate', {});
-
-    return res.json({ msg: 'Withdrawal successful', netProfit: currentNetProfit - amount });
   } catch (err) {
     logger.error('Failed to withdraw profit', err);
     return res.status(500).send('Server Error');
