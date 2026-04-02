@@ -57,7 +57,7 @@ fi
 # Seed Admin User
 echo "Checking/Seeding Admin User..."
 cd server
-node seedAdmin.js
+npm run seed:admin
 if [ $? -eq 0 ]; then
   echo "Admin user check completed."
 else
