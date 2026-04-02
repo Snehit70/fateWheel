@@ -4,18 +4,23 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
+const { createClient } = require('redis');
 const socketService = require('./services/socketService');
 const GameLoop = require('./game/GameLoop');
 const logger = require('./utils/logger');
 const User = require('./models/User');
 const Bet = require('./models/Bet');
 const jwt = require('jsonwebtoken');
+const redisClient = require('./redis/redisClient');
+const pubsub = require('./redis/pubsub');
+const leader = require('./redis/leader');
 
 const app = express();
-app.set('trust proxy', 1); // Trust first proxy (Railway)
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const REDIS_URL = process.env.REDIS_URL;
 
 // Initialize Socket.io via Service
 const io = socketService.init(server, {
@@ -27,34 +32,17 @@ const io = socketService.init(server, {
     pingTimeout: 60000
 });
 
-// Redis Adapter for Scalability
-if (process.env.REDIS_URL) {
-    const { createClient } = require('redis');
-    const { createAdapter } = require('@socket.io/redis-adapter');
-
-    const pubClient = createClient({ url: process.env.REDIS_URL });
-    const subClient = pubClient.duplicate();
-
-    Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-        io.adapter(createAdapter(pubClient, subClient));
-        logger.info('Redis Adapter connected');
-    }).catch(err => {
-        logger.error('Redis Adapter error:', err);
-    });
-}
-
 // Middleware
 app.use(require('helmet')());
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
-app.use(logger.requestLogger); // Request logging
+app.use(logger.requestLogger);
 
 // Routes
-// Note: req.io middleware removed. Routes should import socketService.
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/game', require('./routes/game'));
-app.get('/health', (req, res) => res.json({ status: "running" }))
+app.get('/health', (req, res) => res.json({ status: "running" }));
 app.get('/', (req, res) => {
     res.send('FateWheel Server is running');
 });
@@ -101,13 +89,12 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Internal Server Error' });
 });
 
-// Socket.io Middleware for Auth (Optional for connection, required for betting)
+// Socket.io Middleware for Auth
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
     if (token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            // Validate JWT payload structure
             if (decoded.user && decoded.user.id) {
                 socket.user = decoded.user;
             }
@@ -119,33 +106,92 @@ io.use((socket, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const gameLoop = new GameLoop(); // No args needed, uses socketService internally
+const gameLoop = new GameLoop();
+
+// Initialize Redis, then leader election, then start game loop
+const startServer = async () => {
+    // Step 1: Connect Redis (optional - falls back to single-server mode)
+    if (REDIS_URL) {
+        await redisClient.connect();
+
+        if (redisClient.isReady()) {
+            // Apply Socket.io Redis adapter for cross-instance broadcasting
+            const redisForAdapter = redisClient.getClient();
+            if (redisForAdapter) {
+                const adapterSub = createClient({ url: REDIS_URL });
+                try {
+                    await adapterSub.connect();
+                    await socketService.applyRedisAdapter(redisForAdapter, adapterSub);
+                } catch (err) {
+                    logger.warn('Socket.io Redis adapter failed:', err.message);
+                }
+            }
+
+            // Initialize pub/sub for game state broadcasting
+            await pubsub.init();
+
+            // Subscribe to state changes (for follower instances)
+            await pubsub.subscribe(pubsub.CHANNELS.STATE_CHANGE, (data) => {
+                // Followers relay state to their local sockets
+                socketService.emitToAll('gameState', {
+                    state: data.state,
+                    endTime: data.endTime,
+                    bets: data.bets || [],
+                    history: data.history || [],
+                    result: data.result,
+                    targetResult: data.targetResult,
+                });
+            });
+
+            // Subscribe to bet updates (for follower instances)
+            await pubsub.subscribe(pubsub.CHANNELS.BET_UPDATE, (data) => {
+                if (data.type === 'betPlaced' && data.bet) {
+                    socketService.emitToAll('betPlaced', data.bet);
+                }
+            });
+        }
+    } else {
+        logger.info('No REDIS_URL configured, running in single-server mode');
+    }
+
+    // Step 2: Acquire leader lock
+    const isLeader = await leader.acquire();
+    if (isLeader) {
+        leader.startRenewal();
+        logger.info('This instance is the LEADER - starting game loop');
+    } else {
+        logger.info('This instance is a FOLLOWER - relaying state from leader');
+    }
+
+    // Step 3: Start game loop only if leader
+    if (leader.isLeader()) {
+        gameLoop.init();
+    }
+
+    // Step 4: Start HTTP server
+    server.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT} (Leader: ${leader.isLeader()})`);
+    });
+};
 
 if (require.main === module) {
-    // Initialize Game Loop (starts round ID generation, refunding, and loop)
-    gameLoop.init();
-
-    server.listen(PORT, () => {
-        logger.info(`Server running on port ${PORT}`);
-    });
+    startServer();
 }
 
 io.on('connection', async (socket) => {
     logger.info(`A user connected: ${socket.id} ${socket.user ? `(User: ${socket.user.id})` : '(Guest)'}`);
 
-    // Join user room if authenticated
     if (socket.user) {
         socket.join(`user:${socket.user.id}`);
         logger.info(`Socket ${socket.id} joined room user:${socket.user.id}`);
 
-        // Join admin room if user is admin (role checked from token, verify from DB for production)
         if (socket.user.role === 'admin') {
             socket.join('admin-room');
             logger.info(`Socket ${socket.id} joined admin-room`);
         }
     }
 
-    // Load active bets from DB (survives server restart, always fresh)
+    // Load active bets from DB
     let activeBets = [];
     try {
         if (gameLoop.currentRoundId) {
@@ -154,7 +200,6 @@ io.on('connection', async (socket) => {
                 roundId: gameLoop.currentRoundId
             }).select('user username type value amount').lean();
 
-            // Transform to match UI format
             activeBets = dbBets.map(b => ({
                 userId: b.user.toString(),
                 username: b.username,
@@ -165,10 +210,9 @@ io.on('connection', async (socket) => {
         }
     } catch (err) {
         logger.error('Failed to load bets for new connection:', err);
-        activeBets = gameLoop.bets; // Fallback to memory cache
+        activeBets = gameLoop.bets;
     }
 
-    // Send initial state
     socket.emit('gameState', {
         state: gameLoop.state,
         timeLeft: gameLoop.timeLeft,
@@ -178,22 +222,22 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('placeBet', async (betData, callback) => {
-        // Ensure callback is a function
         if (typeof callback !== 'function') return;
 
         if (!socket.user) {
             return callback({ error: "Please login to bet" });
         }
 
-        try {
-            // Re-fetch user to ensure they still exist
-            const user = await User.findById(socket.user.id);
+        if (!leader.isLeader()) {
+            return callback({ error: "Server is syncing, please try again" });
+        }
 
+        try {
+            const user = await User.findById(socket.user.id);
             if (!user) {
                 return callback({ error: "User not found" });
             }
 
-            // Input sanitization - only extract expected fields
             const sanitizedBetData = {
                 type: betData?.type,
                 value: betData?.value,
@@ -208,11 +252,14 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('clearBets', async (callback) => {
-        // Ensure callback is a function
         if (typeof callback !== 'function') return;
 
         if (!socket.user) {
             return callback({ error: "Please login" });
+        }
+
+        if (!leader.isLeader()) {
+            return callback({ error: "Server is syncing, please try again" });
         }
 
         try {
@@ -228,14 +275,11 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('timeSync', (callback) => {
-        // Ensure callback is a function
         if (typeof callback !== 'function') return;
         callback(Date.now());
     });
 
-    // Re-sync state on visibility change (client requests fresh state when returning to tab)
     socket.on('requestState', async () => {
-        // Load fresh bets from DB
         let activeBets = [];
         try {
             if (gameLoop.currentRoundId) {
@@ -271,6 +315,23 @@ io.on('connection', async (socket) => {
 // Graceful Shutdown
 const gracefulShutdown = async (signal) => {
     logger.info(`${signal} received. Shutting down gracefully...`);
+
+    // Release leader lock
+    try {
+        await leader.release();
+        logger.info('Leader lock released');
+    } catch (err) {
+        logger.error('Error releasing leader lock:', err);
+    }
+
+    // Disconnect Redis
+    try {
+        await pubsub.disconnect();
+        await redisClient.disconnect();
+        logger.info('Redis connections closed');
+    } catch (err) {
+        logger.error('Error closing Redis connections:', err);
+    }
 
     server.close(() => {
         logger.info('HTTP server closed');
