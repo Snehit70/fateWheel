@@ -503,9 +503,6 @@ onMounted(() => {
       }
     }
   });
-  socket.on("admin:userDeleted", (userId) => {
-    users.value = users.value.filter((u) => u._id !== userId);
-  });
   socket.on("admin:statsUpdate", fetchStats);
 
   // Refresh data on reconnection
@@ -520,7 +517,6 @@ onMounted(() => {
 onUnmounted(() => {
   socket.off("admin:userUpdate", handleUserUpdate);
   socket.off("admin:newUser");
-  socket.off("admin:userDeleted");
   socket.off("admin:statsUpdate");
   socket.off("connect");
 });
