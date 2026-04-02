@@ -225,11 +225,6 @@ class GameLoop {
     }
 
     tick() {
-        // Renew leader lock if using Redis
-        if (leader.isLeader()) {
-            leader.renew();
-        }
-
         const now = Date.now();
         const timeLeft = Math.max(0, (this.endTime - now) / 1000);
 

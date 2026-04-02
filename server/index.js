@@ -108,6 +108,8 @@ io.use((socket, next) => {
 const PORT = process.env.PORT || 3000;
 const gameLoop = new GameLoop();
 
+const LEADER_PROMOTION_INTERVAL = 10000; // Try to acquire leadership every 10s
+
 // Initialize Redis, then leader election, then start game loop
 const startServer = async () => {
     // Step 1: Connect Redis (optional - falls back to single-server mode)
@@ -130,9 +132,16 @@ const startServer = async () => {
             // Initialize pub/sub for game state broadcasting
             await pubsub.init();
 
-            // Subscribe to state changes (for follower instances)
+            // Subscribe to state changes — update local state and relay to sockets
             await pubsub.subscribe(pubsub.CHANNELS.STATE_CHANGE, (data) => {
-                // Followers relay state to their local sockets
+                // Update local gameLoop state so followers can serve requestState
+                if (data.state) gameLoop.state = data.state;
+                if (data.endTime) gameLoop.endTime = data.endTime;
+                if (data.bets) gameLoop.bets = data.bets;
+                if (data.history) gameLoop.history = data.history;
+                if (data.result !== undefined) gameLoop.result = data.result;
+
+                // Relay to local sockets
                 socketService.emitToAll('gameState', {
                     state: data.state,
                     endTime: data.endTime,
@@ -143,9 +152,19 @@ const startServer = async () => {
                 });
             });
 
-            // Subscribe to bet updates (for follower instances)
+            // Subscribe to bet updates — update local bets and relay to sockets
             await pubsub.subscribe(pubsub.CHANNELS.BET_UPDATE, (data) => {
                 if (data.type === 'betPlaced' && data.bet) {
+                    // Update local bets for follower state
+                    const existingBet = gameLoop.bets.find(
+                        b => b.userId === data.bet.userId && b.type === data.bet.type && b.value === data.bet.value
+                    );
+                    if (existingBet) {
+                        existingBet.amount = data.bet.amount;
+                    } else {
+                        gameLoop.bets.push(data.bet);
+                    }
+
                     socketService.emitToAll('betPlaced', data.bet);
                 }
             });
@@ -154,21 +173,29 @@ const startServer = async () => {
         logger.info('No REDIS_URL configured, running in single-server mode');
     }
 
-    // Step 2: Acquire leader lock
+    // Step 2: Acquire leader lock and start game loop if leader
     const isLeader = await leader.acquire();
     if (isLeader) {
         leader.startRenewal();
         logger.info('This instance is the LEADER - starting game loop');
+        await gameLoop.init();
     } else {
         logger.info('This instance is a FOLLOWER - relaying state from leader');
+
+        // Start promotion loop: periodically try to become leader if current leader dies
+        setInterval(async () => {
+            if (!leader.isLeader()) {
+                const acquired = await leader.acquire();
+                if (acquired) {
+                    leader.startRenewal();
+                    logger.info('Promoted to LEADER - starting game loop');
+                    await gameLoop.init();
+                }
+            }
+        }, LEADER_PROMOTION_INTERVAL);
     }
 
-    // Step 3: Start game loop only if leader
-    if (leader.isLeader()) {
-        gameLoop.init();
-    }
-
-    // Step 4: Start HTTP server
+    // Step 3: Start HTTP server (after game loop is initialized)
     server.listen(PORT, () => {
         logger.info(`Server running on port ${PORT} (Leader: ${leader.isLeader()})`);
     });

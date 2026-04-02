@@ -23,7 +23,15 @@ const init = async () => {
         publisher = redisClient.getClient();
 
         // Create a dedicated subscriber client (Redis requires separate connections for pub/sub)
-        subscriber = createClient({ url: REDIS_URL });
+        subscriber = createClient({
+            url: REDIS_URL,
+            socket: {
+                reconnectStrategy: (retries) => {
+                    if (retries > 10) return new Error('Subscriber max retries reached');
+                    return Math.min(retries * 100, 3000);
+                }
+            }
+        });
         subscriber.on('error', (err) => {
             logger.error('Redis subscriber error:', err.message);
         });

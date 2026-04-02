@@ -8,6 +8,7 @@ const KEYS = {
 };
 
 const HISTORY_LIMIT = 15;
+const STATE_TTL = 300; // 5 minutes — stale state expires if leader crashes
 
 const getRedis = () => {
     const client = redisClient.getClient();
@@ -49,6 +50,8 @@ const setGameState = async (state) => {
             result: state.result ? JSON.stringify(state.result) : '',
         };
         await r.hSet(KEYS.STATE, data);
+        // Refresh TTL on every write so stale state expires after crash
+        await r.expire(KEYS.STATE, STATE_TTL);
         return true;
     } catch (err) {
         logger.error('Redis setGameState error:', err);
@@ -77,6 +80,8 @@ const setActiveBet = async (betKey, bet) => {
 
     try {
         await r.hSet(KEYS.BETS, betKey, JSON.stringify(bet));
+        // Refresh TTL on bets too
+        await r.expire(KEYS.BETS, STATE_TTL);
         return true;
     } catch (err) {
         logger.error('Redis setActiveBet error:', err);
