@@ -1,22 +1,23 @@
 <template>
-  <div class="min-h-screen bg-background text-foreground p-2">
-    <div class="max-w-7xl mx-auto space-y-2">
+  <div class="min-h-screen pt-0 px-2 pb-4">
+    <div class="max-w-7xl mx-auto space-y-3">
       <div
         class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0"
       >
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
+          <div class="h-px w-6 bg-gradient-to-r from-gold/50 to-transparent hidden sm:block"></div>
           <h1
-            class="text-2xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent"
+            class="text-xl sm:text-2xl font-display font-semibold tracking-[0.1em] text-cream"
           >
-            Admin
+            ADMIN PANEL
           </h1>
 
           <!-- Header Stats -->
           <div class="flex items-center gap-2">
             <div
-              class="px-3 py-1 rounded-full bg-secondary text-xs font-medium border border-border"
+              class="px-3 py-1 rounded bg-surface border border-gold/10 text-xs font-display tracking-wider text-muted-foreground"
             >
-              Total: {{ stats.totalUsers }}
+              {{ stats.totalUsers }} Users
             </div>
           </div>
         </div>
@@ -32,22 +33,22 @@
       </div>
 
       <!-- Admin Management Card -->
-      <Card class="border-orange-500/20 bg-orange-500/5 py-0 gap-0">
-        <CardContent class="p-2">
+      <Card class="border-gold/20 py-0 gap-0">
+        <CardContent class="p-3">
           <div
             class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm"
           >
             <!-- Left Side: Admin & Net Profit -->
             <div class="flex items-center gap-6">
               <div class="flex items-center gap-2">
-                <span class="text-muted-foreground">Admin:</span>
-                <span class="font-bold">{{ adminUser?.username || "Loading..." }}</span>
+                <span class="text-muted-foreground font-display text-xs tracking-wider uppercase">Admin:</span>
+                <span class="font-display font-semibold text-cream">{{ adminUser?.username || "Loading..." }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-muted-foreground">Net Profit:</span>
+                <span class="text-muted-foreground font-display text-xs tracking-wider uppercase">Net Profit:</span>
                 <span
-                  class="font-mono font-bold"
-                  :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'"
+                  class="font-display font-bold tabular-nums"
+                  :class="stats.netProfit >= 0 ? 'text-emerald' : 'text-ruby'"
                 >
                   {{ Math.floor(stats.netProfit) }}
                 </span>
@@ -67,7 +68,7 @@
               <Button
                 size="sm"
                 @click="openWithdraw"
-                class="h-7 px-3 text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                class="h-7 px-3 text-xs btn-gold"
               >
                 Withdraw Profit
               </Button>
@@ -89,7 +90,7 @@
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow class="border-gold/10 hover:bg-transparent">
                 <TableHead>Username</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Joined</TableHead>
@@ -99,19 +100,19 @@
             </TableHeader>
             <TableBody>
               <TableRow v-for="user in filteredUsers" :key="user._id">
-                <TableCell class="font-medium">{{ user.username }}</TableCell>
-                <TableCell class="font-mono text-green-500 font-bold">{{
+                <TableCell class="font-display font-medium text-cream">{{ user.username }}</TableCell>
+                <TableCell class="font-display font-bold tabular-nums text-emerald">{{
                   Math.floor(user.balance)
                 }}</TableCell>
 
-                <TableCell class="text-muted-foreground">{{
+                <TableCell class="text-muted-foreground font-body text-sm">{{
                   new Date(user.createdAt).toLocaleDateString()
                 }}</TableCell>
                 <TableCell>
                   <Button
+                    variant="outline"
                     size="sm"
                     @click="viewUserHistory(user)"
-                    class="bg-orange-500 hover:bg-orange-600 text-white border-none"
                   >
                     History
                   </Button>
@@ -120,7 +121,6 @@
                   <Button
                     size="sm"
                     @click="openEditBalance(user)"
-                    class="bg-orange-500 hover:bg-orange-600 text-white border-none"
                   >
                     Edit Balance
                   </Button>
@@ -152,32 +152,33 @@
           <div
             v-for="user in filteredUsers"
             :key="user._id"
-            class="p-4 rounded-lg bg-surface border border-border"
+            class="p-4 rounded bg-surface/50 border border-gold/10 hover:border-gold/20 transition-colors"
           >
             <div class="flex items-center justify-between mb-3">
-              <span class="font-medium text-lg">{{ user.username }}</span>
-              <span class="font-mono text-green-500 font-bold">{{
+              <span class="font-display font-medium text-lg text-cream">{{ user.username }}</span>
+              <span class="font-display font-bold tabular-nums text-emerald">{{
                 Math.floor(user.balance)
               }}</span>
             </div>
             <div class="flex items-center gap-2 mb-3">
-              <span class="text-xs text-muted-foreground">{{
+              <span class="text-xs text-muted-foreground font-body">{{
                 new Date(user.createdAt).toLocaleDateString()
               }}</span>
             </div>
 
             <div class="flex gap-2 flex-wrap">
               <Button
+                variant="outline"
                 size="sm"
                 @click="viewUserHistory(user)"
-                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-none"
+                class="flex-1"
               >
                 History
               </Button>
               <Button
                 size="sm"
                 @click="openEditBalance(user)"
-                class="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-none"
+                class="flex-1"
               >
                 Edit Balance
               </Button>
@@ -185,7 +186,7 @@
           </div>
           <div
             v-if="filteredUsers.length === 0"
-            class="text-center text-muted-foreground py-4"
+            class="text-center text-muted-foreground py-4 font-display tracking-wider"
           >
             No users found
           </div>
@@ -224,7 +225,7 @@
             <label class="text-right text-sm font-medium">Reason</label>
             <textarea
               v-model="reason"
-              class="col-span-3 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              class="col-span-3 flex min-h-[80px] w-full rounded border border-gold/20 bg-surface/50 px-3 py-2 text-sm font-body shadow-inner shadow-black/10 placeholder:text-muted-foreground/50 focus:border-gold/50 focus:ring-2 focus:ring-gold/20 focus:outline-none transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Required for audit logs"
             ></textarea>
           </div>
@@ -244,11 +245,11 @@
           <DialogTitle>Withdraw Profit</DialogTitle>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <div class="text-sm text-muted-foreground mb-2">
+          <div class="text-sm text-muted-foreground mb-2 font-display">
             Available Net Profit:
             <span
-              class="font-mono font-bold"
-              :class="stats.netProfit >= 0 ? 'text-green-500' : 'text-red-500'"
+              class="font-display font-bold tabular-nums"
+              :class="stats.netProfit >= 0 ? 'text-emerald' : 'text-ruby'"
               >{{ Math.floor(stats.netProfit) }}</span
             >
           </div>

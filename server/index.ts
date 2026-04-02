@@ -232,6 +232,11 @@ const startServer = async (): Promise<void> => {
         }
 
         gameLoop.result = isWheelSegment(payload.result) ? payload.result : null;
+        gameLoop.targetResult = isWheelSegment(payload.targetResult)
+          ? payload.targetResult
+          : isWheelSegment(payload.result)
+            ? payload.result
+            : null;
 
         socketService.emitToLocal('gameState', {
           state: gameLoop.state,
@@ -239,7 +244,7 @@ const startServer = async (): Promise<void> => {
           bets: gameLoop.bets,
           history: gameLoop.history,
           result: gameLoop.result,
-          targetResult: isWheelSegment(payload.targetResult) ? payload.targetResult : null,
+          targetResult: gameLoop.targetResult,
         });
       });
 
@@ -277,6 +282,10 @@ const startServer = async (): Promise<void> => {
   }
 
   const acquired = await leader.acquire();
+  leader.onDemoted(() => {
+    gameLoop.stop();
+  });
+
   if (acquired) {
     leader.startRenewal();
     logger.info('This instance is the LEADER - starting game loop');
@@ -353,6 +362,7 @@ io.on('connection', async (socket: GameSocket) => {
     bets: activeBets,
     history: gameLoop.history,
     result: gameLoop.result,
+    targetResult: gameLoop.targetResult,
   });
 
   socket.on('placeBet', async (betData: SanitizedBetData, callback: AckCallback) => {
@@ -455,6 +465,7 @@ io.on('connection', async (socket: GameSocket) => {
       bets: latestBets,
       history: gameLoop.history,
       result: gameLoop.result,
+      targetResult: gameLoop.targetResult,
       endTime: gameLoop.endTime,
     });
   });

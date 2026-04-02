@@ -1,82 +1,94 @@
 <template>
   <div class="flex flex-col items-center w-full">
-
     <!-- Initial Loading State -->
-    <div v-if="isInitialLoading" class="flex items-center justify-center min-h-[50vh]">
-      <div class="text-center space-y-3">
-        <div class="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-muted-foreground text-sm font-mono">Connecting to game...</p>
+    <div v-if="isInitialLoading" class="flex items-center justify-center min-h-[60vh]">
+      <div class="text-center space-y-4">
+        <div class="relative w-16 h-16 mx-auto">
+          <!-- Outer ring -->
+          <div class="absolute inset-0 rounded-full border-2 border-gold/20"></div>
+          <!-- Spinning ring -->
+          <div class="absolute inset-0 rounded-full border-2 border-transparent border-t-gold animate-spin"></div>
+          <!-- Inner glow -->
+          <div class="absolute inset-2 rounded-full bg-gold/5"></div>
+        </div>
+        <p class="text-muted-foreground text-sm font-display tracking-[0.2em] uppercase animate-pulse">
+          Connecting
+        </p>
       </div>
     </div>
 
     <!-- Game Area -->
-    <div v-else class="w-full relative flex flex-col gap-1 lg:gap-2">
-        
-        <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
-        <div class="flex flex-col lg:flex-row gap-1 lg:gap-2 items-stretch">
-            <!-- Left: Wheel -->
-            <Card 
-                class="w-full lg:w-[60%] p-0 sm:p-2 relative min-h-[160px] sm:min-h-[250px] md:min-h-[300px] flex items-center justify-center transition-all duration-500"
-                :class="{ 'ring-2 ring-yellow-500/20 shadow-[0_0_50px_rgba(255,215,0,0.1)]': isSpinning }"
-            >
-                <RouletteWheel 
-                    :rotation="rotation" 
-                    :transition-duration="transitionDuration"
-                    :status="status"
-                    :time-left="timeLeft"
-                    :last-result="lastResult"
-                />
-            </Card>
+    <div v-else class="w-full relative flex flex-col gap-2 animate-fade-up">
 
-            <!-- Right: History & Betting Controls -->
-            <div 
-                class="w-full lg:w-[40%] flex flex-col gap-1 lg:gap-2 transition-all duration-500"
-                :class="{ 'opacity-30 pointer-events-none blur-[1px]': isSpinning }"
-            >
-                <!-- History Section (Mobile) -->
-                <div class="lg:hidden bg-secondary/30 rounded-lg p-1 flex items-center gap-1 sm:gap-2 overflow-hidden border border-border/50">
-                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap pl-1">History</h3>
-                    <HistoryBar :history="spinHistory" class="h-8 sm:h-10 flex-1" />
-                </div>
+      <!-- Top Section: Wheel and Controls -->
+      <div class="flex flex-col lg:flex-row gap-2 items-stretch">
 
-                <!-- History Section (Desktop) -->
-                <div class="hidden lg:flex bg-secondary/30 rounded-lg p-2 items-center gap-2 overflow-hidden border border-border/50">
-                    <h3 class="text-muted-foreground font-bold uppercase tracking-widest text-xs whitespace-nowrap pl-1">History</h3>
-                    <HistoryBar :history="spinHistory" class="h-10 flex-1" />
-                </div>
-
-                <!-- Betting Controls Section -->
-                <Card class="p-1 sm:p-2 flex-1 flex flex-col">
-                     <BettingControls 
-                        :balance="authStore.user?.balance || 0"
-                        :is-logged-in="!!authStore.user"
-                        :is-spinning="isSpinning || isLocking || status === 'RESULT'"
-                        :total-bet="totalBetAmount"
-                        v-model:amount="currentBetAmount"
-                         @clear-input="currentBetAmount = 0"
-                         @clear-bets="clearBets"
-                    />
-                </Card>
-            </div>
-        </div>
-        
-        <!-- Bottom Section: Betting Board -->
-        <div 
-            class="transition-all duration-500"
-            :class="{ 'pointer-events-none': isSpinning || isLocking || status === 'RESULT' }"
+        <!-- Left: Wheel Container -->
+        <div
+          class="w-full lg:w-[60%] card-elegant p-0 sm:p-3 relative min-h-[180px] sm:min-h-[280px] md:min-h-[340px] flex items-center justify-center transition-all duration-500 animate-fade-up stagger-1 panel-sheen"
+          :class="{ 'shadow-[0_0_60px_rgba(212,175,55,0.15)]': isSpinning }"
         >
-            <BettingBoard 
-                :bets="bets"
-                :last-result="lastResult"
-                :is-logged-in="!!authStore.user"
-                @place-bet="handlePlaceBet"
-            />
+          <!-- Decorative corner accents -->
+          <div class="absolute top-2 left-2 w-4 h-4 border-l border-t border-gold/30 hidden sm:block"></div>
+          <div class="absolute top-2 right-2 w-4 h-4 border-r border-t border-gold/30 hidden sm:block"></div>
+          <div class="absolute bottom-2 left-2 w-4 h-4 border-l border-b border-gold/30 hidden sm:block"></div>
+          <div class="absolute bottom-2 right-2 w-4 h-4 border-r border-b border-gold/30 hidden sm:block"></div>
+
+          <RouletteWheel
+            :rotation="rotation"
+            :transition-duration="transitionDuration"
+            :status="status"
+            :time-left="timeLeft"
+            :last-result="lastResult"
+          />
         </div>
+
+        <!-- Right: History & Controls -->
+        <div
+          class="w-full lg:w-[40%] flex flex-col gap-2 transition-all duration-500 animate-fade-up stagger-2"
+          :class="{ 'opacity-40 pointer-events-none blur-[1px]': isSpinning }"
+        >
+          <!-- History Section -->
+          <div class="card-elegant p-2 sm:p-3">
+            <div class="flex items-center gap-3 overflow-hidden">
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="h-px w-3 bg-gradient-to-r from-gold/50 to-transparent hidden sm:block"></div>
+                <h3 class="text-muted-foreground font-display font-semibold tracking-[0.2em] text-[10px] sm:text-xs uppercase whitespace-nowrap">
+                  History
+                </h3>
+              </div>
+              <HistoryBar :history="spinHistory" class="h-10 sm:h-12 flex-1" />
+            </div>
+          </div>
+
+          <!-- Betting Controls -->
+          <div class="card-elegant p-2 sm:p-3 flex-1 flex flex-col">
+            <BettingControls
+              :balance="authStore.user?.balance || 0"
+              :is-logged-in="!!authStore.user"
+              :is-spinning="isSpinning || isLocking || status === 'RESULT'"
+              :total-bet="totalBetAmount"
+              v-model:amount="currentBetAmount"
+              @clear-input="currentBetAmount = 0"
+              @clear-bets="clearBets"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Betting Board -->
+      <div
+        class="transition-all duration-500 animate-fade-up stagger-3"
+        :class="{ 'pointer-events-none': isSpinning || isLocking || status === 'RESULT' }"
+      >
+        <BettingBoard
+          :bets="bets"
+          :last-result="lastResult"
+          :is-logged-in="!!authStore.user"
+          @place-bet="handlePlaceBet"
+        />
+      </div>
     </div>
-
-    <!-- Result Modal -->
-    <!-- Result Modal Removed -->
-
   </div>
 </template>
 
@@ -88,25 +100,21 @@ import RouletteWheel from "../components/RouletteWheel.vue";
 import HistoryBar from "../components/HistoryBar.vue";
 import BettingControls from "../components/BettingControls.vue";
 import BettingBoard from "../components/BettingBoard.vue";
-import { Card } from "@/components/ui/card";
 import { useGameLogic } from "../composables/useGameLogic";
 import { useBetting } from "../composables/useBetting";
 
 const authStore = useAuthStore();
 const gameStore = useGameStore();
 
-// Animation-only composable
 const { rotation, transitionDuration } = useGameLogic();
 
-// Betting composable (wraps game store)
 const {
-    currentBetAmount,
-    totalBetAmount,
-    handlePlaceBet,
-    clearBets
+  currentBetAmount,
+  totalBetAmount,
+  handlePlaceBet,
+  clearBets
 } = useBetting();
 
-// Read reactive state from game store
 const bets = computed(() => gameStore.bets);
 const isSpinning = computed(() => gameStore.isSpinning);
 const isLocking = computed(() => gameStore.isLocking);
@@ -116,15 +124,3 @@ const status = computed(() => gameStore.status);
 const timeLeft = computed(() => gameStore.timeLeft);
 const isInitialLoading = computed(() => gameStore.isInitialLoading);
 </script>
-
-<style scoped>
-.pop-enter-active,
-.pop-leave-active {
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.pop-enter-from,
-.pop-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
-</style>

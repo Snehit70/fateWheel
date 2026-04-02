@@ -8,6 +8,25 @@ const LOCK_TTL = 30; // seconds
 const instanceId = crypto.randomUUID();
 let isLeaderInstance = false;
 let renewalInterval: NodeJS.Timeout | null = null;
+const demotionListeners = new Set<() => void>();
+
+const demoteToFollower = (reason: string): void => {
+    if (!isLeaderInstance && !renewalInterval) {
+        return;
+    }
+
+    isLeaderInstance = false;
+    stopRenewal();
+    logger.warn(reason);
+
+    for (const listener of demotionListeners) {
+        try {
+            listener();
+        } catch (error) {
+            logger.error('Leader demotion listener failed', error);
+        }
+    }
+};
 
 // Atomic Lua scripts to prevent TOCTOU race conditions
 // Compare-and-expire: only extend TTL if we still own the lock
@@ -29,17 +48,16 @@ end
 `;
 
 export const acquire = async (): Promise<boolean> => {
-    const r = redisClient.getClient();
-
-    // Redis intentionally not configured — single-server mode, always leader
-    if (!r) {
+    if (!redisClient.isConfigured()) {
         isLeaderInstance = true;
         logger.info('No Redis configured, running as single-server leader');
         return true;
     }
 
+    const r = redisClient.getClient();
+
     // Redis configured but not available — fail-closed, stay follower
-    if (!redisClient.isReady()) {
+    if (!r || !redisClient.isReady()) {
         isLeaderInstance = false;
         logger.warn('Redis configured but not ready, staying follower');
         return false;
@@ -80,9 +98,15 @@ export const acquire = async (): Promise<boolean> => {
 };
 
 export const release = async (): Promise<void> => {
+    if (!redisClient.isConfigured()) {
+        isLeaderInstance = false;
+        stopRenewal();
+        return;
+    }
+
     const r = redisClient.getClient();
     if (!r || !redisClient.isReady()) {
-        isLeaderInstance = false;
+        demoteToFollower('Leader release skipped because Redis is unavailable');
         return;
     }
 
@@ -103,7 +127,12 @@ export const release = async (): Promise<void> => {
 
 export const renew = async (): Promise<void> => {
     const r = redisClient.getClient();
-    if (!r || !redisClient.isReady()) return;
+    if (!r || !redisClient.isReady()) {
+        if (redisClient.isConfigured()) {
+            demoteToFollower('Lost leader lock because Redis is unavailable');
+        }
+        return;
+    }
 
     try {
         // Atomic compare-and-expire via Lua script
@@ -113,13 +142,11 @@ export const renew = async (): Promise<void> => {
         });
 
         if (Number(result) === 0) {
-            // Lost leadership
-            isLeaderInstance = false;
-            stopRenewal();
-            logger.warn('Lost leader lock, switching to follower mode');
+            demoteToFollower('Lost leader lock, switching to follower mode');
         }
     } catch (err) {
         logger.error('Leader renew error', err);
+        demoteToFollower('Leader renewal failed, switching to follower mode');
     }
 };
 
@@ -137,6 +164,13 @@ export const stopRenewal = (): void => {
         clearInterval(renewalInterval);
         renewalInterval = null;
     }
+};
+
+export const onDemoted = (listener: () => void): (() => void) => {
+    demotionListeners.add(listener);
+    return () => {
+        demotionListeners.delete(listener);
+    };
 };
 
 export const isLeader = (): boolean => isLeaderInstance;

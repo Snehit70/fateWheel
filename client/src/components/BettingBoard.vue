@@ -1,336 +1,244 @@
-
 <template>
-  <div class="w-full mb-2 lg:mb-2">
+  <div class="w-full mb-2">
     <!-- Mobile Tabs -->
-    <div class="grid grid-cols-3 gap-1 mb-1 lg:mb-2 lg:hidden bg-secondary/30 p-1 rounded-lg">
-      <button 
-        @click="activeTab = 'red'"
-        class="flex flex-col items-center justify-center py-1 rounded transition-all duration-300"
-        :class="activeTab === 'red' ? 'bg-[#ff4d4d]/20 text-[#ff4d4d] border border-[#ff4d4d]/50 shadow-[0_0_10px_rgba(255,77,77,0.2)]' : 'text-muted-foreground hover:bg-white/5'"
+    <div class="grid grid-cols-3 gap-1 mb-2 lg:hidden bg-surface/50 p-1 rounded border border-gold/10">
+      <button
+        v-for="tab in ['red', 'green', 'black']"
+        :key="tab"
+        @click="activeTab = tab"
+        class="flex flex-col items-center justify-center py-2 rounded transition-all duration-300 font-display"
+        :class="getTabClass(tab)"
       >
-        <span class="text-[10px] font-bold tracking-wider">RED</span>
-        <span class="text-[9px] font-outfit mt-0.5 opacity-80">{{ getUserBetForColor("red") }}</span>
-      </button>
-      
-      <button 
-        @click="activeTab = 'green'"
-        class="flex flex-col items-center justify-center py-1 rounded transition-all duration-300"
-        :class="activeTab === 'green' ? 'bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'text-muted-foreground hover:bg-white/5'"
-      >
-        <span class="text-[10px] font-bold tracking-wider">ZERO</span>
-        <span class="text-[9px] font-outfit mt-0.5 opacity-80">{{ getUserBetForColor("green") }}</span>
-      </button>
-
-      <button 
-        @click="activeTab = 'black'"
-        class="flex flex-col items-center justify-center py-1 rounded transition-all duration-300"
-        :class="activeTab === 'black' ? 'bg-[#2d1f3d]/30 text-purple-300 border border-purple-400/50 shadow-[0_0_10px_rgba(138,43,226,0.3)]' : 'text-muted-foreground hover:bg-white/5'"
-      >
-        <span class="text-[10px] font-bold tracking-wider">BLACK</span>
-        <span class="text-[9px] font-outfit mt-0.5 opacity-80">{{ getUserBetForColor("black") }}</span>
+        <span class="text-[10px] font-semibold tracking-[0.15em] uppercase">{{ tab === 'green' ? 'Zero' : tab }}</span>
+        <span class="text-[9px] mt-0.5 opacity-70 tabular-nums">{{ getUserBetForColor(tab) }}</span>
       </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-1 lg:gap-2">
-    <!-- Red Section -->
-    <Card
-      class="flex flex-col gap-1 sm:gap-2 p-1 transition-all duration-500"
-      :class="[getSectionClass('red'), { 'hidden lg:flex': activeTab !== 'red' }]"
-    >
-      <!-- Header Row -->
-      <div class="flex gap-1 h-12">
-        <Button
-          @click="handlePlaceBet('color', COLORS.RED)"
-          class="flex-1 bg-[#ff4d4d] hover:bg-[#ff3333] text-white relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#cc0000] active:border-b-0 active:translate-y-1 flex flex-col items-center justify-center"
-          :class="{ 'opacity-80 hover:bg-[#ff4d4d] cursor-not-allowed': !isLoggedIn || isAdmin }"
-        >
-          <span>RED</span>
-          <span
-            v-if="getUserBetOnTarget('color', 'red')"
-            class="text-[10px] text-yellow-500 font-medium whitespace-nowrap"
+    <!-- Betting Sections Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+
+      <!-- RED Section -->
+      <div
+        class="card-elegant p-2 transition-all duration-500"
+        :class="[getSectionClass('red'), { 'hidden lg:block': activeTab !== 'red' }]"
+      >
+        <!-- Gold accent line -->
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-ruby/50 to-transparent"></div>
+
+        <!-- Header Row -->
+        <div class="flex gap-1.5 h-14 mb-2">
+          <!-- Main Color Button -->
+          <button
+            @click="handlePlaceBet('color', COLORS.RED)"
+            class="flex-1 btn-ruby rounded flex flex-col items-center justify-center relative overflow-hidden group"
+            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }"
           >
-            {{ getUserBetOnTarget("color", "red") }}
-          </span>
-        </Button>
-        <div class="flex-[2] grid grid-cols-7 gap-[2px]">
-          <Button
-            v-for="num in getNumbersByColor(COLORS.RED)"
-            :key="num"
-            @click="handlePlaceBet('number', num)"
-            class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
-          >
-            <span class="text-sm font-medium">{{ num }}</span>
-            <span
-              v-if="getUserBetOnTarget('number', num) > 0"
-              class="text-[9px] text-yellow-500 font-medium"
-            >
-              {{ getUserBetOnTarget("number", num) }}
+            <span class="text-base font-display tracking-[0.2em]">RED</span>
+            <span v-if="getUserBetOnTarget('color', 'red')" class="text-[10px] text-gold font-semibold mt-0.5">
+              {{ getUserBetOnTarget("color", "red") }}
             </span>
-          </Button>
-        </div>
-      </div>
+            <!-- Shine effect -->
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          </button>
 
-      <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-1">
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >Users</span
-          >
-          <span class="text-xs font-medium text-foreground font-outfit">{{
-            getUniqueUsersCountForColor("red")
-          }}</span>
-        </div>
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >Total</span
-          >
-          <span class="text-xs font-medium text-foreground font-outfit">{{
-            getTotalBetForColor("red")
-          }}</span>
-        </div>
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >You</span
-          >
-          <span class="text-xs font-medium text-red-500 font-outfit">{{
-            getUserBetForColor("red")
-          }}</span>
-        </div>
-      </div>
-
-      <!-- User Cards -->
-      <div class="grid grid-cols-4 gap-1">
-        <div
-          v-for="(user, i) in getAggregatedBetsForColor('red')"
-          :key="user.userId || i"
-          class="bg-secondary/30 rounded p-1 flex flex-col items-center gap-0.5 border border-border hover:border-red-500/30 transition-colors"
-        >
-          <img
-            src="/default-user.svg"
-            class="w-6 h-6 rounded-full bg-white p-[2px] border border-border"
-          />
-          <span
-            class="text-[9px] text-muted-foreground font-bold truncate w-full text-center"
-            >{{ user.username || "User" }}</span
-          >
-          <span class="text-[9px] font-medium text-red-500 font-outfit">{{
-            user.amount
-          }}</span>
-        </div>
-      </div>
-    </Card>
-
-    <!-- Green Section -->
-    <Card
-      class="flex flex-col gap-1 sm:gap-2 p-1 transition-all duration-500"
-      :class="[getSectionClass('green'), { 'hidden lg:flex': activeTab !== 'green' }]"
-    >
-      <!-- Header Row -->
-      <div class="grid grid-cols-3 gap-1 h-12">
-        <Button
-          @click="handlePlaceBet('type', 'even')"
-          variant="outline"
-          class="h-full flex flex-col items-center justify-center text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
-          :class="[
-            getEvenOddClass('even'),
-            { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }
-          ]"
-        >
-          <span>EVEN</span>
-          <span
-            v-if="getUserBetOnTarget('type', 'even') > 0"
-            class="text-[9px] text-yellow-500 font-medium"
-          >
-            {{ getUserBetOnTarget("type", "even") }}
-          </span>
-        </Button>
-        <Button
-          @click="handlePlaceBet('number', 0)"
-          class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-          :class="[getNumberClass(0), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
-        >
-          <span class="text-sm font-medium">0</span>
-          <span
-            v-if="getUserBetOnTarget('number', 0) > 0"
-            class="text-[9px] text-yellow-500 font-medium"
-          >
-            {{ getUserBetOnTarget("number", 0) }}
-          </span>
-        </Button>
-        <Button
-          @click="handlePlaceBet('type', 'odd')"
-          variant="outline"
-          class="h-full flex flex-col items-center justify-center text-xs uppercase tracking-wider font-outfit font-bold transition-all duration-300"
-          :class="[
-            getEvenOddClass('odd'),
-            { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }
-          ]"
-        >
-          <span>ODD</span>
-          <span
-            v-if="getUserBetOnTarget('type', 'odd') > 0"
-            class="text-[9px] text-yellow-500 font-medium"
-          >
-            {{ getUserBetOnTarget("type", "odd") }}
-          </span>
-        </Button>
-      </div>
-
-      <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-1">
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >Users</span
-          >
-          <span class="text-xs font-medium text-foreground font-outfit">{{
-            getUniqueUsersCountForColor("green")
-          }}</span>
-        </div>
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >Total</span
-          >
-          <span class="text-xs font-medium text-foreground font-outfit">{{
-            getTotalBetForColor("green")
-          }}</span>
-        </div>
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >You</span
-          >
-          <span class="text-xs font-medium text-green-500 font-outfit">{{
-            getUserBetForColor("green")
-          }}</span>
-        </div>
-      </div>
-
-      <!-- User Cards -->
-      <div class="grid grid-cols-4 gap-1">
-        <div
-          v-for="(user, i) in getAggregatedBetsForColor('green')"
-          :key="user.userId || i"
-          class="bg-secondary/30 rounded p-1 flex flex-col items-center gap-0.5 border border-border hover:border-green-500/30 transition-colors"
-        >
-          <img
-            src="/default-user.svg"
-            class="w-6 h-6 rounded-full bg-white p-[2px] border border-border"
-          />
-          <span
-            class="text-[9px] text-muted-foreground font-bold truncate w-full text-center"
-            >{{ user.username || "User" }}</span
-          >
-          <span class="text-[9px] font-medium text-green-500 font-outfit">{{
-            user.amount
-          }}</span>
-        </div>
-      </div>
-    </Card>
-
-    <!-- Black Section -->
-    <Card
-      class="flex flex-col gap-1 sm:gap-2 p-1 transition-all duration-500"
-      :class="[getSectionClass('black'), { 'hidden lg:flex': activeTab !== 'black' }]"
-    >
-      <!-- Header Row -->
-      <div class="flex gap-1 h-12">
-        <Button
-          @click="handlePlaceBet('color', COLORS.BLACK)"
-          class="flex-1 bg-[#2d1f3d] hover:bg-[#3d2a52] text-purple-200 relative group h-full text-lg tracking-wider font-outfit border-b-4 border-[#4a3366] active:border-b-0 active:translate-y-1 shadow-[0_0_15px_rgba(138,43,226,0.2)] flex flex-col items-center justify-center"
-          :class="{ 'opacity-80 hover:bg-[#2d1f3d] cursor-not-allowed': !isLoggedIn || isAdmin }"
-        >
-          <span>BLACK</span>
-          <span
-            v-if="getUserBetOnTarget('color', 'black')"
-            class="text-[10px] text-yellow-500 font-medium whitespace-nowrap"
-          >
-            {{ getUserBetOnTarget("color", "black") }}
-          </span>
-        </Button>
-        <div class="flex-[2] grid grid-cols-7 gap-[2px]">
-          <Button
-            v-for="num in getNumbersByColor(COLORS.BLACK)"
-            :key="num"
-            @click="handlePlaceBet('number', num)"
-            class="h-full p-0 flex flex-col items-center justify-center transition-all duration-300 font-outfit"
-            :class="[getNumberClass(num), { 'opacity-80 cursor-not-allowed': !isLoggedIn || isAdmin }]"
-          >
-            <span class="text-sm font-medium">{{ num }}</span>
-            <span
-              v-if="getUserBetOnTarget('number', num) > 0"
-              class="text-[9px] text-yellow-500 font-medium"
+          <!-- Number Buttons -->
+          <div class="flex-[2] grid grid-cols-7 gap-0.5">
+            <button
+              v-for="num in getNumbersByColor(COLORS.RED)"
+              :key="num"
+              @click="handlePlaceBet('number', num)"
+              class="h-full rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-sm"
+              :class="[getNumberClass(num), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
             >
-              {{ getUserBetOnTarget("number", num) }}
+              <span class="font-medium">{{ num }}</span>
+              <span v-if="getUserBetOnTarget('number', num) > 0" class="text-[8px] text-gold font-semibold">
+                {{ getUserBetOnTarget("number", num) }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-3 gap-1 mb-2">
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-gold/5">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">Users</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getUniqueUsersCountForColor("red") }}</span>
+          </div>
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-gold/5">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">Total</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getTotalBetForColor("red") }}</span>
+          </div>
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-ruby/20">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">You</span>
+            <span class="text-xs font-display font-semibold text-ruby-light tabular-nums">{{ getUserBetForColor("red") }}</span>
+          </div>
+        </div>
+
+        <!-- User Cards -->
+        <div class="grid grid-cols-4 gap-1">
+          <div
+            v-for="(user, i) in getAggregatedBetsForColor('red')"
+            :key="user.userId || i"
+            class="bg-surface/30 rounded p-1.5 flex flex-col items-center gap-0.5 border border-gold/5 hover:border-ruby/30 transition-all duration-300 group"
+          >
+            <div class="w-6 h-6 rounded bg-gradient-to-br from-ruby/30 to-ruby/10 flex items-center justify-center border border-ruby/30 text-[8px] font-display font-semibold text-ruby-light">
+              {{ (user.username || 'U').substring(0, 2).toUpperCase() }}
+            </div>
+            <span class="text-[8px] text-muted-foreground font-medium truncate w-full text-center">{{ user.username || "User" }}</span>
+            <span class="text-[9px] font-display font-semibold text-ruby-light tabular-nums">{{ user.amount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GREEN Section -->
+      <div
+        class="card-elegant p-2 transition-all duration-500"
+        :class="[getSectionClass('green'), { 'hidden lg:block': activeTab !== 'green' }]"
+      >
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald/50 to-transparent"></div>
+
+        <!-- Header Row -->
+        <div class="grid grid-cols-3 gap-1.5 h-14 mb-2">
+          <!-- Even Button -->
+          <button
+            @click="handlePlaceBet('type', 'even')"
+            class="rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-xs border"
+            :class="[getEvenOddClass('even'), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+          >
+            <span class="tracking-[0.15em] uppercase font-semibold">Even</span>
+            <span v-if="getUserBetOnTarget('type', 'even') > 0" class="text-[9px] text-gold font-semibold">
+              {{ getUserBetOnTarget("type", "even") }}
             </span>
-          </Button>
+          </button>
+
+          <!-- Zero Button -->
+          <button
+            @click="handlePlaceBet('number', 0)"
+            class="btn-emerald rounded flex flex-col items-center justify-center relative overflow-hidden group"
+            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }"
+          >
+            <span class="text-xl font-display font-semibold">0</span>
+            <span v-if="getUserBetOnTarget('number', 0) > 0" class="text-[9px] text-gold font-semibold">
+              {{ getUserBetOnTarget("number", 0) }}
+            </span>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          </button>
+
+          <!-- Odd Button -->
+          <button
+            @click="handlePlaceBet('type', 'odd')"
+            class="rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-xs border"
+            :class="[getEvenOddClass('odd'), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+          >
+            <span class="tracking-[0.15em] uppercase font-semibold">Odd</span>
+            <span v-if="getUserBetOnTarget('type', 'odd') > 0" class="text-[9px] text-gold font-semibold">
+              {{ getUserBetOnTarget("type", "odd") }}
+            </span>
+          </button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-3 gap-1 mb-2">
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-gold/5">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">Users</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getUniqueUsersCountForColor("green") }}</span>
+          </div>
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-gold/5">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">Total</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getTotalBetForColor("green") }}</span>
+          </div>
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-emerald/20">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">You</span>
+            <span class="text-xs font-display font-semibold text-emerald tabular-nums">{{ getUserBetForColor("green") }}</span>
+          </div>
+        </div>
+
+        <!-- User Cards -->
+        <div class="grid grid-cols-4 gap-1">
+          <div
+            v-for="(user, i) in getAggregatedBetsForColor('green')"
+            :key="user.userId || i"
+            class="bg-surface/30 rounded p-1.5 flex flex-col items-center gap-0.5 border border-gold/5 hover:border-emerald/30 transition-all duration-300"
+          >
+            <div class="w-6 h-6 rounded bg-gradient-to-br from-emerald/30 to-emerald/10 flex items-center justify-center border border-emerald/30 text-[8px] font-display font-semibold text-emerald">
+              {{ (user.username || 'U').substring(0, 2).toUpperCase() }}
+            </div>
+            <span class="text-[8px] text-muted-foreground font-medium truncate w-full text-center">{{ user.username || "User" }}</span>
+            <span class="text-[9px] font-display font-semibold text-emerald tabular-nums">{{ user.amount }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-1">
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >Users</span
-          >
-          <span class="text-xs font-medium text-foreground font-outfit">{{
-            getUniqueUsersCountForColor("black")
-          }}</span>
-        </div>
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >Total</span
-          >
-          <span class="text-xs font-medium text-foreground font-outfit">{{
-            getTotalBetForColor("black")
-          }}</span>
-        </div>
-        <div
-          class="bg-secondary/50 rounded p-1 flex flex-col items-center justify-center border border-border"
-        >
-          <span class="text-[9px] text-muted-foreground uppercase font-bold tracking-wider"
-            >You</span
-          >
-          <span class="text-xs font-medium text-purple-400 font-outfit">{{
-            getUserBetForColor("black")
-          }}</span>
-        </div>
-      </div>
+      <!-- BLACK Section -->
+      <div
+        class="card-elegant p-2 transition-all duration-500"
+        :class="[getSectionClass('black'), { 'hidden lg:block': activeTab !== 'black' }]"
+      >
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-royal/70 to-transparent"></div>
 
-      <!-- User Cards -->
-      <div class="grid grid-cols-4 gap-1">
-        <div
-          v-for="(user, i) in getAggregatedBetsForColor('black')"
-          :key="user.userId || i"
-          class="bg-secondary/30 rounded p-1 flex flex-col items-center gap-0.5 border border-border hover:border-purple-500/30 transition-colors"
-        >
-          <img
-            src="/default-user.svg"
-            class="w-6 h-6 rounded-full bg-white p-[2px] border border-border"
-          />
-          <span
-            class="text-[9px] text-muted-foreground font-bold truncate w-full text-center"
-            >{{ user.username || "User" }}</span
+        <!-- Header Row -->
+        <div class="flex gap-1.5 h-14 mb-2">
+          <!-- Main Color Button -->
+          <button
+            @click="handlePlaceBet('color', COLORS.BLACK)"
+            class="flex-1 btn-royal rounded flex flex-col items-center justify-center relative overflow-hidden group"
+            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }"
           >
-          <span class="text-[9px] font-medium text-purple-400 font-outfit">{{ user.amount }}</span>
+            <span class="text-base font-display tracking-[0.2em]">BLACK</span>
+            <span v-if="getUserBetOnTarget('color', 'black')" class="text-[10px] text-gold font-semibold mt-0.5">
+              {{ getUserBetOnTarget("color", "black") }}
+            </span>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          </button>
+
+          <!-- Number Buttons -->
+          <div class="flex-[2] grid grid-cols-7 gap-0.5">
+            <button
+              v-for="num in getNumbersByColor(COLORS.BLACK)"
+              :key="num"
+              @click="handlePlaceBet('number', num)"
+              class="h-full rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-sm"
+              :class="[getNumberClass(num), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+            >
+              <span class="font-medium">{{ num }}</span>
+              <span v-if="getUserBetOnTarget('number', num) > 0" class="text-[8px] text-gold font-semibold">
+                {{ getUserBetOnTarget("number", num) }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-3 gap-1 mb-2">
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-gold/5">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">Users</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getUniqueUsersCountForColor("black") }}</span>
+          </div>
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-gold/5">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">Total</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getTotalBetForColor("black") }}</span>
+          </div>
+          <div class="bg-surface/50 rounded p-1.5 flex flex-col items-center border border-royal/30">
+            <span class="text-[8px] text-muted-foreground font-display tracking-[0.2em] uppercase">You</span>
+            <span class="text-xs font-display font-semibold text-cream tabular-nums">{{ getUserBetForColor("black") }}</span>
+          </div>
+        </div>
+
+        <!-- User Cards -->
+        <div class="grid grid-cols-4 gap-1">
+          <div
+            v-for="(user, i) in getAggregatedBetsForColor('black')"
+            :key="user.userId || i"
+            class="bg-surface/30 rounded p-1.5 flex flex-col items-center gap-0.5 border border-gold/5 hover:border-royal/40 transition-all duration-300"
+          >
+            <div class="w-6 h-6 rounded bg-gradient-to-br from-royal/50 to-royal/20 flex items-center justify-center border border-royal/40 text-[8px] font-display font-semibold text-cream">
+              {{ (user.username || 'U').substring(0, 2).toUpperCase() }}
+            </div>
+            <span class="text-[8px] text-muted-foreground font-medium truncate w-full text-center">{{ user.username || "User" }}</span>
+            <span class="text-[9px] font-display font-semibold text-cream tabular-nums">{{ user.amount }}</span>
+          </div>
         </div>
       </div>
-    </Card>
     </div>
   </div>
 </template>
@@ -338,54 +246,71 @@
 <script setup>
 import { useBettingBoard } from "../composables/useBettingBoard";
 import { getNumbersByColor, COLORS } from "../constants/game";
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
 const activeTab = ref('red');
 
-const isAdmin = computed(() => {
-    return authStore.user && authStore.user.role === 'admin';
-});
+const isAdmin = computed(() => authStore.user && authStore.user.role === 'admin');
 
 const props = defineProps({
-  bets: {
-    type: Array,
-    default: () => [],
-  },
-  lastResult: {
-    type: Object,
-    default: null,
-  },
-  isLoggedIn: {
-    type: Boolean,
-    default: false
-  }
+  bets: { type: Array, default: () => [] },
+  lastResult: { type: Object, default: null },
+  isLoggedIn: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(["place-bet"]);
 
 const handlePlaceBet = (type, value) => {
-    if (!props.isLoggedIn) {
-        authStore.openLoginModal();
-        return;
-    }
-    if (isAdmin.value) return;
-    emit('place-bet', type, value);
+  if (!props.isLoggedIn) {
+    authStore.openLoginModal();
+    return;
+  }
+  if (isAdmin.value) return;
+  emit('place-bet', type, value);
 };
 
 const {
-    getBetAmount,
-    getUserBetOnTarget,
-    getBetsForColor,
-    getTotalBetForColor,
-    getUniqueUsersCountForColor,
-    getAggregatedBetsForColor,
-    getUserBetForColor,
-    getSectionClass,
-    getNumberClass,
-    getEvenOddClass
+  getBetAmount,
+  getUserBetOnTarget,
+  getBetsForColor,
+  getTotalBetForColor,
+  getUniqueUsersCountForColor,
+  getAggregatedBetsForColor,
+  getUserBetForColor,
+  getSectionClass,
+  getNumberClass,
+  getEvenOddClass
 } = useBettingBoard(props, emit);
+
+// Tab styling helper
+const getTabClass = (tab) => {
+  const isActive = activeTab.value === tab;
+  const base = 'border';
+
+  if (tab === 'red') {
+    return isActive
+      ? `${base} bg-ruby/20 text-ruby-light border-ruby/40 shadow-[0_0_15px_rgba(155,17,30,0.2)]`
+      : `${base} border-transparent text-muted-foreground hover:bg-ruby/5`;
+  }
+  if (tab === 'green') {
+    return isActive
+      ? `${base} bg-emerald/20 text-emerald border-emerald/40 shadow-[0_0_15px_rgba(46,139,87,0.2)]`
+      : `${base} border-transparent text-muted-foreground hover:bg-emerald/5`;
+  }
+  if (tab === 'black') {
+    return isActive
+      ? `${base} bg-royal/30 text-cream border-purple-400/40 shadow-[0_0_15px_rgba(100,80,140,0.2)]`
+      : `${base} border-transparent text-muted-foreground hover:bg-royal/10`;
+  }
+  return base;
+};
 </script>
+
+<style scoped>
+/* Card elegant styling is in global CSS */
+.card-elegant {
+  position: relative;
+}
+</style>

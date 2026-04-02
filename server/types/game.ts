@@ -53,4 +53,5 @@ export interface GameStateSnapshot {
   currentRoundId: string | null;
   roundNumber: number;
   result: WheelSegment | null;
+  targetResult: WheelSegment | null;
 }

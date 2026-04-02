@@ -57,6 +57,12 @@ fi
 # Seed Admin User
 echo "Checking/Seeding Admin User..."
 cd server
+
+# Load .env variables (export lines only)
+set -a
+source .env
+set +a
+
 if [ -z "$ADMIN_USERNAME" ] || [ -z "$ADMIN_PASSWORD" ]; then
   echo "Error: ADMIN_USERNAME and ADMIN_PASSWORD must be set."
   exit 1

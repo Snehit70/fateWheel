@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 
 import Bet from '../models/Bet';
 import GameResult from '../models/GameResult';
@@ -45,6 +46,11 @@ const isWheelColor = (value: unknown): value is WheelColor =>
 const isBetParity = (value: unknown): value is BetParity =>
   typeof value === 'string' && VALID_PARITY.includes(value);
 
+const isTransientTransactionError = (error: unknown): boolean =>
+  error instanceof Error &&
+  (error.message.includes('Transaction numbers are only allowed on a replica set member or mongos') ||
+    error.message.includes('Transaction support is not available'));
+
 class GameLoop {
   state: GamePhase = GAME_STATES.WAITING;
 
@@ -55,6 +61,8 @@ class GameLoop {
   endTime = 0;
 
   result: WheelSegment | null = null;
+
+  targetResult: WheelSegment | null = null;
 
   currentRoundId: string | null = null;
 
@@ -100,6 +108,48 @@ class GameLoop {
     return promise;
   }
 
+  private async runInSession<T>(action: (session: mongoose.ClientSession) => Promise<T>): Promise<T> {
+    const session = await mongoose.startSession();
+
+    try {
+      let result!: T;
+      await session.withTransaction(async () => {
+        result = await action(session);
+      });
+      return result;
+    } catch (error) {
+      if (isTransientTransactionError(error)) {
+        logger.warn('Mongo transactions unavailable, retrying write path without transaction');
+        return action(session);
+      }
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  private calculateWinnings(bet: { type: BetType; value: BetValue; amount: number }, settledResult: WheelSegment): number {
+    if (bet.type === 'number' && bet.value === settledResult.number) {
+      return Math.floor((bet.amount * PAYOUTS.NUMBER * 100) / 100);
+    }
+
+    if (bet.type === 'color' && bet.value === settledResult.color) {
+      return Math.floor((bet.amount * PAYOUTS.COLOR * 100) / 100);
+    }
+
+    if (bet.type === 'type') {
+      if (bet.value === 'even' && settledResult.number !== 0 && settledResult.number % 2 === 0) {
+        return Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
+      }
+
+      if (bet.value === 'odd' && settledResult.number !== 0 && settledResult.number % 2 !== 0) {
+        return Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
+      }
+    }
+
+    return 0;
+  }
+
   async init(): Promise<void> {
     if (this.running) {
       logger.info('GameLoop already running, skipping init');
@@ -116,6 +166,7 @@ class GameLoop {
         this.currentRoundId = redisState.currentRoundId;
         this.roundNumber = redisState.roundNumber;
         this.result = redisState.result;
+        this.targetResult = redisState.targetResult ?? redisState.result;
         this.history = redisHistory.length > 0 ? redisHistory : [];
 
         const redisBets = await gameState.getActiveBets();
@@ -175,6 +226,7 @@ class GameLoop {
       currentRoundId: this.currentRoundId,
       roundNumber: this.roundNumber,
       result: this.result,
+      targetResult: this.targetResult,
     };
     await gameState.setGameState(snapshot);
   }
@@ -189,7 +241,7 @@ class GameLoop {
       endTime: this.endTime,
       currentRoundId: this.currentRoundId,
       result: this.state === GAME_STATES.RESULT ? this.result : null,
-      targetResult: this.state === GAME_STATES.SPINNING ? this.result : null,
+      targetResult: this.targetResult,
       bets: this.bets,
       history: this.history,
     });
@@ -333,7 +385,7 @@ class GameLoop {
       state: this.state,
       endTime: this.endTime,
       result: this.state === GAME_STATES.RESULT ? this.result : null,
-      targetResult: this.state === GAME_STATES.SPINNING ? this.result : null,
+      targetResult: this.targetResult,
     });
 
     void this.publishStateChange();
@@ -346,7 +398,7 @@ class GameLoop {
       bets: this.bets,
       history: this.history,
       result: this.state === GAME_STATES.RESULT ? this.result : null,
-      targetResult: this.state === GAME_STATES.SPINNING ? this.result : null,
+      targetResult: this.targetResult,
     });
 
     void this.syncStateToRedis();
@@ -359,13 +411,14 @@ class GameLoop {
     this.endTime = Date.now() + TIMING.SPIN_DURATION * 1000;
 
     const resultIndex = secureRandomInt(0, SEGMENTS.length);
-    this.result = { ...SEGMENTS[resultIndex] };
+    this.targetResult = { ...SEGMENTS[resultIndex] };
+    this.result = null;
 
     void this.syncStateToRedis();
     void this.publishStateChange();
 
     socketService.emitToAll('spinResult', {
-      result: this.result,
+      result: this.targetResult,
       endTime: this.endTime,
     });
 
@@ -375,14 +428,27 @@ class GameLoop {
   }
 
   async processResults(): Promise<void> {
-    if (!this.result || !this.currentRoundId) {
+    if (!leader.isLeader()) {
+      logger.warn('Skipping result processing after leadership loss');
+      this.processing = false;
+      return;
+    }
+
+    if (!this.targetResult || !this.currentRoundId) {
       logger.warn('Skipping result processing without an active result or round ID');
       this.processing = false;
       return;
     }
 
+    let settlementSucceeded = false;
+    const previousState = this.state;
+    const previousEndTime = this.endTime;
+    const previousResult = this.result;
+    const previousHistory = [...this.history];
+
     try {
-      const settledResult = this.result;
+      const settledResult = this.targetResult;
+      this.result = settledResult;
 
       this.state = GAME_STATES.RESULT;
       this.endTime = Date.now() + TIMING.RESULT_DURATION * 1000;
@@ -407,87 +473,119 @@ class GameLoop {
       let roundTotalPayout = 0;
       let roundUniqueUsers = 0;
 
-      for (const [userId, userBets] of betsByUser.entries()) {
-        roundUniqueUsers += 1;
-        roundTotalBets += userBets.length;
-
-        for (const bet of userBets) {
-          let winnings = 0;
-
-          if (bet.type === 'number' && bet.value === settledResult.number) {
-            winnings = Math.floor((bet.amount * PAYOUTS.NUMBER * 100) / 100);
-          } else if (bet.type === 'color' && bet.value === settledResult.color) {
-            winnings = Math.floor((bet.amount * PAYOUTS.COLOR * 100) / 100);
-          } else if (bet.type === 'type') {
-            if (bet.value === 'even' && settledResult.number !== 0 && settledResult.number % 2 === 0) {
-              winnings = Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
-            } else if (
-              bet.value === 'odd' &&
-              settledResult.number !== 0 &&
-              settledResult.number % 2 !== 0
-            ) {
-              winnings = Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
-            }
+      await this.runInSession(async (session) => {
+        for (const [userId, userBets] of betsByUser.entries()) {
+          if (!leader.isLeader()) {
+            throw new Error('Leadership lost during settlement');
           }
 
-          bet.status = 'completed';
-          bet.result = winnings > 0 ? 'win' : 'loss';
-          bet.payout = winnings;
-          bet.gameResult = {
-            number: settledResult.number,
-            color: settledResult.color,
-          };
-        }
+          roundUniqueUsers += 1;
+          roundTotalBets += userBets.length;
 
-        userBets.sort(
-          (left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-        );
+          for (const bet of userBets) {
+            const winnings = this.calculateWinnings(bet, settledResult);
 
-        const totalWinnings = userBets.reduce((sum, bet) => sum + bet.payout, 0);
-        const totalBetAmount = userBets.reduce((sum, bet) => sum + bet.amount, 0);
+            bet.status = 'completed';
+            bet.result = winnings > 0 ? 'win' : 'loss';
+            bet.payout = winnings;
+            bet.gameResult = {
+              number: settledResult.number,
+              color: settledResult.color,
+            };
+          }
 
-        roundTotalWagered += totalBetAmount;
-        roundTotalPayout += totalWinnings;
+          userBets.sort(
+            (left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+          );
 
-        const updatedUser =
-          totalWinnings > 0
-            ? await User.findByIdAndUpdate(userId, { $inc: { balance: totalWinnings } }, { new: true })
-            : await User.findById(userId);
+          const totalWinnings = userBets.reduce((sum, bet) => sum + bet.payout, 0);
+          const totalBetAmount = userBets.reduce((sum, bet) => sum + bet.amount, 0);
 
-        if (updatedUser && totalWinnings > 0) {
-          socketService.emitToUser(userId, 'balanceUpdate', { balance: updatedUser.balance });
-          socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
-        }
+          roundTotalWagered += totalBetAmount;
+          roundTotalPayout += totalWinnings;
 
-        const finalBalance = updatedUser ? updatedUser.balance : 0;
-        const initialBalance = finalBalance + totalBetAmount - totalWinnings;
-        let runningBalance = initialBalance;
+          const updatedUser =
+            totalWinnings > 0
+              ? await User.findByIdAndUpdate(userId, { $inc: { balance: totalWinnings } }, { new: true, session })
+              : await User.findById(userId).session(session);
 
-        for (const bet of userBets) {
-          runningBalance -= bet.amount;
-          runningBalance += bet.payout;
-          bet.balanceAfter = runningBalance;
-        }
+          const finalBalance = updatedUser ? updatedUser.balance : 0;
+          const initialBalance = finalBalance + totalBetAmount - totalWinnings;
+          let runningBalance = initialBalance;
 
-        const bulkOps = userBets.map((bet) => ({
-          updateOne: {
-            filter: { _id: bet._id },
-            update: {
-              $set: {
-                status: bet.status,
-                result: bet.result,
-                payout: bet.payout,
-                balanceAfter: bet.balanceAfter,
-                gameResult: bet.gameResult,
+          for (const bet of userBets) {
+            runningBalance -= bet.amount;
+            runningBalance += bet.payout;
+            bet.balanceAfter = runningBalance;
+          }
+
+          const bulkOps = userBets.map((bet) => ({
+            updateOne: {
+              filter: { _id: bet._id, status: 'active', roundId: this.currentRoundId },
+              update: {
+                $set: {
+                  status: bet.status,
+                  result: bet.result,
+                  payout: bet.payout,
+                  balanceAfter: bet.balanceAfter,
+                  gameResult: bet.gameResult,
+                },
               },
             },
+          }));
+
+          const bulkResult = await Bet.bulkWrite(bulkOps, { session });
+          if (bulkResult.matchedCount !== userBets.length) {
+            throw new Error(`Settlement matched ${bulkResult.matchedCount} bets for user ${userId}`);
+          }
+
+          if (updatedUser && totalWinnings > 0) {
+            await Transaction.create(
+              [
+                {
+                  user: updatedUser._id,
+                  type: 'win',
+                  amount: totalWinnings,
+                  balanceAfter: updatedUser.balance,
+                  description: `Roulette winnings for round ${this.currentRoundId}`,
+                },
+              ],
+              { session }
+            );
+          }
+        }
+
+        const gameResult = new GameResult({
+          roundId: this.currentRoundId,
+          roundNumber: this.roundNumber,
+          number: settledResult.number,
+          color: settledResult.color,
+          stats: {
+            totalBets: roundTotalBets,
+            totalWagered: roundTotalWagered,
+            totalPayout: roundTotalPayout,
+            netProfit: roundTotalWagered - roundTotalPayout,
+            uniqueUsers: roundUniqueUsers,
           },
-        }));
+        });
+        await gameResult.save({ session });
 
-        await Bet.bulkWrite(bulkOps);
-      }
+        await GameStats.findOneAndUpdate(
+          {},
+          {
+            $inc: {
+              totalBets: roundTotalBets,
+              totalWagered: roundTotalWagered,
+              netProfit: roundTotalWagered - roundTotalPayout,
+            },
+          },
+          { upsert: true, session }
+        );
+      });
 
-      const gameResult = new GameResult({
+      settlementSucceeded = true;
+
+      socketService.emitToRoom('admin-room', 'admin:newRound', {
         roundId: this.currentRoundId,
         roundNumber: this.roundNumber,
         number: settledResult.number,
@@ -500,30 +598,34 @@ class GameLoop {
           uniqueUsers: roundUniqueUsers,
         },
       });
-      await gameResult.save();
 
-      socketService.emitToRoom('admin-room', 'admin:newRound', gameResult);
+      const usersToRefresh = [...betsByUser.keys()];
+      for (const userId of usersToRefresh) {
+        const updatedUser = await User.findById(userId);
+        if (!updatedUser) {
+          continue;
+        }
 
-      await GameStats.findOneAndUpdate(
-        {},
-        {
-          $inc: {
-            totalBets: roundTotalBets,
-            totalWagered: roundTotalWagered,
-            netProfit: roundTotalWagered - roundTotalPayout,
-          },
-        },
-        { upsert: true }
-      );
+        socketService.emitToUser(userId, 'balanceUpdate', { balance: updatedUser.balance });
+        socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
+      }
 
       socketService.emitToRoom('admin-room', 'admin:statsUpdate', {});
       await gameState.addHistoryEntry(settledResult);
     } catch (err) {
+      this.state = previousState;
+      this.endTime = previousEndTime;
+      this.result = previousResult;
+      this.history = previousHistory;
       logger.error('Error processing bets', err);
     } finally {
-      this.bets = [];
-      await gameState.clearActiveBets();
-      this.broadcastState();
+      if (settlementSucceeded) {
+        this.bets = [];
+        await gameState.clearActiveBets();
+        this.broadcastState();
+      } else {
+        this.stop();
+      }
       this.processing = false;
     }
   }
@@ -533,6 +635,7 @@ class GameLoop {
     this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
     this.bets = [];
     this.result = null;
+    this.targetResult = null;
     this.roundNumber += 1;
 
     try {
@@ -606,51 +709,71 @@ class GameLoop {
         );
       }
 
-      const dbUser = await User.findOneAndUpdate(
-        { _id: user.id, balance: { $gte: normalizedAmount } },
-        { $inc: { balance: -normalizedAmount } },
-        { new: true }
-      );
+      const { dbUser, newBet } = await this.runInSession(async (session) => {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: user.id, balance: { $gte: normalizedAmount } },
+          { $inc: { balance: -normalizedAmount } },
+          { new: true, session }
+        );
 
-      if (!dbUser) {
-        throw new Error('Insufficient balance');
-      }
+        if (!updatedUser) {
+          throw new Error('Insufficient balance');
+        }
 
-      const newBet = await Bet.findOneAndUpdate(
-        {
-          user: user.id,
-          status: 'active',
-          roundId: this.currentRoundId,
-          type,
-          value: normalizedValue,
-        },
-        {
-          $inc: { amount: normalizedAmount },
-          $setOnInsert: {
-            username: dbUser.username,
+        const placedBet = await Bet.findOneAndUpdate(
+          {
             user: user.id,
             status: 'active',
             roundId: this.currentRoundId,
             type,
             value: normalizedValue,
           },
-        },
-        { new: true, upsert: true }
-      );
+          {
+            $inc: { amount: normalizedAmount },
+            $setOnInsert: {
+              username: updatedUser.username,
+              user: user.id,
+              status: 'active',
+              roundId: this.currentRoundId,
+              type,
+              value: normalizedValue,
+            },
+          },
+          { new: true, upsert: true, session, runValidators: true }
+        );
+
+        await Transaction.create(
+          [
+            {
+              user: updatedUser._id,
+              type: 'bet',
+              amount: normalizedAmount,
+              balanceAfter: updatedUser.balance,
+              description: `Roulette bet for round ${this.currentRoundId}`,
+            },
+          ],
+          { session }
+        );
+
+        return {
+          dbUser: updatedUser,
+          newBet: placedBet,
+        };
+      });
 
       const existingBet = this.bets.find(
         (bet) => bet.userId === user.id && bet.type === type && bet.value === normalizedValue
       );
 
       if (existingBet) {
-        existingBet.amount += normalizedAmount;
+        existingBet.amount = newBet.amount;
       } else {
         this.bets.push({
           userId: user.id,
           username: dbUser.username,
           type,
           value: normalizedValue,
-          amount: normalizedAmount,
+          amount: newBet.amount,
           _id: String(newBet._id),
         });
       }
@@ -675,6 +798,10 @@ class GameLoop {
       try {
         if (this.state !== GAME_STATES.WAITING) {
           throw new Error('Cannot clear bets now');
+        }
+
+        if (!leader.isLeader()) {
+          throw new Error('Server is syncing, please try again');
         }
 
         const activeBets = await Bet.find({
