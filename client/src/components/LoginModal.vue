@@ -160,7 +160,8 @@ const handleSubmit = async () => {
       
       setTimeout(() => {
         isSuccess.value = false;
-        toggleMode();
+        successMessage.value = "";
+        isLogin.value = true;
       }, 1500);
     }
   } catch (err) {

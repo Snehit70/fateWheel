@@ -233,6 +233,63 @@ describe('Bet Model', () => {
             expect(bet.status).toBe('refunded');
         });
     });
+
+    describe('Bet queries', () => {
+        it('should find active bets by roundId', async () => {
+            const roundId = 'query-round-123';
+
+            await Bet.create({
+                user: testUser.id,
+                username: testUser.username,
+                type: 'number',
+                value: 1,
+                amount: 50,
+                roundId,
+                status: 'active'
+            });
+
+            await Bet.create({
+                user: testUser.id,
+                username: testUser.username,
+                type: 'color',
+                value: 'red',
+                amount: 100,
+                roundId,
+                status: 'active'
+            });
+
+            const activeBets = await Bet.find({ roundId, status: 'active' });
+            expect(activeBets).toHaveLength(2);
+        });
+
+        it('should find bets by user', async () => {
+            await Bet.create({
+                user: testUser.id,
+                username: testUser.username,
+                type: 'number',
+                value: 3,
+                amount: 100,
+                roundId: 'user-round'
+            });
+
+            const userBets = await Bet.find({ user: testUser.id });
+            expect(userBets.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('should populate user reference', async () => {
+            const bet = await Bet.create({
+                user: testUser.id,
+                username: testUser.username,
+                type: 'number',
+                value: 7,
+                amount: 100,
+                roundId: 'populate-round'
+            });
+
+            const populatedBet = await Bet.findById(bet.id).populate('user');
+            expect(populatedBet.user.username).toBe('betuser');
+        });
+    });
 });
 
 describe('Transaction Model', () => {
@@ -260,6 +317,16 @@ describe('Transaction Model', () => {
 
         expect(tx.type).toBe('adjustment');
         expect(tx.amount).toBe(100);
+    });
+
+    it('should reject negative adjustments (model enforces min: 0)', async () => {
+        await expect(Transaction.create({
+            user: testUser.id,
+            type: 'adjustment',
+            amount: -200,
+            balanceAfter: 300,
+            description: 'Admin deduction'
+        })).rejects.toThrow();
     });
 
     it('should have createdAt timestamp', async () => {
@@ -302,6 +369,22 @@ describe('GameResult Model', () => {
             roundId: 'unique-round',
             roundNumber: 2,
             number: 3,
+            color: 'red'
+        })).rejects.toThrow();
+    });
+
+    it('should validate number range (0-14)', async () => {
+        await expect(GameResult.create({
+            roundId: 'invalid-number-round',
+            roundNumber: 1,
+            number: 15,
+            color: 'red'
+        })).rejects.toThrow();
+
+        await expect(GameResult.create({
+            roundId: 'negative-number-round',
+            roundNumber: 1,
+            number: -1,
             color: 'red'
         })).rejects.toThrow();
     });
@@ -368,12 +451,15 @@ describe('AdminLog Model', () => {
         })).rejects.toThrow();
     });
 
-    it('should reject removed actions', async () => {
-        await expect(AdminLog.create({
-            adminId: adminUser.id,
-            action: 'approve_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-        })).rejects.toThrow();
-    });
+    it.each(['approve_user', 'reject_user', 'toggle_reset'])(
+        'should reject removed action %s',
+        async (action) => {
+            await expect(AdminLog.create({
+                adminId: adminUser.id,
+                action,
+                targetUserId: targetUser.id,
+                targetUsername: targetUser.username
+            })).rejects.toThrow();
+        }
+    );
 });

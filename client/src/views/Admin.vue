@@ -313,7 +313,6 @@ const toast = useToast();
 const users = ref([]);
 const stats = ref({
   totalUsers: 0,
-  pendingUsers: 0,
   netProfit: 0,
 });
 const searchQuery = ref("");

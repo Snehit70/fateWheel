@@ -186,7 +186,7 @@ io.on('connection', async (socket) => {
         }
 
         try {
-            // Re-fetch user to ensure status is up-to-date (critical for blocking banned/rejected users)
+            // Re-fetch user to ensure they still exist
             const user = await User.findById(socket.user.id);
 
             if (!user) {

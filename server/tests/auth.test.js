@@ -15,7 +15,9 @@ beforeAll(async () => {
 afterAll(async () => {
     await mongoose.disconnect();
     await mongoServer.stop();
-    server.close();
+    await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+    });
 });
 
 describe('Auth API', () => {
