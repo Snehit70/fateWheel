@@ -9,32 +9,34 @@ const { SEGMENTS, PAYOUTS, TIMING, COLORS, BET_LIMITS, BET_TYPES, NUMBER_RANGE }
 const logger = require('../utils/logger');
 const { secureRandomInt } = require('../utils/random');
 const socketService = require('../services/socketService');
+const gameState = require('../redis/gameState');
+const pubsub = require('../redis/pubsub');
+const leader = require('../redis/leader');
 
-// Map constants to local variables for easier usage if needed, or use directly
 const GAME_STATES = {
     WAITING: 'WAITING',
     SPINNING: 'SPINNING',
     RESULT: 'RESULT'
 };
 
-// Consistent history limit for UI display
 const HISTORY_LIMIT = 15;
 
 class GameLoop {
     constructor() {
         this.state = GAME_STATES.WAITING;
-        this.bets = []; // Cache for UI, but source of truth is DB for money
+        this.bets = [];
         this.history = [];
-        this.endTime = 0; // Timestamp for current phase end
+        this.endTime = 0;
         this.result = null;
-        this.currentRoundId = null; // Will be set in init()
-        this.roundNumber = 0; // Will be set from DB in init()
+        this.currentRoundId = null;
+        this.roundNumber = 0;
         this.processing = false;
+        this.running = false;
+        this.tickInterval = null;
+        this.phaseTimer = null;
 
-        // Use centralized constants for bet limits
         this.maxBetAmount = BET_LIMITS.MAX;
 
-        // Initialize locks map
         this.userLocks = new Map();
     }
 
@@ -63,38 +65,106 @@ class GameLoop {
     }
 
     async init() {
+        // Idempotent: don't re-initialize if already running
+        if (this.running) {
+            logger.info('GameLoop already running, skipping init');
+            return;
+        }
+
         try {
-            await this.refundActiveBets();
+            // Try to load state from Redis first
+            const redisState = await gameState.getGameState();
+            const redisHistory = await gameState.getHistory();
 
-            const results = await GameResult.find().sort({ createdAt: -1 }).limit(HISTORY_LIMIT);
-            this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
+            if (redisState && redisState.currentRoundId) {
+                // Redis restore — resume from where leader left off
+                this.state = redisState.state;
+                this.endTime = redisState.endTime;
+                this.currentRoundId = redisState.currentRoundId;
+                this.roundNumber = redisState.roundNumber;
+                this.result = redisState.result;
+                this.history = redisHistory.length > 0 ? redisHistory : [];
 
-            // Get the highest round number from DB to continue counting
-            const lastResult = await GameResult.findOne().sort({ roundNumber: -1 });
-            // Initialize to next round number (last + 1), or 1 if no history
-            this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber + 1 : 1;
+                // Restore bets from Redis
+                const redisBets = await gameState.getActiveBets();
+                if (redisBets.length > 0) {
+                    this.bets = redisBets;
+                }
 
-            // Generate initial Round ID
-            this.currentRoundId = await this.generateRoundId();
+                logger.info(`Loaded state from Redis: round ${this.roundNumber} (${this.state})`);
 
-            logger.info(`Loaded ${this.history.length} past results, starting at round ${this.roundNumber} (ID: ${this.currentRoundId})`);
+                // Schedule timeouts for mid-round states
+                const now = Date.now();
+                const remainingMs = Math.max(0, this.endTime - now);
 
-            this.startLoop();
+                if (this.state === GAME_STATES.SPINNING) {
+                    // Spin was in progress — call processResults when remaining time expires
+                    logger.info(`Resuming SPINNING round, ${remainingMs}ms remaining`);
+                    this.phaseTimer = setTimeout(() => this.processResults(), remainingMs);
+                } else if (this.state === GAME_STATES.RESULT) {
+                    // Result was showing — call reset when remaining time expires
+                    logger.info(`Resuming RESULT round, ${remainingMs}ms remaining`);
+                    this.phaseTimer = setTimeout(() => this.reset(), remainingMs);
+                }
+
+                this.startLoop(false); // Don't overwrite restored endTime
+            } else {
+                // MongoDB cold-start — refund any active bets from previous crash
+                await this.refundActiveBets();
+
+                const results = await GameResult.find().sort({ createdAt: -1 }).limit(HISTORY_LIMIT);
+                this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
+
+                const lastResult = await GameResult.findOne().sort({ roundNumber: -1 });
+                this.roundNumber = (lastResult && typeof lastResult.roundNumber === 'number') ? lastResult.roundNumber + 1 : 1;
+
+                this.currentRoundId = await this.generateRoundId();
+
+                // Persist initial state to Redis
+                await this.syncStateToRedis();
+
+                logger.info(`Loaded from MongoDB: round ${this.roundNumber} (ID: ${this.currentRoundId})`);
+
+                this.startLoop(true); // Set fresh endTime for new round
+            }
         } catch (err) {
             logger.error("Failed to initialize GameLoop:", err);
-            // Retry initialization after delay
             logger.info("Retrying GameLoop initialization in 5 seconds...");
             setTimeout(() => this.init(), 5000);
         }
     }
 
-    // Generate sequential daily round ID (YYYYMMDD-XXXX)
+    async syncStateToRedis() {
+        await gameState.setGameState({
+            state: this.state,
+            endTime: this.endTime,
+            currentRoundId: this.currentRoundId,
+            roundNumber: this.roundNumber,
+            result: this.result,
+        });
+    }
+
+    async syncBetsToRedis() {
+        await gameState.replaceActiveBets(this.bets);
+    }
+
+    async publishStateChange() {
+        await pubsub.publish(pubsub.CHANNELS.STATE_CHANGE, {
+            state: this.state,
+            endTime: this.endTime,
+            currentRoundId: this.currentRoundId,
+            result: this.state === GAME_STATES.RESULT ? this.result : null,
+            targetResult: this.state === GAME_STATES.SPINNING ? this.result : null,
+            bets: this.bets,
+            history: this.history,
+        });
+    }
+
     async generateRoundId() {
         try {
             const now = new Date();
-            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
 
-            // Try to atomically look for today's stats and increment
             let stats = await GameStats.findOneAndUpdate(
                 { lastDate: dateStr },
                 { $inc: { dailyNonce: 1 } },
@@ -102,37 +172,23 @@ class GameLoop {
             );
 
             if (!stats) {
-                // If no stats for today (or global stats empty/old date), reset
-                // Use findOneAndUpdate with upsert to handle concurrency implicitly if multiple servers (though logic here favors last write)
-                // but we check lastDate filter.
-
-                // First, try to update if it WAS old date (atomic reset)
                 stats = await GameStats.findOneAndUpdate(
                     { lastDate: { $ne: dateStr } },
                     { $set: { lastDate: dateStr, dailyNonce: 1 } },
                     { new: true }
                 );
 
-                // If still null, it means either:
-                // 1. Another process updated it to today concurrently (so filter lastDate != dateStr failed).
-                // 2. Doc doesn't exist at all.
-
                 if (!stats) {
-                    // Try to fetch existing or create
                     stats = await GameStats.findOne();
                     if (!stats) {
-                        // Create
                         stats = await GameStats.create({ lastDate: dateStr, dailyNonce: 1 });
                     } else if (stats.lastDate === dateStr) {
-                        // Concurrent update happened, just increment
                         stats = await GameStats.findOneAndUpdate(
                             { lastDate: dateStr },
                             { $inc: { dailyNonce: 1 } },
                             { new: true }
                         );
                     } else {
-                        // Should have been caught by atomic reset... retry recursion once?
-                        // Just force update
                         stats.lastDate = dateStr;
                         stats.dailyNonce = 1;
                         await stats.save();
@@ -165,7 +221,6 @@ class GameLoop {
                     continue;
                 }
 
-                // Log Transaction
                 const transaction = new Transaction({
                     user: bet.user,
                     type: 'adjustment',
@@ -183,12 +238,29 @@ class GameLoop {
         }
     }
 
-    startLoop() {
-        this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
+    startLoop(resetEndTime = true) {
+        this.running = true;
+        if (resetEndTime) {
+            this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
+        }
+        this.syncStateToRedis();
 
-        setInterval(() => {
+        this.tickInterval = setInterval(() => {
             this.tick();
         }, 1000);
+    }
+
+    stop() {
+        if (this.tickInterval) {
+            clearInterval(this.tickInterval);
+            this.tickInterval = null;
+        }
+        if (this.phaseTimer) {
+            clearTimeout(this.phaseTimer);
+            this.phaseTimer = null;
+        }
+        this.running = false;
+        logger.info('GameLoop stopped');
     }
 
     tick() {
@@ -200,13 +272,11 @@ class GameLoop {
                 this.spin();
             }
         } else if (this.state === GAME_STATES.RESULT) {
-            // Wait for processing to be explicitly false before resetting
             if (timeLeft <= 0 && !this.processing) {
                 this.reset();
             }
         }
 
-        // Broadcast state every second (or on change)
         this.broadcastUpdate();
     }
 
@@ -217,47 +287,47 @@ class GameLoop {
             result: this.state === GAME_STATES.RESULT ? this.result : null,
             targetResult: this.state === GAME_STATES.SPINNING ? this.result : null
         });
+
+        // Publish to Redis for other instances
+        this.publishStateChange();
     }
 
     broadcastState() {
         socketService.emitToAll('gameState', {
             state: this.state,
-            endTime: this.endTime, // Send timestamp instead of duration
+            endTime: this.endTime,
             bets: this.bets,
             history: this.history,
             result: this.state === GAME_STATES.RESULT ? this.result : null,
             targetResult: this.state === GAME_STATES.SPINNING ? this.result : null
         });
+
+        this.syncStateToRedis();
+        this.publishStateChange();
     }
 
-
     spin() {
-        // Set processing flag early to prevent race conditions with tick()
         this.processing = true;
         this.state = GAME_STATES.SPINNING;
         this.endTime = Date.now() + TIMING.SPIN_DURATION * 1000;
 
-        // Generate Result
         const resultIndex = secureRandomInt(0, 15);
         this.result = SEGMENTS[resultIndex];
 
-        // Broadcast immediately so clients start animation
+        this.syncStateToRedis();
+        this.publishStateChange();
+
         socketService.emitToAll('spinResult', {
             result: this.result,
             endTime: this.endTime
         });
 
-        // Wait for spin to finish then process results
-        setTimeout(() => {
+        this.phaseTimer = setTimeout(() => {
             this.processResults();
         }, TIMING.SPIN_DURATION * 1000);
     }
 
     async processResults() {
-        // processing flag is now set in spin() to prevent race conditions
-
-
-
         try {
             this.state = GAME_STATES.RESULT;
             this.endTime = Date.now() + TIMING.RESULT_DURATION * 1000;
@@ -265,10 +335,8 @@ class GameLoop {
             this.history.unshift(this.result);
             if (this.history.length > HISTORY_LIMIT) this.history.pop();
 
-            // Process Bets
             const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
 
-            // Group bets by user
             const betsByUser = new Map();
             for (const bet of activeBets) {
                 const userId = bet.user.toString();
@@ -278,26 +346,22 @@ class GameLoop {
                 betsByUser.get(userId).push(bet);
             }
 
-            // Stats counters for the round
             let roundTotalBets = 0;
             let roundTotalWagered = 0;
             let roundTotalPayout = 0;
             let roundUniqueUsers = 0;
 
-            // Process each user's bets together
             for (const [userId, userBets] of betsByUser) {
                 roundUniqueUsers++;
                 roundTotalBets += userBets.length;
-                // First, calculate winnings for each bet to determine result
+
                 for (const bet of userBets) {
                     let winnings = 0;
-                    // Use integer arithmetic to avoid floating-point precision issues
                     if (bet.type === "number" && bet.value === this.result.number) {
                         winnings = Math.floor((bet.amount * PAYOUTS.NUMBER * 100) / 100);
                     } else if (bet.type === "color" && bet.value === this.result.color) {
                         winnings = Math.floor((bet.amount * PAYOUTS.COLOR * 100) / 100);
                     } else if (bet.type === "type") {
-                        // Note: 0 (green) loses all even/odd bets - this is standard roulette behavior
                         if (bet.value === "even" && this.result.number !== 0 && this.result.number % 2 === 0) {
                             winnings = Math.floor((bet.amount * PAYOUTS.TYPE * 100) / 100);
                         } else if (bet.value === "odd" && this.result.number !== 0 && this.result.number % 2 !== 0) {
@@ -314,17 +378,14 @@ class GameLoop {
                     };
                 }
 
-                // Sort bets: by time to replay history correctly for balance calculation
                 userBets.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-                // Calculate total winnings for DB update
                 const totalWinnings = userBets.reduce((sum, bet) => sum + bet.payout, 0);
                 const totalBetAmount = userBets.reduce((sum, bet) => sum + bet.amount, 0);
 
                 roundTotalWagered += totalBetAmount;
                 roundTotalPayout += totalWinnings;
 
-                // Update user balance once with total winnings
                 let updatedUser;
                 if (totalWinnings > 0) {
                     updatedUser = await User.findByIdAndUpdate(
@@ -336,7 +397,6 @@ class GameLoop {
                     updatedUser = await User.findById(userId);
                 }
 
-                // Broadcast updates if user exists
                 if (updatedUser) {
                     if (totalWinnings > 0) {
                         socketService.emitToUser(userId, 'balanceUpdate', { balance: updatedUser.balance });
@@ -344,7 +404,6 @@ class GameLoop {
                     }
                 }
 
-                // Calculate PROGRESSIVE balanceAfter for each bet
                 const finalBalance = updatedUser ? updatedUser.balance : 0;
                 const initialBalance = finalBalance + totalBetAmount - totalWinnings;
                 let runningBalance = initialBalance;
@@ -355,7 +414,6 @@ class GameLoop {
                     bet.balanceAfter = runningBalance;
                 }
 
-                // Use bulkWrite for efficient batch updates instead of individual saves
                 const bulkOps = userBets.map(bet => ({
                     updateOne: {
                         filter: { _id: bet._id },
@@ -373,7 +431,6 @@ class GameLoop {
                 await Bet.bulkWrite(bulkOps);
             }
 
-            // Save Game Result
             const gameResult = new GameResult({
                 roundId: this.currentRoundId,
                 roundNumber: this.roundNumber,
@@ -389,10 +446,8 @@ class GameLoop {
             });
             await gameResult.save();
 
-
             socketService.emitToRoom('admin-room', 'admin:newRound', gameResult);
 
-            // Update Global Stats
             await GameStats.findOneAndUpdate({}, {
                 $inc: {
                     totalBets: roundTotalBets,
@@ -401,17 +456,16 @@ class GameLoop {
                 }
             }, { upsert: true });
 
-            // Notify admins that stats changed (net profit updated)
             socketService.emitToRoom('admin-room', 'admin:statsUpdate');
 
+            // Persist to Redis history only after settlement is durable
+            await gameState.addHistoryEntry(this.result);
 
         } catch (err) {
-            logger.error("FULL ERROR OBJECT:", err);
             logger.error("Error processing bets:", err);
-            // Error occurred. Active bets persist in DB and will be refunded upon server restart via refundActiveBets().
         } finally {
-            // Ensure bets array is cleared even on error to prevent memory leaks
             this.bets = [];
+            await gameState.clearActiveBets();
             this.broadcastState();
             this.processing = false;
         }
@@ -422,13 +476,13 @@ class GameLoop {
         this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
         this.bets = [];
         this.result = null;
-        this.roundNumber++; // Increment round number for next round
+        this.roundNumber++;
 
         try {
             this.currentRoundId = await this.generateRoundId();
         } catch (e) {
             logger.error("Failed to generate Round ID:", e);
-            this.currentRoundId = crypto.randomUUID(); // Fallback
+            this.currentRoundId = crypto.randomUUID();
         }
 
         this.broadcastState();
@@ -442,12 +496,10 @@ class GameLoop {
 
             const { type, value, amount } = betData;
 
-            // Validation using centralized constants
             if (!amount || isNaN(amount) || amount < BET_LIMITS.MIN || !Number.isInteger(amount)) {
                 throw new Error(`Invalid bet amount (minimum is ${BET_LIMITS.MIN})`);
             }
 
-            // Validate type and value against constants
             const VALID_TYPES = ['number', 'color', 'type'];
             if (!VALID_TYPES.includes(type)) {
                 throw new Error("Invalid bet type");
@@ -467,7 +519,6 @@ class GameLoop {
                 }
             }
 
-            // Check max bet amount limit per user per round (maxBetAmount parsed once in constructor)
             const userActiveBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
             const currentTotalBet = userActiveBets.reduce((sum, b) => sum + b.amount, 0);
 
@@ -479,7 +530,6 @@ class GameLoop {
                 throw new Error(`Bet exceeds limit. You can only bet ₹${remainingAllowance} more this round (Max: ₹${this.maxBetAmount})`);
             }
 
-            // Atomic check and deduct
             const dbUser = await User.findOneAndUpdate(
                 { _id: user.id, balance: { $gte: amount } },
                 { $inc: { balance: -amount } },
@@ -490,8 +540,6 @@ class GameLoop {
                 throw new Error("Insufficient balance");
             }
 
-            // Create or Update Bet in DB (Aggregate amounts)
-            // If a bet exists for this user/round/type/value, increment the amount
             const newBet = await Bet.findOneAndUpdate(
                 {
                     user: user.id,
@@ -504,7 +552,7 @@ class GameLoop {
                     $inc: { amount: amount },
                     $setOnInsert: {
                         username: dbUser.username,
-                        user: user.id, // Ensure user field is set on insert
+                        user: user.id,
                         status: 'active',
                         roundId: this.currentRoundId,
                         type,
@@ -514,14 +562,10 @@ class GameLoop {
                 { new: true, upsert: true }
             );
 
-            // Add to memory for UI
-            // Check if bet already exists to aggregate for UI
             const existingBet = this.bets.find(b => b.userId === user.id && b.type === type && b.value === value);
 
             if (existingBet) {
                 existingBet.amount += amount;
-                // Aggregate bets in memory for UI presentation only. 
-                // DB records track individual bets for settlement.
             } else {
                 const bet = {
                     userId: user.id,
@@ -529,13 +573,23 @@ class GameLoop {
                     type,
                     value,
                     amount,
-                    _id: newBet._id // Store ID just in case
+                    _id: newBet._id
                 };
                 this.bets.push(bet);
             }
 
-            const betToEmit = existingBet || this.bets[this.bets.length - 1]; // Use the bet object from memory
+            const betToEmit = existingBet || this.bets[this.bets.length - 1];
             socketService.emitToAll('betPlaced', betToEmit);
+
+            // Persist bet to Redis
+            const redisKey = `${betToEmit.userId}:${betToEmit.type}:${betToEmit.value}`;
+            await gameState.setActiveBet(redisKey, betToEmit);
+
+            // Publish bet update to Redis
+            await pubsub.publish(pubsub.CHANNELS.BET_UPDATE, {
+                type: 'betPlaced',
+                bet: betToEmit,
+            });
 
             socketService.emitToRoom('admin-room', 'admin:userUpdate', dbUser);
             return dbUser.balance;
@@ -549,7 +603,6 @@ class GameLoop {
                     throw new Error("Cannot clear bets now");
                 }
 
-                // Find user's active bets in DB
                 const activeBets = await Bet.find({ user: user.id, status: 'active', roundId: this.currentRoundId });
                 if (activeBets.length === 0) {
                     const dbUser = await User.findById(user.id);
@@ -558,19 +611,25 @@ class GameLoop {
 
                 const totalRefund = activeBets.reduce((sum, b) => sum + b.amount, 0);
 
-                // Refund to DB
                 await User.findByIdAndUpdate(user.id, { $inc: { balance: totalRefund } });
 
-                // Mark bets as cancelled
                 await Bet.updateMany(
                     { user: user.id, status: 'active', roundId: this.currentRoundId },
                     { status: 'cancelled' }
                 );
 
-                // Remove bets from memory
                 this.bets = this.bets.filter(b => b.userId !== user.id);
 
                 socketService.emitToAll('betsCleared', user.id);
+
+                // Notify followers via pub/sub
+                await pubsub.publish(pubsub.CHANNELS.BET_UPDATE, {
+                    type: 'betsCleared',
+                    userId: user.id,
+                });
+
+                // Sync bets to Redis after clearing
+                await this.syncBetsToRedis();
 
                 const dbUser = await User.findById(user.id);
                 socketService.emitToRoom('admin-room', 'admin:userUpdate', dbUser);

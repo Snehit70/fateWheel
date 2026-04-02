@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
 const logger = require('../utils/logger');
 
 let io = null;
@@ -15,12 +16,24 @@ const init = (httpServer, corsOptions) => {
         pingTimeout: 60000
     });
 
-    // Redis Adapter logic can be moved here or kept in index.js and applied to 'io'
-    // For simplicity, we can expose a method to apply adapter if needed, 
-    // or just return 'io' and let index.js apply it.
-
     logger.info('Socket.io initialized');
     return io;
+};
+
+const applyRedisAdapter = async (pubClient, subClient) => {
+    if (!io) {
+        logger.error('Cannot apply Redis adapter: Socket.io not initialized');
+        return false;
+    }
+
+    try {
+        io.adapter(createAdapter(pubClient, subClient));
+        logger.info('Socket.io Redis adapter applied');
+        return true;
+    } catch (err) {
+        logger.error('Failed to apply Redis adapter:', err);
+        return false;
+    }
 };
 
 const getIO = () => {
@@ -44,7 +57,16 @@ const emitToAll = (event, data) => {
         const ioInstance = getIO();
         ioInstance.emit(event, data);
     } catch (error) {
-        logger.error(`Failed to emit to all:`, error);
+        logger.error('Failed to emit to all:', error);
+    }
+};
+
+const emitToLocal = (event, data) => {
+    try {
+        const ioInstance = getIO();
+        ioInstance.local.emit(event, data);
+    } catch (error) {
+        logger.error('Failed to emit locally:', error);
     }
 };
 
@@ -60,7 +82,9 @@ const emitToRoom = (room, event, data) => {
 module.exports = {
     init,
     getIO,
+    applyRedisAdapter,
     emitToUser,
     emitToAll,
+    emitToLocal,
     emitToRoom
 };
