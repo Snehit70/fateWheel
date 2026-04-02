@@ -71,13 +71,12 @@ class GameLoop {
         }
 
         try {
-            await this.refundActiveBets();
-
             // Try to load state from Redis first
             const redisState = await gameState.getGameState();
             const redisHistory = await gameState.getHistory();
 
             if (redisState && redisState.currentRoundId) {
+                // Redis restore — resume from where leader left off
                 this.state = redisState.state;
                 this.endTime = redisState.endTime;
                 this.currentRoundId = redisState.currentRoundId;
@@ -92,8 +91,26 @@ class GameLoop {
                 }
 
                 logger.info(`Loaded state from Redis: round ${this.roundNumber} (${this.state})`);
+
+                // Schedule timeouts for mid-round states
+                const now = Date.now();
+                const remainingMs = Math.max(0, this.endTime - now);
+
+                if (this.state === GAME_STATES.SPINNING) {
+                    // Spin was in progress — call processResults when remaining time expires
+                    logger.info(`Resuming SPINNING round, ${remainingMs}ms remaining`);
+                    setTimeout(() => this.processResults(), remainingMs);
+                } else if (this.state === GAME_STATES.RESULT) {
+                    // Result was showing — call reset when remaining time expires
+                    logger.info(`Resuming RESULT round, ${remainingMs}ms remaining`);
+                    setTimeout(() => this.reset(), remainingMs);
+                }
+
+                this.startLoop(false); // Don't overwrite restored endTime
             } else {
-                // Fallback: load from MongoDB
+                // MongoDB cold-start — refund any active bets from previous crash
+                await this.refundActiveBets();
+
                 const results = await GameResult.find().sort({ createdAt: -1 }).limit(HISTORY_LIMIT);
                 this.history = results.reverse().map(r => ({ number: r.number, color: r.color }));
 
@@ -106,9 +123,9 @@ class GameLoop {
                 await this.syncStateToRedis();
 
                 logger.info(`Loaded from MongoDB: round ${this.roundNumber} (ID: ${this.currentRoundId})`);
-            }
 
-            this.startLoop();
+                this.startLoop(true); // Set fresh endTime for new round
+            }
         } catch (err) {
             logger.error("Failed to initialize GameLoop:", err);
             logger.info("Retrying GameLoop initialization in 5 seconds...");
@@ -223,9 +240,11 @@ class GameLoop {
         }
     }
 
-    startLoop() {
+    startLoop(resetEndTime = true) {
         this.running = true;
-        this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
+        if (resetEndTime) {
+            this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
+        }
         this.syncStateToRedis();
 
         this.tickInterval = setInterval(() => {

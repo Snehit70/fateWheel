@@ -121,7 +121,18 @@ const startServer = async () => {
             // Apply Socket.io Redis adapter for cross-instance broadcasting
             const redisForAdapter = redisClient.getClient();
             if (redisForAdapter) {
-                adapterSubClient = createClient({ url: REDIS_URL });
+                adapterSubClient = createClient({
+                    url: REDIS_URL,
+                    socket: {
+                        reconnectStrategy: (retries) => {
+                            if (retries > 10) return new Error('Adapter sub max retries');
+                            return Math.min(retries * 100, 3000);
+                        }
+                    }
+                });
+                adapterSubClient.on('error', (err) => {
+                    logger.error('Socket.io adapter sub-client error:', err.message);
+                });
                 try {
                     await adapterSubClient.connect();
                     await socketService.applyRedisAdapter(redisForAdapter, adapterSubClient);
