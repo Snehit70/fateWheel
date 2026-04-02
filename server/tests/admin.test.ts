@@ -117,7 +117,7 @@ describe('Admin Middleware', () => {
     });
 
     it('should return 500 when req.user is null', async () => {
-      mockReq.user = undefined;
+      mockReq.user = null as unknown as MockUser;
 
       await adminMiddleware(mockReq as Request, mockRes as Response, mockNext);
 

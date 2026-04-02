@@ -20,10 +20,16 @@ type HistoryQuery = {
 type QueryWithCreatedAt = {
   user: string;
   status?: { $ne: string };
-  roundId?: { $regex: string; $options: string };
+  roundId?: string;
   createdAt?: { $gte: Date; $lte?: Date; $lt?: Date };
 };
 const MAX_HISTORY_FETCH_LIMIT = 1000;
+const ROUND_ID_PATTERN = /^[a-zA-Z0-9-]{1,64}$/;
+
+const parseIsoDate = (value: string): Date | null => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 router.get('/healthz', (_req: Request, res: Response) => {
   res.json({ status: 'running' });
@@ -40,6 +46,14 @@ router.get('/history', auth, async (req: Request<unknown, unknown, unknown, Hist
     const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit ?? '', 10) || 20));
     const { date, startDate, endDate, roundId } = req.query;
 
+    if (roundId && !ROUND_ID_PATTERN.test(roundId)) {
+      return res.status(400).json({ message: 'Invalid roundId format' });
+    }
+
+    if ((startDate && !endDate) || (!startDate && endDate)) {
+      return res.status(400).json({ message: 'startDate and endDate must be provided together' });
+    }
+
     const betQuery: QueryWithCreatedAt = {
       user: userId,
       status: { $ne: 'cancelled' },
@@ -47,15 +61,26 @@ router.get('/history', auth, async (req: Request<unknown, unknown, unknown, Hist
     const txQuery: QueryWithCreatedAt = { user: userId };
 
     if (roundId) {
-      betQuery.roundId = { $regex: roundId, $options: 'i' };
+      betQuery.roundId = roundId;
     }
 
     if (startDate && endDate) {
-      betQuery.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
-      txQuery.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      const parsedStartDate = parseIsoDate(startDate);
+      const parsedEndDate = parseIsoDate(endDate);
+
+      if (!parsedStartDate || !parsedEndDate) {
+        return res.status(400).json({ message: 'Invalid startDate or endDate' });
+      }
+
+      betQuery.createdAt = { $gte: parsedStartDate, $lte: parsedEndDate };
+      txQuery.createdAt = { $gte: parsedStartDate, $lte: parsedEndDate };
     } else if (date) {
-      const start = new Date(date);
-      const end = new Date(date);
+      const start = parseIsoDate(date);
+      if (!start) {
+        return res.status(400).json({ message: 'Invalid date' });
+      }
+
+      const end = new Date(start);
       end.setUTCDate(end.getUTCDate() + 1);
 
       betQuery.createdAt = { $gte: start, $lt: end };

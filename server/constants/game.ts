@@ -44,6 +44,10 @@ export const BET_LIMITS = {
   MAX: parsePositiveInteger(process.env.MAX_BET_AMOUNT, 1000),
 } as const;
 
+if (BET_LIMITS.MIN > BET_LIMITS.MAX) {
+  throw new Error(`Invalid bet limits: MIN_BET_AMOUNT (${BET_LIMITS.MIN}) cannot exceed MAX_BET_AMOUNT (${BET_LIMITS.MAX})`);
+}
+
 export const BET_TYPES = {
   EVEN: 'even',
   ODD: 'odd',

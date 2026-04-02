@@ -48,7 +48,7 @@ describe('GET /api/game/history Filters', () => {
     });
   });
 
-  it('should filter by roundId (partial match)', async () => {
+  it('should filter by exact roundId match', async () => {
     await Bet.create({
       user: user._id,
       username: 'testuser',
@@ -71,12 +71,22 @@ describe('GET /api/game/history Filters', () => {
       createdAt: new Date(),
     });
 
-    const res = await request(app).get('/api/game/history').query({ roundId: '1234', page: 1 });
+    const res = await request(app).get('/api/game/history').query({
+      roundId: 'some-long-uuid-matching-1234',
+      page: 1,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.data).toBeDefined();
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].roundId).toBe('some-long-uuid-matching-1234');
+  });
+
+  it('should reject invalid roundId filters', async () => {
+    const res = await request(app).get('/api/game/history').query({ roundId: 'round.*', page: 1 });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ message: 'Invalid roundId format' });
   });
 
   it('should filter by date', async () => {
@@ -153,6 +163,29 @@ describe('GET /api/game/history Filters', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].roundId).toBe('range-match');
+  });
+
+  it('should reject invalid date filters', async () => {
+    const invalidSingleDate = await request(app).get('/api/game/history').query({ date: 'not-a-date', page: 1 });
+    expect(invalidSingleDate.status).toBe(400);
+    expect(invalidSingleDate.body).toEqual({ message: 'Invalid date' });
+
+    const invalidDateRange = await request(app).get('/api/game/history').query({
+      startDate: '2025-01-01T00:00:00.000Z',
+      endDate: 'bad-date',
+      page: 1,
+    });
+    expect(invalidDateRange.status).toBe(400);
+    expect(invalidDateRange.body).toEqual({ message: 'Invalid startDate or endDate' });
+
+    const incompleteDateRange = await request(app).get('/api/game/history').query({
+      startDate: '2025-01-01T00:00:00.000Z',
+      page: 1,
+    });
+    expect(incompleteDateRange.status).toBe(400);
+    expect(incompleteDateRange.body).toEqual({
+      message: 'startDate and endDate must be provided together',
+    });
   });
 
   it('should filter correctly using strict ISO boundaries', async () => {
