@@ -180,6 +180,11 @@ const startServer = async () => {
 
                     socketService.emitToAll('betPlaced', data.bet);
                 }
+
+                if (data.type === 'betsCleared' && data.userId) {
+                    gameLoop.bets = gameLoop.bets.filter(b => b.userId !== data.userId);
+                    socketService.emitToAll('betsCleared', data.userId);
+                }
             });
         }
     } else {

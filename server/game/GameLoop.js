@@ -33,6 +33,7 @@ class GameLoop {
         this.processing = false;
         this.running = false;
         this.tickInterval = null;
+        this.phaseTimer = null;
 
         this.maxBetAmount = BET_LIMITS.MAX;
 
@@ -99,11 +100,11 @@ class GameLoop {
                 if (this.state === GAME_STATES.SPINNING) {
                     // Spin was in progress — call processResults when remaining time expires
                     logger.info(`Resuming SPINNING round, ${remainingMs}ms remaining`);
-                    setTimeout(() => this.processResults(), remainingMs);
+                    this.phaseTimer = setTimeout(() => this.processResults(), remainingMs);
                 } else if (this.state === GAME_STATES.RESULT) {
                     // Result was showing — call reset when remaining time expires
                     logger.info(`Resuming RESULT round, ${remainingMs}ms remaining`);
-                    setTimeout(() => this.reset(), remainingMs);
+                    this.phaseTimer = setTimeout(() => this.reset(), remainingMs);
                 }
 
                 this.startLoop(false); // Don't overwrite restored endTime
@@ -144,11 +145,7 @@ class GameLoop {
     }
 
     async syncBetsToRedis() {
-        await gameState.clearActiveBets();
-        for (const bet of this.bets) {
-            const key = `${bet.userId}:${bet.type}:${bet.value}`;
-            await gameState.setActiveBet(key, bet);
-        }
+        await gameState.replaceActiveBets(this.bets);
     }
 
     async publishStateChange() {
@@ -257,6 +254,10 @@ class GameLoop {
             clearInterval(this.tickInterval);
             this.tickInterval = null;
         }
+        if (this.phaseTimer) {
+            clearTimeout(this.phaseTimer);
+            this.phaseTimer = null;
+        }
         this.running = false;
         logger.info('GameLoop stopped');
     }
@@ -319,7 +320,7 @@ class GameLoop {
             endTime: this.endTime
         });
 
-        setTimeout(() => {
+        this.phaseTimer = setTimeout(() => {
             this.processResults();
         }, TIMING.SPIN_DURATION * 1000);
     }
@@ -331,8 +332,6 @@ class GameLoop {
 
             this.history.unshift(this.result);
             if (this.history.length > HISTORY_LIMIT) this.history.pop();
-
-            await gameState.addHistoryEntry(this.result);
 
             const activeBets = await Bet.find({ status: 'active', roundId: this.currentRoundId });
 
@@ -456,6 +455,9 @@ class GameLoop {
             }, { upsert: true });
 
             socketService.emitToRoom('admin-room', 'admin:statsUpdate');
+
+            // Persist to Redis history only after settlement is durable
+            await gameState.addHistoryEntry(this.result);
 
         } catch (err) {
             logger.error("Error processing bets:", err);
@@ -617,6 +619,12 @@ class GameLoop {
                 this.bets = this.bets.filter(b => b.userId !== user.id);
 
                 socketService.emitToAll('betsCleared', user.id);
+
+                // Notify followers via pub/sub
+                await pubsub.publish(pubsub.CHANNELS.BET_UPDATE, {
+                    type: 'betsCleared',
+                    userId: user.id,
+                });
 
                 // Sync bets to Redis after clearing
                 await this.syncBetsToRedis();

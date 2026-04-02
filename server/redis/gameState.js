@@ -4,6 +4,7 @@ const logger = require('../utils/logger');
 const KEYS = {
     STATE: 'game:state',
     BETS: 'game:bets:current',
+    BETS_TMP: 'game:bets:tmp',
     HISTORY: 'game:history',
 };
 
@@ -102,6 +103,28 @@ const clearActiveBets = async () => {
     }
 };
 
+const replaceActiveBets = async (bets) => {
+    const r = getRedis();
+    if (!r) return false;
+
+    try {
+        // Write all bets to temp key, then atomically swap
+        await r.del(KEYS.BETS_TMP);
+        for (const bet of bets) {
+            const key = `${bet.userId}:${bet.type}:${bet.value}`;
+            await r.hSet(KEYS.BETS_TMP, key, JSON.stringify(bet));
+        }
+        await r.expire(KEYS.BETS_TMP, STATE_TTL);
+        // Atomic swap: RENAME overwrites live key in one operation
+        await r.rename(KEYS.BETS_TMP, KEYS.BETS);
+        await r.expire(KEYS.BETS, STATE_TTL);
+        return true;
+    } catch (err) {
+        logger.error('Redis replaceActiveBets error:', err);
+        return false;
+    }
+};
+
 const getHistory = async () => {
     const r = getRedis();
     if (!r) return [];
@@ -131,6 +154,6 @@ const addHistoryEntry = async (entry) => {
 
 module.exports = {
     getGameState, setGameState,
-    getActiveBets, setActiveBet, clearActiveBets,
+    getActiveBets, setActiveBet, clearActiveBets, replaceActiveBets,
     getHistory, addHistoryEntry,
 };
