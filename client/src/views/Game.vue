@@ -53,9 +53,8 @@
                         :is-spinning="isSpinning || isLocking || status === 'RESULT'"
                         :total-bet="totalBetAmount"
                         v-model:amount="currentBetAmount"
-                        @clear-input="currentBetAmount = 0"
-                        @clear-bets="clearBets"
-                        @spin="spin"
+                         @clear-input="currentBetAmount = 0"
+                         @clear-bets="clearBets"
                     />
                 </Card>
             </div>
@@ -116,9 +115,6 @@ const spinHistory = computed(() => gameStore.spinHistory);
 const status = computed(() => gameStore.status);
 const timeLeft = computed(() => gameStore.timeLeft);
 const isInitialLoading = computed(() => gameStore.isInitialLoading);
-
-// Spin method is handled by server/socket events
-const spin = () => {};
 </script>
 
 <style scoped>

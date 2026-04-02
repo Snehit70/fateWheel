@@ -257,6 +257,7 @@ import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
 import { useGameStore } from '../stores/game';
+import socket from '../services/socket';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -472,14 +473,23 @@ const getRoundDisplayNumber = (item) => {
 
 
 
+const debouncedFetchHistory = useDebounceFn(fetchHistory, 300);
+
 onMounted(() => {
   fetchHistory();
+
+  // Refresh on non-round balance changes (admin credits, deposits, withdrawals)
+  socket.on('balanceUpdate', debouncedFetchHistory);
+});
+
+onUnmounted(() => {
+  socket.off('balanceUpdate', debouncedFetchHistory);
 });
 
 // Refetch when a round result comes in (balance likely changed)
 watch(() => gameStore.lastResult, (result) => {
     if (result) {
-        fetchHistory();
+        debouncedFetchHistory();
     }
 });
 

@@ -19,6 +19,7 @@ export function useGameLogic() {
 
     const handleSpin = async (result, spinEndTime) => {
         isAnimating.value = true;
+        gameStore.isAnimating = true;
         gameStore.lastResult = null;
 
         const now = socket.getServerTime();
@@ -53,10 +54,12 @@ export function useGameLogic() {
         while (diff < 0) diff += 360;
         rotation.value = currentRot + extraSpins + diff;
 
-        const completeAnimation = () => {
-            isAnimating.value = false;
-            gameStore.lastResult = result;
-            gameStore.status = 'RESULT';
+    const completeAnimation = () => {
+        isAnimating.value = false;
+        gameStore.isAnimating = false;
+        gameStore.isSpinning = false;
+        gameStore.lastResult = result;
+        gameStore.status = 'RESULT';
             if (safetyTimeout) {
                 clearTimeout(safetyTimeout);
                 safetyTimeout = null;
@@ -75,22 +78,24 @@ export function useGameLogic() {
 
     onMounted(() => {
         // Listen for spin results (animation-only concern)
-        socket.on('spinResult', (data) => {
+        const handleSpinResult = (data) => {
             gameStore.isSpinning = true;
             handleSpin(data.result, data.endTime).catch(err => {
                 console.error('Error in handleSpin:', err);
             });
-        });
+        };
+        socket.on('spinResult', handleSpinResult);
 
         // Handle late-join SPINNING state from gameState
-        socket.on('gameState', (data) => {
+        const handleLateJoinSpin = (data) => {
             if (data.state === 'SPINNING' && data.targetResult && !isAnimating.value) {
                 gameStore.isSpinning = true;
                 handleSpin(data.targetResult, data.endTime || socket.getServerTime() + TIMING.SPIN_DURATION * 1000).catch(err => {
                     console.error('Error in late-join spin:', err);
                 });
             }
-        });
+        };
+        socket.on('gameState', handleLateJoinSpin);
 
         // Visibility change re-sync
         const handleVisibilityChange = () => {
@@ -100,14 +105,22 @@ export function useGameLogic() {
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         socket._visibilityHandler = handleVisibilityChange;
+        socket._spinResultHandler = handleSpinResult;
+        socket._lateJoinHandler = handleLateJoinSpin;
 
         // Set up game store socket listeners
         gameStore.setupSocketListeners();
     });
 
     onUnmounted(() => {
-        socket.off('spinResult');
-        // gameState listener for late-join is cleaned up by gameStore
+        if (socket._spinResultHandler) {
+            socket.off('spinResult', socket._spinResultHandler);
+            socket._spinResultHandler = null;
+        }
+        if (socket._lateJoinHandler) {
+            socket.off('gameState', socket._lateJoinHandler);
+            socket._lateJoinHandler = null;
+        }
 
         if (socket._visibilityHandler) {
             document.removeEventListener('visibilitychange', socket._visibilityHandler);

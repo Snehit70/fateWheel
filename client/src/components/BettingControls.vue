@@ -123,7 +123,7 @@ const props = defineProps({
 
 
 
-const emit = defineEmits(['update:amount', 'clear-input', 'clear-bets', 'spin']);
+const emit = defineEmits(['update:amount', 'clear-input', 'clear-bets']);
 
 const betAmount = computed({
     get: () => props.amount,

@@ -24,8 +24,11 @@ export const useGameStore = defineStore('game', () => {
     const isInitialLoading = ref(true);
 
     // Connection status
-    const isConnected = ref(false);
+    const isConnected = ref(socket.socket?.connected ?? false);
     const isReconnecting = ref(false);
+
+    // Animation state (set by useGameLogic)
+    const isAnimating = ref(false);
 
     // Betting
     const currentBetAmount = ref(BET_LIMITS.MIN);
@@ -86,6 +89,9 @@ export const useGameStore = defineStore('game', () => {
                 countdownInterval = null;
             }
         } else if (data.state === 'RESULT') {
+            // Don't override animation state if wheel is still spinning
+            if (isAnimating.value) return;
+
             status.value = 'RESULT';
             isSpinning.value = false;
             isLocking.value = false;
@@ -137,13 +143,13 @@ export const useGameStore = defineStore('game', () => {
         socket.off('gameUpdate', handleGameUpdate);
         socket.off('betPlaced', handleBetPlaced);
         socket.off('betsCleared', handleBetsCleared);
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
 
         socket.on('gameState', handleGameState);
         socket.on('gameUpdate', handleGameUpdate);
         socket.on('betPlaced', handleBetPlaced);
         socket.on('betsCleared', handleBetsCleared);
-
-        // Connection status tracking
         socket.on('connect', onConnect);
         socket.on('disconnect', onDisconnect);
 
@@ -168,6 +174,8 @@ export const useGameStore = defineStore('game', () => {
     function onConnect() {
         isConnected.value = true;
         isReconnecting.value = false;
+        // Resync game state after reconnect
+        requestState();
     }
 
     function onDisconnect() {
@@ -223,8 +231,8 @@ export const useGameStore = defineStore('game', () => {
         const timeoutId = setTimeout(() => {
             if (!callbackFired) {
                 callbackFired = true;
-                revertOptimisticBet(type, value, betAmount);
-                toast.error('Bet failed - please try again');
+                toast.error('Bet timed out - refreshing state');
+                requestState();
             }
         }, BET_CALLBACK_TIMEOUT);
 
@@ -264,6 +272,8 @@ export const useGameStore = defineStore('game', () => {
         const timeoutId = setTimeout(() => {
             if (clearPending.value) {
                 clearPending.value = false;
+                toast.error('Clear timed out - refreshing state');
+                requestState();
             }
         }, CLEAR_PENDING_TIMEOUT);
 
@@ -308,6 +318,7 @@ export const useGameStore = defineStore('game', () => {
         spinHistory,
         isSpinning,
         isLocking,
+        isAnimating,
         isInitialLoading,
         isConnected,
         isReconnecting,
