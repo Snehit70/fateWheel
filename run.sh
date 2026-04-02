@@ -57,7 +57,13 @@ fi
 # Seed Admin User
 echo "Checking/Seeding Admin User..."
 cd server
-node seedAdmin.js
+if [ -z "$ADMIN_USERNAME" ] || [ -z "$ADMIN_PASSWORD" ]; then
+  echo "Error: ADMIN_USERNAME and ADMIN_PASSWORD must be set."
+  exit 1
+fi
+export ADMIN_USERNAME
+export ADMIN_PASSWORD
+npm run seed:admin
 if [ $? -eq 0 ]; then
   echo "Admin user check completed."
 else
@@ -163,9 +169,7 @@ echo "  GET  /api/admin/users"
 echo "  PUT  /api/admin/users/:id/balance"
 echo ""
 echo "=================================================="
-echo "Admin Credentials:"
-echo "Username: admin"
-echo "Password: adminpassword123"
+echo "Admin credentials are configured via environment."
 echo "=================================================="
 echo ""
 echo "Logs available at: $BACKEND_LOG and $FRONTEND_LOG"
