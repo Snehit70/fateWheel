@@ -9,12 +9,19 @@ export const useAuthStore = defineStore('auth', {
         token: localStorage.getItem('token') || null,
         isInitialized: false,
         isLoginModalOpen: false,
+        _reconnectHandler: null,
     }),
+    getters: {
+        userId(state) {
+            if (!state.user) return null;
+            return state.user._id || state.user.id || null;
+        },
+    },
     actions: {
         _setupSocketListeners() {
             socket.off('balanceUpdate');
             socket.off('userUpdate');
-            
+
             socket.on('balanceUpdate', (payload) => {
                 if (this.user) {
                     this.user.balance = payload.balance;
@@ -22,7 +29,7 @@ export const useAuthStore = defineStore('auth', {
             });
 
             socket.on('userUpdate', (updatedUser) => {
-                if (this.user && (this.user.id === updatedUser.id || this.user._id === updatedUser._id)) {
+                if (this.user && this.userId === (updatedUser._id || updatedUser.id)) {
                     Object.assign(this.user, updatedUser);
                 }
             });
@@ -38,24 +45,37 @@ export const useAuthStore = defineStore('auth', {
                     socket.setToken(this.token);
                     this._setupSocketListeners();
 
-                    socket.on('connect', async () => {
+                    // Remove old reconnect handler before adding a new one
+                    if (this._reconnectHandler) {
+                        socket.off('connect', this._reconnectHandler);
+                    }
+                    this._reconnectHandler = async () => {
                         if (this.token) {
                             try {
                                 const res = await api.get('/auth/me');
                                 this.user = res.data;
                             } catch (err) {
-                                console.error("Failed to refresh user on reconnect:", err);
+                                console.error('Failed to refresh user on reconnect:', err);
                             }
                         }
-                    });
+                    };
+                    socket.on('connect', this._reconnectHandler);
                 } catch (err) {
-                    console.error("Failed to fetch user:", err);
+                    console.error('Failed to fetch user:', err);
                     this.logout();
                     this.isInitialized = true;
                     router.push('/');
                 }
             } else {
                 this.isInitialized = true;
+            }
+        },
+        cleanup() {
+            socket.off('balanceUpdate');
+            socket.off('userUpdate');
+            if (this._reconnectHandler) {
+                socket.off('connect', this._reconnectHandler);
+                this._reconnectHandler = null;
             }
         },
         async login(username, password) {

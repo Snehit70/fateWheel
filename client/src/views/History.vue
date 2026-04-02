@@ -256,7 +256,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
-import socket from '../services/socket';
+import { useGameStore } from '../stores/game';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -269,6 +269,7 @@ import { useDebounceFn } from '@vueuse/core';
 
 const route = useRoute();
 const authStore = useAuthStore();
+const gameStore = useGameStore();
 const history = ref([]);
 const loading = ref(true);
 const pagination = ref({
@@ -370,23 +371,15 @@ const changePage = (newPage) => {
     fetchHistory();
 };
 
-// Return history directly (server already sorts, but we ensure order here)
-const aggregatedHistory = computed(() => {
-  const items = [...history.value];
-  // Sort by createdAt descending (newest first) for general display,
-  // but note that within a round, we want to see the progression.
-  // Actually, the server /game/history endpoint sorts by createdAt desc.
-  // And we want the default view to be newest first.
+// Calculate stats from completed bets only
+const stats = computed(() => {
+  const completedBets = history.value.filter(
+    item => !isTransaction(item) && item.status === 'completed'
+  );
 
-  // However, for the progressive balance to make sense visually in a table (top to bottom),
-  // usually we read top-down.
-  // If we show newest first (DESC), looking at a round:
-  // Row 1: 09:34:05 - Win - Balance 10100
-  // Row 2: 09:34:00 - Bet - Balance 9900
-  // This reads correctly: "Top is latest state".
-
-  // Trust server sorting for now to avoid hydration mismatches or redundant work on large sets
-  return items;
+  return {
+    totalBets: completedBets.length
+  };
 });
 
 // Filter based on active filter
@@ -423,17 +416,6 @@ const processedHistory = computed(() => {
             rowClass: isTransaction(item) ? '' : (isDark ? 'bg-white/5' : 'bg-primary/5')
         };
     });
-});
-
-// Calculate stats from completed bets only
-const stats = computed(() => {
-  const completedBets = aggregatedHistory.value.filter(
-    item => !isTransaction(item) && item.status === 'completed'
-  );
-
-  return {
-    totalBets: completedBets.length
-  };
 });
 
 
@@ -490,11 +472,16 @@ const getRoundDisplayNumber = (item) => {
 
 
 
-const handleGameState = (data) => {
-    if (data.state === 'RESULT') {
+onMounted(() => {
+  fetchHistory();
+});
+
+// Refetch when a round result comes in (balance likely changed)
+watch(() => gameStore.lastResult, (result) => {
+    if (result) {
         fetchHistory();
     }
-};
+});
 
 const formatValue = (bet) => {
     if (isTransaction(bet)) return '-';
@@ -509,16 +496,4 @@ const formatBalance = (balance) => {
   }
   return `${balance}`;
 };
-
-onMounted(() => {
-  fetchHistory();
-
-  socket.on('balanceUpdate', fetchHistory);
-  socket.on('gameState', handleGameState);
-});
-
-onUnmounted(() => {
-    socket.off('balanceUpdate', fetchHistory);
-    socket.off('gameState', handleGameState);
-});
 </script>

@@ -1,118 +1,72 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import socket from '../services/socket';
-import { useAuthStore } from '../stores/auth';
+import { useGameStore } from '../stores/game';
 import { SEGMENTS, SEGMENT_ANGLE, ANIMATION, TIMING } from '../constants/game';
-import { isClearPending } from './useBetting';
 import { useAudio } from './useAudio';
 
-const SAFETY_BUFFER_MS = 1000; // 1 second client-ahead buffer
-
 export function useGameLogic() {
-    const authStore = useAuthStore();
+    const gameStore = useGameStore();
     const { playWinSound } = useAudio();
 
-    // State
-    const bets = ref([]);
-    const isSpinning = ref(false);
-    const isLocking = ref(false);
-    const isAnimating = ref(false);
+    // Animation-only state
     const rotation = ref(0);
-    const lastResult = ref(null);
-    const winnings = ref(0);
-    const spinHistory = ref([]);
-    const status = ref('');
-    const timeLeft = ref(0);
     const transitionDuration = ref(0);
+    const isAnimating = ref(false);
 
-    let countdownInterval = null; // For the countdown timer
-    let animationFrameId = null;  // For requestAnimationFrame spin animation
-    let animationTimeout = null;  // For animation completion timeout
-    let safetyTimeout = null;     // For safety recovery timeout
-    let endTime = 0;
+    let animationFrameId = null;
+    let animationTimeout = null;
+    let safetyTimeout = null;
 
     const handleSpin = async (result, spinEndTime) => {
-        isSpinning.value = true;
         isAnimating.value = true;
-        lastResult.value = null;
-        winnings.value = 0;
+        gameStore.lastResult = null;
 
-        // Stop countdown timer when spinning starts
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
-
-        // Calculate duration based on server timestamp
         const now = socket.getServerTime();
-
         let duration = Math.max(0, spinEndTime - now);
 
         // Start continuous spinning
         transitionDuration.value = 0;
-
         const animateSpin = () => {
             rotation.value += ANIMATION.ROTATION_SPEED;
             animationFrameId = requestAnimationFrame(animateSpin);
         };
         animateSpin();
 
-        // Calculate rotation to land on the result
+        // Calculate target rotation
         const resultIndex = SEGMENTS.findIndex(s => s.number === result.number);
-
-        // Stop continuous spin immediately and start the target transition
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
-        // Force reflow
         await new Promise(r => requestAnimationFrame(r));
 
-        // Ensure minimum animation duration (never 0 or negative)
-        // Also fallback if duration is NaN (serverTimeOffset not synced yet)
         if (isNaN(duration) || duration < ANIMATION.SPIN_MIN_DURATION) {
-            duration = TIMING.SPIN_DURATION * 1000; // Fallback to configured duration
+            duration = TIMING.SPIN_DURATION * 1000;
         }
-        duration = Math.min(duration, ANIMATION.SPIN_MAX_DURATION); // Cap at max
-
+        duration = Math.min(duration, ANIMATION.SPIN_MAX_DURATION);
         transitionDuration.value = duration;
 
         const randomOffset = 0.5 + (Math.random() * 0.8 - 0.4);
         const targetAngle = (resultIndex + randomOffset) * SEGMENT_ANGLE;
-
         const currentRot = rotation.value;
         const extraSpins = ANIMATION.EXTRA_SPINS * 360;
-
-        const targetRotationMod = (180 - targetAngle);
+        const targetRotationMod = 180 - targetAngle;
         const currentMod = currentRot % 360;
-
         let diff = targetRotationMod - currentMod;
         while (diff < 0) diff += 360;
+        rotation.value = currentRot + extraSpins + diff;
 
-        const finalRotation = currentRot + extraSpins + diff;
-
-        rotation.value = finalRotation;
-
-        // Primary animation completion handler
         const completeAnimation = () => {
             isAnimating.value = false;
-            lastResult.value = result;
-            isSpinning.value = false;
-            status.value = 'RESULT';
-
-            // Clear safety timeout if animation completed normally
+            gameStore.lastResult = result;
+            gameStore.status = 'RESULT';
             if (safetyTimeout) {
                 clearTimeout(safetyTimeout);
                 safetyTimeout = null;
             }
-
-            // Play winning sound
             playWinSound();
         };
 
-        // Set timeout for animation completion
         animationTimeout = setTimeout(completeAnimation, duration);
-
-        // Safety timeout: force recovery if still stuck after duration + buffer
         safetyTimeout = setTimeout(() => {
-            if (isAnimating.value || isSpinning.value) {
+            if (isAnimating.value) {
                 console.warn('Safety timeout triggered - forcing wheel recovery');
                 completeAnimation();
             }
@@ -120,163 +74,46 @@ export function useGameLogic() {
     };
 
     onMounted(() => {
-        // socket.connect() is now handled in App.vue
-
-        const handleGameUpdate = (data) => {
-            // Sync Time
-            if (data.endTime) {
-                endTime = data.endTime;
-            }
-
-            if (data.state === 'WAITING') {
-                if (status.value !== 'ROLLING IN') { // Only reset if changed to prevent jitter
-                    status.value = 'ROLLING IN';
-                    isSpinning.value = false;
-                    isLocking.value = false;
-                    isAnimating.value = false;
-                    lastResult.value = null;
-                    winnings.value = 0;
-                }
-
-                if (!countdownInterval) {
-                    countdownInterval = setInterval(() => {
-                        const now = socket.getServerTime();
-                        const serverTimeLeft = (endTime - now) / 1000;
-                        const displayTimeLeft = Math.max(0, serverTimeLeft - (SAFETY_BUFFER_MS / 1000));
-                        
-                        timeLeft.value = displayTimeLeft;
-
-                        if (displayTimeLeft <= 0 && serverTimeLeft > 0) {
-                            // Buffer zone: client shows 0, server still accepting
-                            if (!isLocking.value) {
-                                status.value = 'LOCKING BETS...';
-                                isLocking.value = true;
-                            }
-                        } else if (displayTimeLeft > 0) {
-                            isLocking.value = false;
-                            if (status.value !== 'ROLLING IN') status.value = 'ROLLING IN';
-                        }
-                    }, 100);
-                }
-
-            } else if (data.state === 'SPINNING') {
-                status.value = 'ROLLING...';
-                isSpinning.value = true;
-                isLocking.value = false;
-                if (countdownInterval) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                }
-                // Late join handling
-                if (data.targetResult && !isAnimating.value) {
-                    handleSpin(data.targetResult, endTime).catch(err => {
-                        console.error('Error in handleSpin from gameState:', err);
-                    });
-                }
-            } else if (data.state === 'RESULT') {
-                if (!isAnimating.value) {
-                    status.value = 'RESULT';
-                    isSpinning.value = false;
-                    // If we missed the spin event (late join), show result immediately
-                    if (data.result) {
-                        lastResult.value = data.result;
-                    }
-                }
-                
-                isLocking.value = false;
-
-                if (countdownInterval) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                }
-            }
-        };
-
-        socket.on('gameState', (data) => {
-            // Full Sync
-            if (isClearPending() && authStore.user?.id) {
-                const userId = authStore.user.id;
-                bets.value = data.bets.filter(b => b.userId !== userId);
-            } else {
-                bets.value = data.bets;
-            }
-            spinHistory.value = data.history;
-
-            handleGameUpdate(data);
-        });
-
-        // Light heartbeat
-        socket.on('gameUpdate', (data) => {
-            handleGameUpdate(data);
-        });
-
-        // Delta bet update
-        socket.on('betPlaced', (bet) => {
-            // If we initiated the clear, ignore incoming bets for us strictly until clear resolves
-            // But actually, betPlaced is for specific bets. If we are clearing, we shouldn't receive betPlaced for us unless we placed it.
-
-            // Deduplicate / Update
-            // Check if bet exists in our list (by userId, type, value)
-            const existingIdx = bets.value.findIndex(b => b.userId === bet.userId && b.type === bet.type && b.value === bet.value);
-
-            if (existingIdx !== -1) {
-                // Update amount - Server is authority, BUT if it's our own bet,
-                // we might have a newer local optimistic value.
-                // To prevent UI jitter (jumping back then forward), we take the max.
-                if (authStore.user?.id === bet.userId) {
-                    bets.value[existingIdx].amount = Math.max(bets.value[existingIdx].amount, bet.amount);
-                } else {
-                    bets.value[existingIdx].amount = bet.amount;
-                }
-            } else {
-                bets.value.push(bet);
-            }
-        });
-
-        // Clear bets update
-        socket.on('betsCleared', (userId) => {
-            bets.value = bets.value.filter(b => b.userId !== userId);
-        });
-
+        // Listen for spin results (animation-only concern)
         socket.on('spinResult', (data) => {
+            gameStore.isSpinning = true;
             handleSpin(data.result, data.endTime).catch(err => {
-                console.error('Error in handleSpin from spinResult:', err);
+                console.error('Error in handleSpin:', err);
             });
         });
 
-        // Re-sync state when user returns to tab (prevents animation catch-up issues)
+        // Handle late-join SPINNING state from gameState
+        socket.on('gameState', (data) => {
+            if (data.state === 'SPINNING' && data.targetResult && !isAnimating.value) {
+                gameStore.isSpinning = true;
+                handleSpin(data.targetResult, data.endTime || socket.getServerTime() + TIMING.SPIN_DURATION * 1000).catch(err => {
+                    console.error('Error in late-join spin:', err);
+                });
+            }
+        });
+
+        // Visibility change re-sync
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                // Request fresh state from server
-                socket.emit('requestState');
+                gameStore.requestState();
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        // Store cleanup function reference
         socket._visibilityHandler = handleVisibilityChange;
 
-        // Request current game state immediately on mount to restore history after navigation
-        socket.emit('requestState');
+        // Set up game store socket listeners
+        gameStore.setupSocketListeners();
     });
 
     onUnmounted(() => {
-        // Remove socket listeners
-        socket.off('gameState');
         socket.off('spinResult');
+        // gameState listener for late-join is cleaned up by gameStore
 
-        // Remove visibility change listener
         if (socket._visibilityHandler) {
             document.removeEventListener('visibilitychange', socket._visibilityHandler);
             socket._visibilityHandler = null;
         }
 
-        // socket.disconnect() is handled in App.vue to keep connection alive across views
-
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
@@ -292,15 +129,8 @@ export function useGameLogic() {
     });
 
     return {
-        bets,
-        isSpinning,
-        isLocking,
         rotation,
-        lastResult,
-        winnings,
-        spinHistory,
-        status,
-        timeLeft,
-        transitionDuration
+        transitionDuration,
+        isAnimating,
     };
 }

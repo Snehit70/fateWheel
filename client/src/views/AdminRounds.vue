@@ -185,6 +185,7 @@ import api from '../services/api';
 import socket from '../services/socket';
 import PaginationControls from '@/components/ui/PaginationControls.vue';
 import { getResultColor, getValueColor } from '../utils/game';
+import { formatDate } from '../utils/formatters';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -257,16 +258,6 @@ const toggleExpand = async (roundId) => {
     console.error('Failed to fetch round details:', err);
     expandedBets.value = [];
   }
-};
-
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 const getDailyRoundNumber = (roundId) => {
