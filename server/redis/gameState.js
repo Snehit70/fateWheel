@@ -25,11 +25,16 @@ const getGameState = async () => {
         const state = await r.hGetAll(KEYS.STATE);
         if (!state || Object.keys(state).length === 0) return null;
 
+        const endTime = Number.parseInt(state.endTime, 10);
+        const roundNumber = Number.parseInt(state.roundNumber, 10);
+        if (!state.state || !state.currentRoundId || Number.isNaN(endTime) || Number.isNaN(roundNumber)) {
+            return null;
+        }
         return {
             state: state.state,
-            endTime: parseInt(state.endTime, 10) || 0,
-            currentRoundId: state.currentRoundId || null,
-            roundNumber: parseInt(state.roundNumber, 10) || 0,
+            endTime,
+            currentRoundId: state.currentRoundId,
+            roundNumber,
             result: state.result ? JSON.parse(state.result) : null,
         };
     } catch (err) {
@@ -50,9 +55,10 @@ const setGameState = async (state) => {
             roundNumber: String(state.roundNumber),
             result: state.result ? JSON.stringify(state.result) : '',
         };
-        await r.hSet(KEYS.STATE, data);
-        // Refresh TTL on every write so stale state expires after crash
-        await r.expire(KEYS.STATE, STATE_TTL);
+        await r.multi()
+            .hSet(KEYS.STATE, data)
+            .expire(KEYS.STATE, STATE_TTL)
+            .exec();
         return true;
     } catch (err) {
         logger.error('Redis setGameState error:', err);
@@ -80,9 +86,10 @@ const setActiveBet = async (betKey, bet) => {
     if (!r) return false;
 
     try {
-        await r.hSet(KEYS.BETS, betKey, JSON.stringify(bet));
-        // Refresh TTL on bets too
-        await r.expire(KEYS.BETS, STATE_TTL);
+        await r.multi()
+            .hSet(KEYS.BETS, betKey, JSON.stringify(bet))
+            .expire(KEYS.BETS, STATE_TTL)
+            .exec();
         return true;
     } catch (err) {
         logger.error('Redis setActiveBet error:', err);
@@ -108,16 +115,22 @@ const replaceActiveBets = async (bets) => {
     if (!r) return false;
 
     try {
+        // Empty bets: just delete the live key
+        if (!Array.isArray(bets) || bets.length === 0) {
+            await r.del(KEYS.BETS);
+            return true;
+        }
         // Write all bets to temp key, then atomically swap
         await r.del(KEYS.BETS_TMP);
         for (const bet of bets) {
             const key = `${bet.userId}:${bet.type}:${bet.value}`;
             await r.hSet(KEYS.BETS_TMP, key, JSON.stringify(bet));
         }
-        await r.expire(KEYS.BETS_TMP, STATE_TTL);
-        // Atomic swap: RENAME overwrites live key in one operation
-        await r.rename(KEYS.BETS_TMP, KEYS.BETS);
-        await r.expire(KEYS.BETS, STATE_TTL);
+        // Atomic swap: rename + expire in one transaction
+        await r.multi()
+            .rename(KEYS.BETS_TMP, KEYS.BETS)
+            .expire(KEYS.BETS, STATE_TTL)
+            .exec();
         return true;
     } catch (err) {
         logger.error('Redis replaceActiveBets error:', err);

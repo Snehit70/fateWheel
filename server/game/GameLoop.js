@@ -152,6 +152,7 @@ class GameLoop {
         await pubsub.publish(pubsub.CHANNELS.STATE_CHANGE, {
             state: this.state,
             endTime: this.endTime,
+            currentRoundId: this.currentRoundId,
             result: this.state === GAME_STATES.RESULT ? this.result : null,
             targetResult: this.state === GAME_STATES.SPINNING ? this.result : null,
             bets: this.bets,
@@ -314,6 +315,7 @@ class GameLoop {
         this.result = SEGMENTS[resultIndex];
 
         this.syncStateToRedis();
+        this.publishStateChange();
 
         socketService.emitToAll('spinResult', {
             result: this.result,

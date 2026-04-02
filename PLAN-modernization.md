@@ -1,6 +1,6 @@
 # FateWheel Modernization Plan
 
-> Saved locally for reference across sessions. Not tracked in git.
+> Reference document for the FateWheel modernization roadmap.
 
 ## Current State (Jan 2026)
 

@@ -61,6 +61,15 @@ const emitToAll = (event, data) => {
     }
 };
 
+const emitToLocal = (event, data) => {
+    try {
+        const ioInstance = getIO();
+        ioInstance.local.emit(event, data);
+    } catch (error) {
+        logger.error('Failed to emit locally:', error);
+    }
+};
+
 const emitToRoom = (room, event, data) => {
     try {
         const ioInstance = getIO();
@@ -76,5 +85,6 @@ module.exports = {
     applyRedisAdapter,
     emitToUser,
     emitToAll,
+    emitToLocal,
     emitToRoom
 };

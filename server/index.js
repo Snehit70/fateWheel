@@ -150,11 +150,13 @@ const startServer = async () => {
 
                 if (data.state) gameLoop.state = data.state;
                 if (data.endTime) gameLoop.endTime = data.endTime;
+                if (data.currentRoundId) gameLoop.currentRoundId = data.currentRoundId;
                 if (data.bets) gameLoop.bets = data.bets;
                 if (data.history) gameLoop.history = data.history;
                 if (data.result !== undefined) gameLoop.result = data.result;
 
-                socketService.emitToAll('gameState', {
+                // Use local emit to avoid re-broadcasting through Redis adapter
+                socketService.emitToLocal('gameState', {
                     state: data.state,
                     endTime: data.endTime,
                     bets: data.bets || [],
@@ -178,12 +180,13 @@ const startServer = async () => {
                         gameLoop.bets.push(data.bet);
                     }
 
-                    socketService.emitToAll('betPlaced', data.bet);
+                    // Use local emit to avoid re-broadcasting through Redis adapter
+                    socketService.emitToLocal('betPlaced', data.bet);
                 }
 
                 if (data.type === 'betsCleared' && data.userId) {
                     gameLoop.bets = gameLoop.bets.filter(b => b.userId !== data.userId);
-                    socketService.emitToAll('betsCleared', data.userId);
+                    socketService.emitToLocal('betsCleared', data.userId);
                 }
             });
         }
