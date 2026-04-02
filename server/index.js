@@ -109,6 +109,7 @@ const PORT = process.env.PORT || 3000;
 const gameLoop = new GameLoop();
 
 const LEADER_PROMOTION_INTERVAL = 10000; // Try to acquire leadership every 10s
+let adapterSubClient = null; // For cleanup during shutdown
 
 // Initialize Redis, then leader election, then start game loop
 const startServer = async () => {
@@ -120,10 +121,10 @@ const startServer = async () => {
             // Apply Socket.io Redis adapter for cross-instance broadcasting
             const redisForAdapter = redisClient.getClient();
             if (redisForAdapter) {
-                const adapterSub = createClient({ url: REDIS_URL });
+                adapterSubClient = createClient({ url: REDIS_URL });
                 try {
-                    await adapterSub.connect();
-                    await socketService.applyRedisAdapter(redisForAdapter, adapterSub);
+                    await adapterSubClient.connect();
+                    await socketService.applyRedisAdapter(redisForAdapter, adapterSubClient);
                 } catch (err) {
                     logger.warn('Socket.io Redis adapter failed:', err.message);
                 }
@@ -132,16 +133,16 @@ const startServer = async () => {
             // Initialize pub/sub for game state broadcasting
             await pubsub.init();
 
-            // Subscribe to state changes — update local state and relay to sockets
+            // Subscribe to state changes — only followers apply remote state
             await pubsub.subscribe(pubsub.CHANNELS.STATE_CHANGE, (data) => {
-                // Update local gameLoop state so followers can serve requestState
+                if (leader.isLeader()) return; // Leader owns state directly, skip self-messages
+
                 if (data.state) gameLoop.state = data.state;
                 if (data.endTime) gameLoop.endTime = data.endTime;
                 if (data.bets) gameLoop.bets = data.bets;
                 if (data.history) gameLoop.history = data.history;
                 if (data.result !== undefined) gameLoop.result = data.result;
 
-                // Relay to local sockets
                 socketService.emitToAll('gameState', {
                     state: data.state,
                     endTime: data.endTime,
@@ -152,10 +153,11 @@ const startServer = async () => {
                 });
             });
 
-            // Subscribe to bet updates — update local bets and relay to sockets
+            // Subscribe to bet updates — only followers apply remote bets
             await pubsub.subscribe(pubsub.CHANNELS.BET_UPDATE, (data) => {
+                if (leader.isLeader()) return; // Leader handles bets directly
+
                 if (data.type === 'betPlaced' && data.bet) {
-                    // Update local bets for follower state
                     const existingBet = gameLoop.bets.find(
                         b => b.userId === data.bet.userId && b.type === data.bet.type && b.value === data.bet.value
                     );
@@ -174,8 +176,8 @@ const startServer = async () => {
     }
 
     // Step 2: Acquire leader lock and start game loop if leader
-    const isLeader = await leader.acquire();
-    if (isLeader) {
+    const acquired = await leader.acquire();
+    if (acquired) {
         leader.startRenewal();
         logger.info('This instance is the LEADER - starting game loop');
         await gameLoop.init();
@@ -184,13 +186,17 @@ const startServer = async () => {
 
         // Start promotion loop: periodically try to become leader if current leader dies
         setInterval(async () => {
-            if (!leader.isLeader()) {
-                const acquired = await leader.acquire();
-                if (acquired) {
-                    leader.startRenewal();
-                    logger.info('Promoted to LEADER - starting game loop');
-                    await gameLoop.init();
+            try {
+                if (!leader.isLeader()) {
+                    const promoted = await leader.acquire();
+                    if (promoted) {
+                        leader.startRenewal();
+                        logger.info('Promoted to LEADER - starting game loop');
+                        await gameLoop.init();
+                    }
                 }
+            } catch (err) {
+                logger.error('Error in promotion loop:', err);
             }
         }, LEADER_PROMOTION_INTERVAL);
     }
@@ -353,6 +359,9 @@ const gracefulShutdown = async (signal) => {
 
     // Disconnect Redis
     try {
+        if (adapterSubClient) {
+            await adapterSubClient.quit();
+        }
         await pubsub.disconnect();
         await redisClient.disconnect();
         logger.info('Redis connections closed');

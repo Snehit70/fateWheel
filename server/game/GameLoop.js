@@ -31,6 +31,8 @@ class GameLoop {
         this.currentRoundId = null;
         this.roundNumber = 0;
         this.processing = false;
+        this.running = false;
+        this.tickInterval = null;
 
         this.maxBetAmount = BET_LIMITS.MAX;
 
@@ -62,6 +64,12 @@ class GameLoop {
     }
 
     async init() {
+        // Idempotent: don't re-initialize if already running
+        if (this.running) {
+            logger.info('GameLoop already running, skipping init');
+            return;
+        }
+
         try {
             await this.refundActiveBets();
 
@@ -216,12 +224,22 @@ class GameLoop {
     }
 
     startLoop() {
+        this.running = true;
         this.endTime = Date.now() + TIMING.WAITING_TIME * 1000;
         this.syncStateToRedis();
 
-        setInterval(() => {
+        this.tickInterval = setInterval(() => {
             this.tick();
         }, 1000);
+    }
+
+    stop() {
+        if (this.tickInterval) {
+            clearInterval(this.tickInterval);
+            this.tickInterval = null;
+        }
+        this.running = false;
+        logger.info('GameLoop stopped');
     }
 
     tick() {
