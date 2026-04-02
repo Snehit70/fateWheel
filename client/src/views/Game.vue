@@ -1,9 +1,5 @@
 <template>
   <div class="flex flex-col items-center w-full">
-    
-
-    <!-- Status Banner -->
-    <StatusBanner :status="authStore.pendingStatus" />
 
     <!-- Game Area -->
     <div class="w-full relative flex flex-col gap-1 lg:gap-2">
@@ -84,7 +80,6 @@ import RouletteWheel from "../components/RouletteWheel.vue";
 import HistoryBar from "../components/HistoryBar.vue";
 import BettingControls from "../components/BettingControls.vue";
 import BettingBoard from "../components/BettingBoard.vue";
-import StatusBanner from "../components/StatusBanner.vue";
 import { Card } from "@/components/ui/card";
 import { useGameLogic } from "../composables/useGameLogic";
 import { useBetting } from "../composables/useBetting";

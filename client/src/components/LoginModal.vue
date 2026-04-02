@@ -3,10 +3,10 @@
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle class="text-3xl font-bold text-center mb-2">
-          {{ isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Create Account') }}
+          {{ isLogin ? 'Welcome Back' : 'Create Account' }}
         </DialogTitle>
         <DialogDescription class="text-center">
-          {{ isForgotPassword ? 'Enter your username and new password' : (isLogin ? 'Sign in to continue playing' : 'Join us and start winning today') }}
+          {{ isLogin ? 'Sign in to continue playing' : 'Join us and start winning today' }}
         </DialogDescription>
       </DialogHeader>
 
@@ -22,14 +22,12 @@
         </div>
         
         <div class="space-y-2">
-          <label class="text-xs font-bold text-muted-foreground uppercase">
-            {{ isForgotPassword ? 'New Password' : 'Password' }}
-          </label>
+          <label class="text-xs font-bold text-muted-foreground uppercase">Password</label>
           <div class="relative">
             <Input 
               v-model="password" 
               :type="showPassword ? 'text' : 'password'" 
-              :placeholder="isForgotPassword ? 'Enter new password' : 'Enter your password'"
+              placeholder="Enter your password"
               required
               class="pr-10"
             />
@@ -40,28 +38,6 @@
               tabindex="-1"
             >
               <Eye v-if="!showPassword" class="h-4 w-4" />
-              <EyeOff v-else class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div v-if="isForgotPassword" class="space-y-2">
-          <label class="text-xs font-bold text-muted-foreground uppercase">Confirm Password</label>
-          <div class="relative">
-            <Input 
-              v-model="confirmPassword" 
-              :type="showConfirmPassword ? 'text' : 'password'" 
-              placeholder="Confirm new password"
-              required
-              class="pr-10"
-            />
-            <button 
-              type="button"
-              @click="showConfirmPassword = !showConfirmPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-              tabindex="-1"
-            >
-              <Eye v-if="!showConfirmPassword" class="h-4 w-4" />
               <EyeOff v-else class="h-4 w-4" />
             </button>
           </div>
@@ -87,40 +63,19 @@
         >
           <span v-if="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Processing...</span>
           <span v-else-if="isSuccess"><i class="fas fa-check mr-2"></i> Success</span>
-          <span v-else>{{ isForgotPassword ? 'Reset Password' : (isLogin ? 'Sign In' : 'Sign Up') }}</span>
+          <span v-else>{{ isLogin ? 'Sign In' : 'Sign Up' }}</span>
         </Button>
       </form>
 
-      <DialogFooter class="sm:justify-center flex-col gap-2">
-        <!-- Forgot Password Link -->
-        <div v-if="isLogin && !isForgotPassword" class="text-center w-full">
-            <button 
-              @click="switchToForgot" 
-              class="text-sm text-muted-foreground hover:text-foreground hover:underline focus:outline-none"
-            >
-              Forgot Password?
-            </button>
-        </div>
-
+      <DialogFooter class="sm:justify-center">
         <div class="text-sm text-muted-foreground text-center">
-          <span v-if="isForgotPassword">
-            Remember your password?
-            <button 
-              @click="switchToLogin" 
-              class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
-            >
-              Sign In
-            </button>
-          </span>
-          <span v-else>
-            {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
-            <button 
-              @click="toggleMode" 
-              class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
-            >
-              {{ isLogin ? 'Sign Up' : 'Sign In' }}
-            </button>
-          </span>
+          {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
+          <button 
+            @click="toggleMode" 
+            class="text-primary hover:text-primary/90 font-bold ml-1 hover:underline focus:outline-none"
+          >
+            {{ isLogin ? 'Sign Up' : 'Sign In' }}
+          </button>
         </div>
       </DialogFooter>
     </DialogContent>
@@ -130,7 +85,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import api from '../services/api';
 
 import {
   Dialog,
@@ -148,7 +102,6 @@ const authStore = useAuthStore();
 
 const isOpen = computed(() => authStore.isLoginModalOpen);
 const isLogin = ref(true);
-const isForgotPassword = ref(false);
 
 const username = ref('');
 
@@ -156,10 +109,8 @@ watch(username, (newValue) => {
   username.value = newValue.toLowerCase().trim();
 });
 const password = ref('');
-const confirmPassword = ref('');
 
 const showPassword = ref(false);
-const showConfirmPassword = ref(false);
 
 const error = ref('');
 const successMessage = ref('');
@@ -179,36 +130,17 @@ const close = () => {
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value;
-  isForgotPassword.value = false;
   error.value = '';
   successMessage.value = '';
-};
-
-const switchToForgot = () => {
-    isForgotPassword.value = true;
-    error.value = '';
-    successMessage.value = '';
-    password.value = '';
-    confirmPassword.value = '';
-};
-
-const switchToLogin = () => {
-    isForgotPassword.value = false;
-    isLogin.value = true;
-    error.value = '';
-    successMessage.value = '';
 };
 
 const resetForm = () => {
   username.value = '';
   password.value = '';
-  confirmPassword.value = '';
   showPassword.value = false;
-  showConfirmPassword.value = false;
   error.value = '';
   successMessage.value = '';
   isLogin.value = true;
-  isForgotPassword.value = false;
   isSuccess.value = false;
 };
 
@@ -218,41 +150,17 @@ const handleSubmit = async () => {
   successMessage.value = '';
   
   try {
-    if (isForgotPassword.value) {
-        // Handle Forgot Password
-        if (password.value.trim() !== confirmPassword.value.trim()) {
-            throw new Error("Passwords do not match");
-        }
-        
-        await api.post('/auth/reset-password', {
-            username: username.value, // Already trimmed by watcher
-            newPassword: password.value.trim(),
-            confirmPassword: confirmPassword.value.trim()
-        });
-        
-        isSuccess.value = true;
-        successMessage.value = "Password reset successful! Redirecting to login...";
-        
-        setTimeout(() => {
-            isSuccess.value = false;
-            switchToLogin();
-            // Pre-fill username might be nice, it's already there since we use same v-model
-            password.value = ''; // clear password
-        }, 2000);
-        
-    } else if (isLogin.value) {
-      // Login with Username
+    if (isLogin.value) {
       await authStore.login(username.value, password.value.trim());
       close();
     } else {
-      // Register with Username
       await authStore.register(username.value, password.value.trim());
       isSuccess.value = true;
-      successMessage.value = "Registration successful!";
+      successMessage.value = "Registration successful! You can now sign in.";
       
       setTimeout(() => {
         isSuccess.value = false;
-        toggleMode(); // Switch to login
+        toggleMode();
       }, 1500);
     }
   } catch (err) {

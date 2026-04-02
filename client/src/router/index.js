@@ -53,13 +53,13 @@ const router = createRouter({
 
 // Page title mapping
 const pageTitles = {
-    'Game': 'Roulette Game',
-    'History': 'Bet History | Roulette',
-    'Admin': 'Admin Panel | Roulette',
-    'AdminLogs': 'Admin Logs | Roulette',
-    'AdminRounds': 'Admin Rounds | Roulette',
-    'AdminHistory': 'Admin Withdrawal History | Roulette',
-    'NotFound': 'Page Not Found | Roulette',
+    'Game': 'FateWheel',
+    'History': 'Bet History | FateWheel',
+    'Admin': 'Admin Panel | FateWheel',
+    'AdminLogs': 'Admin Logs | FateWheel',
+    'AdminRounds': 'Admin Rounds | FateWheel',
+    'AdminHistory': 'Admin Withdrawal History | FateWheel',
+    'NotFound': 'Page Not Found | FateWheel',
 };
 
 router.beforeEach(async (to, from, next) => {
@@ -98,7 +98,7 @@ router.beforeEach(async (to, from, next) => {
 
 // Update page title after navigation
 router.afterEach((to) => {
-    const title = pageTitles[to.name] || 'Roulette';
+    const title = pageTitles[to.name] || 'FateWheel';
     document.title = title;
 });
 

@@ -8,11 +8,11 @@ const createAdmin = async () => {
     let MONGO_URL = process.env.MONGO_URL;
 
     if (!MONGO_URL) {
-      MONGO_URL = "mongodb://127.0.0.1:27017/roulette";
+      MONGO_URL = "mongodb://127.0.0.1:27017/fatewheel";
       console.warn("Usage: MONGO_URL not found, defaulting to localhost.");
     }
 
-    await mongoose.connect(MONGO_URL, { dbName: "roulette" });
+    await mongoose.connect(MONGO_URL, { dbName: "fatewheel" });
     console.log("Connected to MongoDB");
 
     const adminUsername = process.env.ADMIN_USERNAME || "admin";
@@ -26,9 +26,8 @@ const createAdmin = async () => {
     if (existingAdmin) {
       // Update existing admin
       existingAdmin.role = "admin";
-      existingAdmin.status = "approved";
       await existingAdmin.save();
-      console.log("Admin user exists. Updated role and status to ensure access.");
+      console.log("Admin user exists. Updated role to ensure access.");
     } else {
       // Create new admin
       console.log("Creating new Admin...");
@@ -40,7 +39,6 @@ const createAdmin = async () => {
         username: adminUsername,
         password: hashedPassword,
         role: "admin",
-        status: "approved",
         balance: 10000,
       });
       await admin.save();

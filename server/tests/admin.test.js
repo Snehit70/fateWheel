@@ -1,5 +1,6 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const adminMiddleware = require('../middleware/admin');
 const User = require('../models/User');
 
@@ -56,11 +57,13 @@ describe('Admin Middleware', () => {
 
     describe('Role from database (fallback path)', () => {
         it('should allow admin from DB when role not in token', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const adminUser = await User.create({
                 username: 'admin',
-                supabaseUid: 'admin-uid',
-                role: 'admin',
-                status: 'approved'
+                password: hashedPassword,
+                role: 'admin'
             });
             mockReq.user = { id: adminUser.id };
 
@@ -71,11 +74,13 @@ describe('Admin Middleware', () => {
         });
 
         it('should deny user from DB when role is user', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const regularUser = await User.create({
                 username: 'regularuser',
-                supabaseUid: 'user-uid',
-                role: 'user',
-                status: 'approved'
+                password: hashedPassword,
+                role: 'user'
             });
             mockReq.user = { id: regularUser.id };
 
