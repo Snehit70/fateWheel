@@ -49,7 +49,7 @@ router.post('/register', authLimiter, async (req, res) => {
         socketService.emitToRoom('admin-room', 'admin:newUser', user);
         socketService.emitToRoom('admin-room', 'admin:statsUpdate');
 
-        res.json({ message: 'Registration successful. Please wait for admin approval.' });
+        res.json({ message: 'Registration successful. You can now login.' });
     } catch (err) {
         logger.error('Registration failed', err, { username: req.body?.username });
         res.status(500).send('Server error');
@@ -78,13 +78,7 @@ router.post('/login', authLimiter, async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Check status
-        if (user.status === 'pending') {
-            return res.status(403).json({ message: 'Account pending approval' });
-        }
-        if (user.status === 'rejected') {
-            return res.status(403).json({ message: 'Account rejected' });
-        }
+
 
         // Create token
         const payload = {
@@ -100,7 +94,7 @@ router.post('/login', authLimiter, async (req, res) => {
             { expiresIn: '1y' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role, status: user.status } });
+                res.json({ token, user: { id: user.id, username: user.username, balance: user.balance, role: user.role } });
             }
         );
     } catch (err) {
@@ -118,8 +112,7 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
             id: user.id,
             username: user.username,
             balance: user.balance,
-            role: user.role,
-            status: user.status
+            role: user.role
         });
     } catch (err) {
         logger.error('Get user failed', err, { userId: req.user?.id });
@@ -190,56 +183,3 @@ router.put('/update-credentials', require('../middleware/auth'), async (req, res
 });
 
 module.exports = router;
-
-// Reset Password
-router.post('/reset-password', authLimiter, async (req, res) => {
-    try {
-        const { username, newPassword, confirmPassword } = req.body;
-        const normalizedUsername = username.trim();
-        const normalizedNewPassword = newPassword.trim();
-        const normalizedConfirmPassword = confirmPassword.trim();
-
-        // Check if passwords match
-        if (normalizedNewPassword !== normalizedConfirmPassword) {
-            return res.status(400).json({ message: 'Passwords do not match' });
-        }
-
-        if (!normalizedNewPassword || normalizedNewPassword.length < 8) {
-            return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-        }
-
-        // Find user (username stored as lowercase)
-        const user = await User.findOne({ username: normalizedUsername.toLowerCase() });
-        if (!user) {
-            // Keep generic to prevent enumeration, though username is known in this context usually
-            return res.status(400).json({ message: 'User not found' });
-        }
-
-        // Check permission
-        if (!user.allowPasswordReset) {
-            return res.status(403).json({ message: 'Contact admin to reset password' });
-        }
-
-        // Defense-in-depth: Approved users should use normal login, not reset
-        if (user.status === 'approved') {
-            return res.status(403).json({ message: 'Password reset not available for active accounts. Please login or contact admin.' });
-        }
-
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(normalizedNewPassword, salt);
-
-        // Update password and disable reset flag
-        user.password = hashedPassword;
-        user.allowPasswordReset = false;
-        await user.save();
-
-        // Emit update to admin panel so the toggle flips off automatically
-        socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
-
-        res.json({ message: 'Password reset successful. You can now login.' });
-    } catch (err) {
-        logger.error('Password reset failed', err, { username: req.body?.username });
-        res.status(500).send('Server error');
-    }
-});

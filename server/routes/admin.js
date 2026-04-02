@@ -88,7 +88,6 @@ router.get('/logs', auth, admin, async (req, res) => {
 router.get('/stats', auth, admin, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
-        const pendingUsers = await User.countDocuments({ status: 'pending' });
 
         // Calculate Net Profit using Bets
         // Net Profit = (Total Bets Amount - Total Payouts) - Total Admin Withdrawals
@@ -135,7 +134,6 @@ router.get('/stats', auth, admin, async (req, res) => {
 
         res.json({
             totalUsers,
-            pendingUsers,
             netProfit
         });
     } catch (err) {
@@ -249,9 +247,7 @@ router.put('/users/:id/balance', auth, admin, async (req, res) => {
                 id: user._id,
                 username: user.username,
                 balance: user.balance,
-                role: user.role,
-                status: user.status,
-                allowPasswordReset: user.allowPasswordReset
+                role: user.role
             };
             socketService.emitToUser(user._id, 'balanceUpdate', { balance: user.balance });
             socketService.emitToUser(user._id, 'userUpdate', clientUser);
@@ -312,122 +308,6 @@ router.delete('/users/:id', auth, admin, async (req, res) => {
     }
 });
 
-// @route   PUT api/admin/users/:id/status
-// @desc    Update user status
-// @access  Admin
-router.put('/users/:id/status', auth, admin, async (req, res) => {
-    try {
-        const { status } = req.body;
-
-        const updateData = { status: status };
-        if (status === 'approved') {
-            updateData.allowPasswordReset = false;
-        }
-
-        const user = await User.findByIdAndUpdate(
-            req.params.id,
-            updateData,
-            { new: true }
-        ).select('-password');
-
-        // Log Admin Action
-        const log = new AdminLog({
-            adminId: req.user.id,
-            action: status === 'approved' ? 'approve_user' : 'reject_user',
-            targetUserId: user._id,
-            targetUsername: user.username,
-            details: `Updated status to ${status}`
-        });
-        await log.save();
-
-        // Emit new log
-        const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
-
-        // Emit stats update (pending count might have changed)
-        socketService.emitToRoom('admin-room', 'admin:statsUpdate');
-
-        // Emit update to admin panel
-        socketService.emitToRoom('admin-room', 'admin:userUpdate', user);
-
-        // Emit update to user
-        const clientUser = {
-            id: user._id,
-            username: user.username,
-            balance: user.balance,
-            role: user.role,
-            status: user.status,
-            allowPasswordReset: user.allowPasswordReset
-        };
-        socketService.emitToUser(user._id, 'userUpdate', clientUser);
-
-        res.json(user);
-    } catch (err) {
-        logger.error('Failed to update user status', err, { userId: req.params.id });
-        res.status(500).send('Server Error');
-    }
-});
-
-// @route   PUT api/admin/users/:id/allow-reset
-// @desc    Toggle allowPasswordReset for user
-// @access  Admin
-router.put('/users/:id/allow-reset', auth, admin, async (req, res) => {
-    try {
-        const { allowPasswordReset } = req.body;
-
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ msg: 'User not found' });
-
-        // Only allow toggling for pending or rejected users
-        if (user.status === 'approved') {
-            return res.status(400).json({ msg: 'Cannot enable password reset for approved users' });
-        }
-
-        // Use findByIdAndUpdate to avoid validation errors on partial updates (e.g. missing password)
-        const updatedUser = await User.findByIdAndUpdate(
-            req.params.id,
-            { allowPasswordReset: allowPasswordReset },
-            { new: true }
-        );
-
-        // Update the user variable for logging
-        // We can just use the updatedUser
-        if (!updatedUser) return res.status(404).json({ msg: 'User not found' });
-
-        // Log Admin Action
-        const log = new AdminLog({
-            adminId: req.user.id,
-            action: 'toggle_reset',
-            targetUserId: updatedUser._id,
-            targetUsername: updatedUser.username,
-            details: `Set allowPasswordReset to ${allowPasswordReset}`
-        });
-        await log.save();
-
-        // Emit new log
-        const populatedLog = await AdminLog.findById(log._id).populate('adminId', 'username');
-        socketService.emitToRoom('admin-room', 'admin:newLog', populatedLog);
-
-        // Emit update to admin panel
-        socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
-
-        // Emit update to user (so they know they can reset now if they are online)
-        const clientUser = {
-            id: updatedUser._id,
-            username: updatedUser.username,
-            balance: updatedUser.balance,
-            role: updatedUser.role,
-            status: updatedUser.status,
-            allowPasswordReset: updatedUser.allowPasswordReset
-        };
-        socketService.emitToUser(updatedUser._id, 'userUpdate', clientUser);
-
-        res.json(updatedUser);
-    } catch (err) {
-        logger.error('Failed to toggle password reset', err, { userId: req.params.id });
-        res.status(500).send('Server Error');
-    }
-});
 
 const GameResult = require('../models/GameResult');
 

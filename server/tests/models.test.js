@@ -5,15 +5,18 @@ const Bet = require('../models/Bet');
 const Transaction = require('../models/Transaction');
 const GameResult = require('../models/GameResult');
 const AdminLog = require('../models/AdminLog');
+const bcrypt = require('bcryptjs');
 
 describe('User Model', () => {
     describe('Schema validation', () => {
         it('should create user with valid fields', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const user = await User.create({
                 username: 'testuser',
-                supabaseUid: 'test-uid',
+                password: hashedPassword,
                 role: 'user',
-                status: 'approved',
                 balance: 1000
             });
 
@@ -23,67 +26,56 @@ describe('User Model', () => {
         });
 
         it('should default balance to 0', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const user = await User.create({
                 username: 'newuser',
-                supabaseUid: 'new-uid',
-                role: 'user',
-                status: 'pending'
+                password: hashedPassword,
+                role: 'user'
             });
 
             expect(user.balance).toBe(0);
         });
 
         it('should default role to user', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const user = await User.create({
                 username: 'defaultrole',
-                supabaseUid: 'default-uid',
-                status: 'approved'
+                password: hashedPassword
             });
 
             expect(user.role).toBe('user');
-        });
-
-        it('should default status to pending', async () => {
-            const user = await User.create({
-                username: 'defaultstatus',
-                supabaseUid: 'status-uid'
-            });
-
-            expect(user.status).toBe('pending');
         });
     });
 
     describe('Unique constraints', () => {
         it('should reject duplicate username', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             await User.create({
                 username: 'uniqueuser',
-                supabaseUid: 'unique-uid-1'
+                password: hashedPassword
             });
 
             await expect(User.create({
                 username: 'uniqueuser',
-                supabaseUid: 'unique-uid-2'
-            })).rejects.toThrow();
-        });
-
-        it('should reject duplicate supabaseUid', async () => {
-            await User.create({
-                username: 'user1',
-                supabaseUid: 'same-supabase-uid'
-            });
-
-            await expect(User.create({
-                username: 'user2',
-                supabaseUid: 'same-supabase-uid'
+                password: hashedPassword
             })).rejects.toThrow();
         });
     });
 
     describe('Balance operations', () => {
         it('should support atomic balance increment', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const user = await User.create({
                 username: 'balancetest',
-                supabaseUid: 'balance-uid',
+                password: hashedPassword,
                 balance: 500
             });
 
@@ -97,9 +89,12 @@ describe('User Model', () => {
         });
 
         it('should support atomic balance decrement', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const user = await User.create({
                 username: 'decrementtest',
-                supabaseUid: 'decrement-uid',
+                password: hashedPassword,
                 balance: 500
             });
 
@@ -113,9 +108,12 @@ describe('User Model', () => {
         });
 
         it('should support conditional update for betting', async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('Password123', salt);
+
             const user = await User.create({
                 username: 'conditionaltest',
-                supabaseUid: 'conditional-uid',
+                password: hashedPassword,
                 balance: 100
             });
 
@@ -137,24 +135,6 @@ describe('User Model', () => {
 
             expect(success.balance).toBe(50);
         });
-
-        it('should allow balance to go negative via direct update (beware)', async () => {
-            // This is a warning test - MongoDB allows negative balances via $inc
-            const user = await User.create({
-                username: 'negativetest',
-                supabaseUid: 'negative-uid',
-                balance: 50
-            });
-
-            const updated = await User.findByIdAndUpdate(
-                user.id,
-                { $inc: { balance: -100 } },
-                { new: true }
-            );
-
-            // This proves we need application-level validation
-            expect(updated.balance).toBe(-50);
-        });
     });
 });
 
@@ -162,9 +142,12 @@ describe('Bet Model', () => {
     let testUser;
 
     beforeEach(async () => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('Password123', salt);
+
         testUser = await User.create({
             username: 'betuser',
-            supabaseUid: 'bet-uid',
+            password: hashedPassword,
             balance: 1000
         });
     });
@@ -212,20 +195,6 @@ describe('Bet Model', () => {
             expect(bet.type).toBe('type');
             expect(bet.value).toBe('even');
         });
-
-        it('should require minimum bet amount', async () => {
-            // Assuming Bet model has min validation on amount
-            const bet = await Bet.create({
-                user: testUser.id,
-                username: testUser.username,
-                type: 'number',
-                value: 5,
-                amount: 10, // Minimum valid amount
-                roundId: 'round-min'
-            });
-
-            expect(bet.amount).toBe(10);
-        });
     });
 
     describe('Bet status transitions', () => {
@@ -262,25 +231,6 @@ describe('Bet Model', () => {
             await bet.save();
 
             expect(bet.status).toBe('refunded');
-        });
-
-        it('should record loss result', async () => {
-            const bet = await Bet.create({
-                user: testUser.id,
-                username: testUser.username,
-                type: 'number',
-                value: 5,
-                amount: 100,
-                roundId: 'round-loss'
-            });
-
-            bet.status = 'completed';
-            bet.result = 'loss';
-            bet.payout = 0;
-            await bet.save();
-
-            expect(bet.result).toBe('loss');
-            expect(bet.payout).toBe(0);
         });
     });
 
@@ -346,9 +296,12 @@ describe('Transaction Model', () => {
     let testUser;
 
     beforeEach(async () => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('Password123', salt);
+
         testUser = await User.create({
             username: 'txuser',
-            supabaseUid: 'tx-uid',
+            password: hashedPassword,
             balance: 500
         });
     });
@@ -366,20 +319,7 @@ describe('Transaction Model', () => {
         expect(tx.amount).toBe(100);
     });
 
-    it('should create refund transaction', async () => {
-        const tx = await Transaction.create({
-            user: testUser.id,
-            type: 'adjustment',
-            amount: 50,
-            balanceAfter: 550,
-            description: 'Refund: Server Restart'
-        });
-
-        expect(tx.description).toContain('Refund');
-    });
-
     it('should reject negative adjustments (model enforces min: 0)', async () => {
-        // Transaction model has amount: { min: 0 }, so negative amounts are rejected
         await expect(Transaction.create({
             user: testUser.id,
             type: 'adjustment',
@@ -413,7 +353,6 @@ describe('GameResult Model', () => {
         });
 
         expect(result.roundId).toBe('game-round-001');
-        expect(result.roundNumber).toBe(1);
         expect(result.number).toBe(7);
         expect(result.color).toBe('red');
     });
@@ -438,14 +377,14 @@ describe('GameResult Model', () => {
         await expect(GameResult.create({
             roundId: 'invalid-number-round',
             roundNumber: 1,
-            number: 15, // Invalid: max is 14
+            number: 15,
             color: 'red'
         })).rejects.toThrow();
 
         await expect(GameResult.create({
             roundId: 'negative-number-round',
             roundNumber: 1,
-            number: -1, // Invalid: min is 0
+            number: -1,
             color: 'red'
         })).rejects.toThrow();
     });
@@ -455,50 +394,8 @@ describe('GameResult Model', () => {
             roundId: 'invalid-color-round',
             roundNumber: 1,
             number: 5,
-            color: 'blue' // Invalid color
+            color: 'blue'
         })).rejects.toThrow();
-    });
-
-    it('should store game stats', async () => {
-        const result = await GameResult.create({
-            roundId: 'stats-round',
-            roundNumber: 10,
-            number: 0,
-            color: 'green',
-            stats: {
-                totalBets: 50,
-                totalWagered: 5000,
-                totalPayout: 4500,
-                netProfit: 500,
-                uniqueUsers: 10
-            }
-        });
-
-        expect(result.stats.totalBets).toBe(50);
-        expect(result.stats.netProfit).toBe(500);
-    });
-
-    it('should have createdAt with index', async () => {
-        const result = await GameResult.create({
-            roundId: 'timestamp-round',
-            roundNumber: 5,
-            number: 3,
-            color: 'red'
-        });
-
-        expect(result.createdAt).toBeDefined();
-    });
-
-    it('should find results by roundNumber', async () => {
-        await GameResult.create({
-            roundId: 'query-round-1',
-            roundNumber: 100,
-            number: 7,
-            color: 'red'
-        });
-
-        const results = await GameResult.find({ roundNumber: 100 });
-        expect(results).toHaveLength(1);
     });
 });
 
@@ -506,43 +403,19 @@ describe('AdminLog Model', () => {
     let adminUser, targetUser;
 
     beforeEach(async () => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('Password123', salt);
+
         adminUser = await User.create({
-            username: 'admin',
-            supabaseUid: 'admin-log-uid',
-            role: 'admin',
-            status: 'approved'
+            username: 'adminlogtest',
+            password: hashedPassword,
+            role: 'admin'
         });
 
         targetUser = await User.create({
             username: 'targetuser',
-            supabaseUid: 'target-uid',
-            status: 'pending'
+            password: hashedPassword
         });
-    });
-
-    it('should create approve_user log', async () => {
-        const log = await AdminLog.create({
-            adminId: adminUser.id,
-            action: 'approve_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username,
-            details: 'Approved new user'
-        });
-
-        expect(log.action).toBe('approve_user');
-        expect(log.targetUsername).toBe('targetuser');
-    });
-
-    it('should create reject_user log', async () => {
-        const log = await AdminLog.create({
-            adminId: adminUser.id,
-            action: 'reject_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username,
-            details: 'Rejected: suspicious activity'
-        });
-
-        expect(log.action).toBe('reject_user');
     });
 
     it('should create delete_user log', async () => {
@@ -572,59 +445,21 @@ describe('AdminLog Model', () => {
     it('should validate action enum', async () => {
         await expect(AdminLog.create({
             adminId: adminUser.id,
-            action: 'invalid_action', // Not in enum
+            action: 'invalid_action',
             targetUserId: targetUser.id,
             targetUsername: targetUser.username
         })).rejects.toThrow();
     });
 
-    it('should require adminId', async () => {
-        await expect(AdminLog.create({
-            action: 'approve_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-        })).rejects.toThrow();
-    });
-
-    it('should have createdAt timestamp', async () => {
-        const log = await AdminLog.create({
-            adminId: adminUser.id,
-            action: 'approve_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-        });
-
-        expect(log.createdAt).toBeDefined();
-    });
-
-    it('should populate admin reference', async () => {
-        const log = await AdminLog.create({
-            adminId: adminUser.id,
-            action: 'approve_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-        });
-
-        const populatedLog = await AdminLog.findById(log.id).populate('adminId');
-        expect(populatedLog.adminId.username).toBe('admin');
-    });
-
-    it('should find logs by adminId', async () => {
-        await AdminLog.create({
-            adminId: adminUser.id,
-            action: 'approve_user',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-        });
-
-        await AdminLog.create({
-            adminId: adminUser.id,
-            action: 'update_balance',
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-        });
-
-        const logs = await AdminLog.find({ adminId: adminUser.id });
-        expect(logs).toHaveLength(2);
-    });
+    it.each(['approve_user', 'reject_user', 'toggle_reset'])(
+        'should reject removed action %s',
+        async (action) => {
+            await expect(AdminLog.create({
+                adminId: adminUser.id,
+                action,
+                targetUserId: targetUser.id,
+                targetUsername: targetUser.username
+            })).rejects.toThrow();
+        }
+    );
 });

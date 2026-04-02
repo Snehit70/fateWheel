@@ -8,9 +8,10 @@ const User = require('../models/User');
 const Bet = require('../models/Bet');
 const Transaction = require('../models/Transaction');
 
+const bcrypt = require('bcryptjs');
+
 // Mock auth middleware
 jest.mock('../middleware/auth', () => jest.fn((req, res, next) => {
-    // Default mock implementation
     req.user = { id: 'default-id' };
     next();
 }));
@@ -28,11 +29,13 @@ describe('GET /api/game/history Filters', () => {
 
     beforeEach(async () => {
         // Create test user
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('Password123', salt);
+
         user = await User.create({
             username: 'testuser',
-            supabaseUid: 'test-uid',
+            password: hashedPassword,
             role: 'user',
-            status: 'approved',
             balance: 1000
         });
 

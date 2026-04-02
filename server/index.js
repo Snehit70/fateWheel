@@ -56,7 +56,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/game', require('./routes/game'));
 app.get('/health', (req, res) => res.json({ status: "running" }))
 app.get('/', (req, res) => {
-    res.send('Roulette Server is running');
+    res.send('FateWheel Server is running');
 });
 
 // Database Connection
@@ -69,7 +69,7 @@ if (!MONGO_URL) {
         process.exit(1);
     } else {
         logger.warn('Warning: MONGO_URL not found in environment, defaulting to localhost for development.');
-        MONGO_URL = 'mongodb://127.0.0.1:27017/roulette';
+        MONGO_URL = 'mongodb://127.0.0.1:27017/fatewheel';
     }
 }
 
@@ -85,13 +85,13 @@ if (!process.env.CLIENT_URL) {
 
 if (process.env.NODE_ENV !== 'test') {
     mongoose.connect(MONGO_URL, {
-        dbName: 'roulette',
+        dbName: 'fatewheel',
         maxPoolSize: 10,
         minPoolSize: 2,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
     })
-        .then(() => logger.info('Connected to MongoDB (DB: roulette)'))
+        .then(() => logger.info('Connected to MongoDB (DB: fatewheel)'))
         .catch(err => logger.error('MongoDB connection error:', err));
 }
 
@@ -186,20 +186,12 @@ io.on('connection', async (socket) => {
         }
 
         try {
-            // Re-fetch user to ensure status is up-to-date (critical for blocking banned/rejected users)
+            // Re-fetch user to ensure they still exist
             const user = await User.findById(socket.user.id);
 
             if (!user) {
                 return callback({ error: "User not found" });
             }
-
-            if (user.status !== 'approved') {
-                return callback({ error: "Account restricted. Contact admin." });
-            }
-
-            // Update socket user with latest data just in case
-            socket.user.role = user.role;
-            socket.user.status = user.status;
 
             // Input sanitization - only extract expected fields
             const sanitizedBetData = {

@@ -18,32 +18,6 @@
             >
               Total: {{ stats.totalUsers }}
             </div>
-
-            <div
-              @click="filterPending"
-              class="px-3 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors flex items-center gap-1.5"
-              :class="[
-                stats.pendingUsers > 0
-                  ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20'
-                  : 'text-muted-foreground border-border bg-secondary hover:bg-secondary/80',
-                showPendingOnly ? 'ring-2 ring-yellow-500/50' : '',
-              ]"
-            >
-              <span>Pending: {{ stats.pendingUsers }}</span>
-              <svg
-                v-if="showPendingOnly"
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-3 w-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
           </div>
         </div>
 
@@ -117,9 +91,7 @@
             <TableHeader>
               <TableRow>
                 <TableHead>Username</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Balance</TableHead>
-                <TableHead>Reset</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>History</TableHead>
                 <TableHead>Actions</TableHead>
@@ -128,56 +100,9 @@
             <TableBody>
               <TableRow v-for="user in filteredUsers" :key="user._id">
                 <TableCell class="font-medium">{{ user.username }}</TableCell>
-                <TableCell>
-                  <Select
-                    :model-value="user.status || 'approved'"
-                    @update:model-value="(val) => updateStatus(user, val)"
-                  >
-                    <SelectTrigger
-                      class="w-[130px]"
-                      :class="getStatusColor(user.status)"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
                 <TableCell class="font-mono text-green-500 font-bold">{{
                   Math.floor(user.balance)
                 }}</TableCell>
-
-                <!-- Reset Password Toggle -->
-                <TableCell>
-                  <div
-                    v-if="user.status !== 'approved'"
-                    class="flex items-center space-x-2"
-                  >
-                    <button
-                      @click="toggleResetPermission(user)"
-                      class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                      :class="
-                        user.allowPasswordReset ? 'bg-primary' : 'bg-input'
-                      "
-                    >
-                      <span
-                        class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
-                        :class="
-                          user.allowPasswordReset
-                            ? 'translate-x-5'
-                            : 'translate-x-0.5'
-                        "
-                      />
-                    </button>
-                    <span class="text-xs text-muted-foreground">{{
-                      user.allowPasswordReset ? "On" : "Off"
-                    }}</span>
-                  </div>
-                  <div v-else class="text-xs text-muted-foreground">-</div>
-                </TableCell>
 
                 <TableCell class="text-muted-foreground">{{
                   new Date(user.createdAt).toLocaleDateString()
@@ -192,23 +117,13 @@
                   </Button>
                 </TableCell>
                 <TableCell>
-                  <div class="flex gap-2">
-                    <Button
-                      size="sm"
-                      @click="openEditBalance(user)"
-                      class="bg-orange-500 hover:bg-orange-600 text-white border-none"
-                    >
-                      Edit Balance
-                    </Button>
-                    <Button
-                      v-if="user.status && user.status !== 'approved'"
-                      size="sm"
-                      variant="destructive"
-                      @click="confirmDelete(user)"
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    @click="openEditBalance(user)"
+                    class="bg-orange-500 hover:bg-orange-600 text-white border-none"
+                  >
+                    Edit Balance
+                  </Button>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -246,52 +161,9 @@
               }}</span>
             </div>
             <div class="flex items-center gap-2 mb-3">
-              <Select
-                :model-value="user.status || 'approved'"
-                @update:model-value="(val) => updateStatus(user, val)"
-              >
-                <SelectTrigger
-                  class="w-[120px]"
-                  :class="getStatusColor(user.status)"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
               <span class="text-xs text-muted-foreground">{{
                 new Date(user.createdAt).toLocaleDateString()
               }}</span>
-            </div>
-
-            <!-- Mobile Reset Toggle -->
-            <div
-              v-if="user.status !== 'approved'"
-              class="flex items-center justify-between mb-3 p-2 bg-secondary/50 rounded"
-            >
-              <span class="text-sm font-medium">Allow Password Reset</span>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-muted-foreground">{{
-                  user.allowPasswordReset ? "Allowed" : "Denied"
-                }}</span>
-                <button
-                  @click="toggleResetPermission(user)"
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                  :class="user.allowPasswordReset ? 'bg-primary' : 'bg-input'"
-                >
-                  <span
-                    class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
-                    :class="
-                      user.allowPasswordReset
-                        ? 'translate-x-5'
-                        : 'translate-x-0.5'
-                    "
-                  />
-                </button>
-              </div>
             </div>
 
             <div class="flex gap-2 flex-wrap">
@@ -308,15 +180,6 @@
                 class="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-none"
               >
                 Edit Balance
-              </Button>
-              <Button
-                v-if="user.status && user.status !== 'approved'"
-                size="sm"
-                variant="destructive"
-                @click="confirmDelete(user)"
-                class="flex-1"
-              >
-                Delete
               </Button>
             </div>
           </div>
@@ -373,30 +236,6 @@
       </DialogContent>
     </Dialog>
 
-    <!-- Delete Confirmation Dialog -->
-    <Dialog
-      :open="!!deletingUser"
-      @update:open="(val) => !val && (deletingUser = null)"
-    >
-      <DialogContent class="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle class="text-destructive">Delete User</DialogTitle>
-        </DialogHeader>
-        <div class="py-4">
-          <p class="text-muted-foreground">
-            Are you sure you want to delete user
-            <span class="font-bold text-foreground">{{
-              deletingUser?.username
-            }}</span
-            >? This action cannot be undone.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" @click="deletingUser = null">Cancel</Button>
-          <Button variant="destructive" @click="deleteUser">Delete</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
 
     <!-- Withdraw Profit Dialog -->
     <Dialog :open="showWithdrawModal" @update:open="showWithdrawModal = $event">
@@ -464,16 +303,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "../composables/useToast";
-import { getStatusColor } from "../utils/game";
 import PaginationControls from "@/components/ui/PaginationControls.vue";
 
 const router = useRouter();
@@ -482,13 +313,10 @@ const toast = useToast();
 const users = ref([]);
 const stats = ref({
   totalUsers: 0,
-  pendingUsers: 0,
   netProfit: 0,
 });
 const searchQuery = ref("");
-const showPendingOnly = ref(false);
 const editingUser = ref(null);
-const deletingUser = ref(null);
 const newBalance = ref(0);
 const reason = ref("");
 
@@ -563,10 +391,6 @@ const changePage = (newPage) => {
 const filteredUsers = computed(() => {
   let result = users.value.filter((u) => u.role !== "admin");
 
-  if (showPendingOnly.value) {
-    result = result.filter((u) => u.status === "pending");
-  }
-
   if (searchQuery.value) {
     result = result.filter((u) =>
       u.username.toLowerCase().includes(searchQuery.value.toLowerCase()),
@@ -575,10 +399,6 @@ const filteredUsers = computed(() => {
 
   return result;
 });
-
-const filterPending = () => {
-  showPendingOnly.value = !showPendingOnly.value;
-};
 
 const openEditBalance = (user) => {
   editingUser.value = user;
@@ -617,61 +437,6 @@ const saveBalance = async () => {
   }
 };
 
-const updateStatus = async (user, status) => {
-  try {
-    const res = await api.put(`/admin/users/${user._id}/status`, { status });
-
-    // Update local state immediately
-    const index = users.value.findIndex((u) => u._id === user._id);
-    if (index !== -1) {
-      users.value[index] = res.data;
-    }
-
-    fetchStats(); // Refresh stats
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to update status");
-  }
-};
-
-const toggleResetPermission = async (user) => {
-  try {
-    const newValue = !user.allowPasswordReset;
-    const res = await api.put(`/admin/users/${user._id}/allow-reset`, {
-      allowPasswordReset: newValue,
-    });
-
-    // Optimistic update (though handled by socket usually)
-    const index = users.value.findIndex((u) => u._id === user._id);
-    if (index !== -1) {
-      users.value[index].allowPasswordReset = newValue;
-    }
-  } catch (err) {
-    console.error(err);
-    toast.error(
-      "Failed to toggle reset permission: " +
-        (err.response?.data?.msg || err.message),
-    );
-  }
-};
-
-const confirmDelete = (user) => {
-  deletingUser.value = user;
-};
-
-const deleteUser = async () => {
-  if (!deletingUser.value) return;
-
-  try {
-    await api.delete(`/admin/users/${deletingUser.value._id}`);
-    users.value = users.value.filter((u) => u._id !== deletingUser.value._id);
-    deletingUser.value = null;
-    fetchStats(); // Refresh stats
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to delete user");
-  }
-};
 
 // Admin Management Actions
 const openWithdraw = () => {
@@ -738,9 +503,6 @@ onMounted(() => {
       }
     }
   });
-  socket.on("admin:userDeleted", (userId) => {
-    users.value = users.value.filter((u) => u._id !== userId);
-  });
   socket.on("admin:statsUpdate", fetchStats);
 
   // Refresh data on reconnection
@@ -755,7 +517,6 @@ onMounted(() => {
 onUnmounted(() => {
   socket.off("admin:userUpdate", handleUserUpdate);
   socket.off("admin:newUser");
-  socket.off("admin:userDeleted");
   socket.off("admin:statsUpdate");
   socket.off("connect");
 });
