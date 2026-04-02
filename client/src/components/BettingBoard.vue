@@ -376,14 +376,6 @@ const handlePlaceBet = (type, value) => {
     emit('place-bet', type, value);
 };
 
-const shouldShowAmount = (betUser) => {
-    if (isAdmin.value) return true;
-    if (authStore.user && (authStore.user.id === betUser.userId || authStore.user._id === betUser.userId)) {
-        return true;
-    }
-    return false;
-};
-
 const {
     getBetAmount,
     getUserBetOnTarget,

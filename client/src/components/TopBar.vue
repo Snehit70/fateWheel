@@ -10,6 +10,12 @@
 
     <!-- Right: User / Auth -->
     <div class="flex items-center space-x-4">
+        <!-- Connection Status -->
+        <div 
+            class="w-2 h-2 rounded-full transition-colors duration-300"
+            :class="gameStore.isConnected ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)] animate-pulse'"
+            :title="gameStore.isConnected ? 'Connected' : 'Disconnected'"
+        ></div>
         <!-- Sound Toggle -->
         <Button
             variant="ghost"
@@ -101,6 +107,7 @@
 
 <script setup>
 import { useAuthStore } from '../stores/auth';
+import { useGameStore } from '../stores/game';
 import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { useAudio } from '../composables/useAudio';
@@ -109,6 +116,7 @@ import api from '../services/api';
 import socket from '../services/socket';
 
 const authStore = useAuthStore();
+const gameStore = useGameStore();
 const router = useRouter();
 const { toggleMute, isMuted } = useAudio();
 const netProfit = ref(0);
@@ -127,7 +135,7 @@ onMounted(() => {
     if (authStore.user?.role === 'admin') {
         fetchStats();
     }
-    
+
     socket.on('admin:statsUpdate', fetchStats);
 });
 

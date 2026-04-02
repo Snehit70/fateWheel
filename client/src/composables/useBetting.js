@@ -1,146 +1,16 @@
-import { ref, computed } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import { useToast } from './useToast';
-import socket from '../services/socket';
+import { computed } from 'vue';
+import { useGameStore } from '../stores/game';
 
-import { BET_LIMITS } from '../constants/game';
-
-const clearPending = ref(false);
-const CLEAR_PENDING_TIMEOUT = 5000;
-const BET_CALLBACK_TIMEOUT = 10000;
-
-export function useBetting(bets, isSpinning) {
-    const authStore = useAuthStore();
-    const toast = useToast();
-    const currentBetAmount = ref(BET_LIMITS.MIN);
-
-    const totalBetAmount = computed(() => {
-        const userId = authStore.user?.id;
-        if (!userId) return 0;
-        return bets.value
-            .filter(b => b.userId === userId)
-            .reduce((sum, b) => sum + b.amount, 0);
-    });
-
-    const revertOptimisticBet = (type, value, amount) => {
-        const index = bets.value.findIndex(b => b.type === type && b.value === value && b.userId === authStore.user?.id);
-        if (index !== -1) {
-            bets.value[index].amount -= amount;
-            if (bets.value[index].amount <= 0) {
-                bets.value.splice(index, 1);
-            }
-        }
-    };
-
-    const handlePlaceBet = (type, value) => {
-        if (isSpinning.value) return;
-        if (currentBetAmount.value < BET_LIMITS.MIN) {
-            toast.error(`Minimum bet is ${BET_LIMITS.MIN}`);
-            return;
-        }
-
-        const balance = authStore.user?.balance || 0;
-        if (balance < currentBetAmount.value) {
-            toast.error("Insufficient balance!");
-            return;
-        }
-
-        const MAX_BET_AMOUNT = BET_LIMITS.MAX;
-        if (totalBetAmount.value + currentBetAmount.value > MAX_BET_AMOUNT) {
-            const remainingAllowance = MAX_BET_AMOUNT - totalBetAmount.value;
-            if (remainingAllowance <= 0) {
-                toast.warning(`Maximum bet limit of ₹${MAX_BET_AMOUNT} reached for this round`);
-            } else {
-                toast.warning(`You can only bet ₹${remainingAllowance} more this round (Max: ₹${MAX_BET_AMOUNT})`);
-            }
-            return;
-        }
-
-        const existing = bets.value.find(b => b.type === type && b.value === value && b.userId === authStore.user?.id);
-        if (existing) {
-            existing.amount += currentBetAmount.value;
-        } else {
-            bets.value.push({
-                type,
-                value,
-                amount: currentBetAmount.value,
-                username: authStore.user?.username,
-                userId: authStore.user?.id
-            });
-        }
-
-        const betAmount = currentBetAmount.value;
-        let callbackFired = false;
-
-        const timeoutId = setTimeout(() => {
-            if (!callbackFired) {
-                callbackFired = true;
-                console.warn('Bet callback timeout - reverting optimistic update');
-                revertOptimisticBet(type, value, betAmount);
-                toast.error('Bet failed - please try again');
-            }
-        }, BET_CALLBACK_TIMEOUT);
-
-        socket.emit('placeBet', { type, value, amount: betAmount }, (response) => {
-            clearTimeout(timeoutId);
-
-            if (callbackFired) {
-                return;
-            }
-            callbackFired = true;
-
-            if (response.error) {
-                toast.error(response.error);
-                revertOptimisticBet(type, value, betAmount);
-            } else if (response.newBalance !== undefined) {
-                authStore.updateBalance(response.newBalance);
-            }
-        });
-    };
-
-    const clearBets = () => {
-        if (isSpinning.value) {
-            return;
-        }
-
-        const userId = authStore.user?.id;
-        if (!userId) {
-            return;
-        }
-
-        clearPending.value = true;
-
-        const timeoutId = setTimeout(() => {
-            if (clearPending.value) {
-                console.warn('clearPending timeout - resetting flag');
-                clearPending.value = false;
-            }
-        }, CLEAR_PENDING_TIMEOUT);
-
-        bets.value = bets.value.filter(b => b.userId !== userId);
-
-        socket.emit('clearBets', (response) => {
-            clearTimeout(timeoutId);
-            clearPending.value = false;
-
-            if (response.error) {
-                console.error(response.error);
-                toast.error("Bets locked for this round");
-                socket.emit('requestState');
-            } else if (response.newBalance !== undefined) {
-                authStore.updateBalance(response.newBalance);
-            }
-        });
-    };
+export function useBetting() {
+    const gameStore = useGameStore();
 
     return {
-        currentBetAmount,
-        totalBetAmount,
-        handlePlaceBet,
-        clearBets
+        currentBetAmount: computed({
+            get: () => gameStore.currentBetAmount,
+            set: (v) => { gameStore.currentBetAmount = v; }
+        }),
+        totalBetAmount: computed(() => gameStore.totalBetAmount),
+        handlePlaceBet: gameStore.handlePlaceBet,
+        clearBets: gameStore.handleClearBets,
     };
-}
-
-export function isClearPending() {
-    return clearPending.value;
 }

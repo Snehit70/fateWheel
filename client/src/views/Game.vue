@@ -1,8 +1,16 @@
 <template>
   <div class="flex flex-col items-center w-full">
 
+    <!-- Initial Loading State -->
+    <div v-if="isInitialLoading" class="flex items-center justify-center min-h-[50vh]">
+      <div class="text-center space-y-3">
+        <div class="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-muted-foreground text-sm font-mono">Connecting to game...</p>
+      </div>
+    </div>
+
     <!-- Game Area -->
-    <div class="w-full relative flex flex-col gap-1 lg:gap-2">
+    <div v-else class="w-full relative flex flex-col gap-1 lg:gap-2">
         
         <!-- Top Section: Wheel (60%) and Right Panel (40%) -->
         <div class="flex flex-col lg:flex-row gap-1 lg:gap-2 items-stretch">
@@ -45,9 +53,8 @@
                         :is-spinning="isSpinning || isLocking || status === 'RESULT'"
                         :total-bet="totalBetAmount"
                         v-model:amount="currentBetAmount"
-                        @clear-input="currentBetAmount = 0"
-                        @clear-bets="clearBets"
-                        @spin="spin"
+                         @clear-input="currentBetAmount = 0"
+                         @clear-bets="clearBets"
                     />
                 </Card>
             </div>
@@ -76,6 +83,7 @@
 <script setup>
 import { computed } from "vue";
 import { useAuthStore } from "../stores/auth";
+import { useGameStore } from "../stores/game";
 import RouletteWheel from "../components/RouletteWheel.vue";
 import HistoryBar from "../components/HistoryBar.vue";
 import BettingControls from "../components/BettingControls.vue";
@@ -85,31 +93,28 @@ import { useGameLogic } from "../composables/useGameLogic";
 import { useBetting } from "../composables/useBetting";
 
 const authStore = useAuthStore();
+const gameStore = useGameStore();
 
-// Composables
-const { 
-    bets, 
-    isSpinning,
-    isLocking, 
-    rotation, 
-    lastResult, 
-    spinHistory, 
-    status, 
-    timeLeft, 
-    transitionDuration 
-} = useGameLogic();
+// Animation-only composable
+const { rotation, transitionDuration } = useGameLogic();
 
-const { 
-    currentBetAmount, 
-    totalBetAmount, 
-    handlePlaceBet, 
-    clearBets 
-} = useBetting(bets, isSpinning);
+// Betting composable (wraps game store)
+const {
+    currentBetAmount,
+    totalBetAmount,
+    handlePlaceBet,
+    clearBets
+} = useBetting();
 
-// Spin method is handled by server/socket events in useGameLogic
-const spin = () => {
-    // Placeholder if needed for manual trigger, but currently server-driven
-};
+// Read reactive state from game store
+const bets = computed(() => gameStore.bets);
+const isSpinning = computed(() => gameStore.isSpinning);
+const isLocking = computed(() => gameStore.isLocking);
+const lastResult = computed(() => gameStore.lastResult);
+const spinHistory = computed(() => gameStore.spinHistory);
+const status = computed(() => gameStore.status);
+const timeLeft = computed(() => gameStore.timeLeft);
+const isInitialLoading = computed(() => gameStore.isInitialLoading);
 </script>
 
 <style scoped>
