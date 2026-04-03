@@ -587,33 +587,37 @@ class GameLoop {
 
       settlementSucceeded = true;
 
-      socketService.emitToRoom('admin-room', 'admin:newRound', {
-        roundId: this.currentRoundId,
-        roundNumber: this.roundNumber,
-        number: settledResult.number,
-        color: settledResult.color,
-        stats: {
-          totalBets: roundTotalBets,
-          totalWagered: roundTotalWagered,
-          totalPayout: roundTotalPayout,
-          netProfit: roundTotalWagered - roundTotalPayout,
-          uniqueUsers: roundUniqueUsers,
-        },
-      });
+      try {
+        socketService.emitToRoom('admin-room', 'admin:newRound', {
+          roundId: this.currentRoundId,
+          roundNumber: this.roundNumber,
+          number: settledResult.number,
+          color: settledResult.color,
+          stats: {
+            totalBets: roundTotalBets,
+            totalWagered: roundTotalWagered,
+            totalPayout: roundTotalPayout,
+            netProfit: roundTotalWagered - roundTotalPayout,
+            uniqueUsers: roundUniqueUsers,
+          },
+        });
 
-      const usersToRefresh = [...betsByUser.keys()];
-      for (const userId of usersToRefresh) {
-        const updatedUser = await User.findById(userId);
-        if (!updatedUser) {
-          continue;
+        const usersToRefresh = [...betsByUser.keys()];
+        for (const userId of usersToRefresh) {
+          const updatedUser = await User.findById(userId);
+          if (!updatedUser) {
+            continue;
+          }
+
+          socketService.emitToUser(userId, 'balanceUpdate', { balance: updatedUser.balance });
+          socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
         }
 
-        socketService.emitToUser(userId, 'balanceUpdate', { balance: updatedUser.balance });
-        socketService.emitToRoom('admin-room', 'admin:userUpdate', updatedUser);
+        socketService.emitToRoom('admin-room', 'admin:statsUpdate', {});
+        await gameState.addHistoryEntry(settledResult);
+      } catch (notificationError) {
+        logger.error('Post-settlement notification failed after successful settlement', notificationError);
       }
-
-      socketService.emitToRoom('admin-room', 'admin:statsUpdate', {});
-      await gameState.addHistoryEntry(settledResult);
     } catch (err) {
       this.state = previousState;
       this.endTime = previousEndTime;
@@ -621,18 +625,18 @@ class GameLoop {
       this.history = previousHistory;
       logger.error('Error processing bets', err);
     } finally {
-      if (settlementSucceeded) {
-        this.bets = [];
-        await gameState.clearActiveBets();
-        this.broadcastState();
-      } else {
-        this.stop();
-        await leader.release();
-        setTimeout(() => {
-          void this.init();
-        }, 2000);
+      try {
+        if (settlementSucceeded) {
+          this.bets = [];
+          await gameState.clearActiveBets();
+          this.broadcastState();
+        } else {
+          this.stop();
+          await leader.release();
+        }
+      } finally {
+        this.processing = false;
       }
-      this.processing = false;
     }
   }
 

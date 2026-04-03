@@ -9,7 +9,13 @@
         ></div>
 
         <!-- Modal Content -->
-        <div class="relative w-full max-w-md bg-surface border border-gold/20 rounded-lg shadow-2xl shadow-gold/5 overflow-hidden">
+        <div
+          ref="modalRef"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="titleId"
+          class="relative w-full max-w-md bg-surface border border-gold/20 rounded-lg shadow-2xl shadow-gold/5 overflow-hidden"
+        >
           <!-- Decorative top border -->
           <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent"></div>
 
@@ -22,6 +28,7 @@
           <!-- Close button -->
           <button
             @click="close"
+            aria-label="Close modal"
             class="absolute top-4 right-4 z-10 p-1.5 rounded text-muted-foreground hover:text-cream transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -32,7 +39,7 @@
           <div class="p-8">
             <!-- Header -->
             <div class="text-center mb-8">
-              <h2 class="text-2xl font-display font-semibold tracking-[0.1em] text-gold-gradient mb-2">
+              <h2 :id="titleId" class="text-2xl font-display font-semibold tracking-[0.1em] text-gold-gradient mb-2">
                 {{ isLogin ? 'Welcome Back' : 'Join Us' }}
               </h2>
               <p class="text-sm text-muted-foreground font-display tracking-wide">
@@ -44,10 +51,11 @@
             <form @submit.prevent="handleSubmit" class="space-y-5">
               <!-- Username -->
               <div class="space-y-2">
-                <label class="text-[10px] font-display font-semibold text-muted-foreground tracking-[0.2em] uppercase">
+                <label for="login-modal-username" class="text-[10px] font-display font-semibold text-muted-foreground tracking-[0.2em] uppercase">
                   Username
                 </label>
                 <input
+                  id="login-modal-username"
                   v-model="username"
                   type="text"
                   class="w-full px-4 py-3 rounded bg-background border border-gold/10 text-cream font-body placeholder:text-muted-foreground/50 focus:border-gold/40 focus:ring-1 focus:ring-gold/20 focus:outline-none transition-all duration-300"
@@ -58,11 +66,12 @@
 
               <!-- Password -->
               <div class="space-y-2">
-                <label class="text-[10px] font-display font-semibold text-muted-foreground tracking-[0.2em] uppercase">
+                <label for="login-modal-password" class="text-[10px] font-display font-semibold text-muted-foreground tracking-[0.2em] uppercase">
                   Password
                 </label>
                 <div class="relative">
                   <input
+                    id="login-modal-password"
                     v-model="password"
                     :type="showPassword ? 'text' : 'password'"
                     class="w-full px-4 py-3 pr-12 rounded bg-background border border-gold/10 text-cream font-body placeholder:text-muted-foreground/50 focus:border-gold/40 focus:ring-1 focus:ring-gold/20 focus:outline-none transition-all duration-300"
@@ -140,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -155,8 +164,77 @@ const error = ref('');
 const successMessage = ref('');
 const loading = ref(false);
 const isSuccess = ref(false);
+const modalRef = ref(null);
+const titleId = 'login-modal-title';
+let previousActiveElement = null;
+
+const getFocusableElements = () => {
+  if (!modalRef.value) {
+    return [];
+  }
+
+  return [...modalRef.value.querySelectorAll(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )].filter((element) => !element.hasAttribute('aria-hidden'));
+};
+
+const handleKeydown = (event) => {
+  if (!isOpen.value) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    close();
+    return;
+  }
+
+  if (event.key !== 'Tab') {
+    return;
+  }
+
+  const focusableElements = getFocusableElements();
+  if (focusableElements.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+  const activeElement = document.activeElement;
+
+  if (event.shiftKey) {
+    if (activeElement === firstElement || !modalRef.value?.contains(activeElement)) {
+      event.preventDefault();
+      lastElement.focus();
+    }
+    return;
+  }
+
+  if (activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+};
+
+const activateFocusManagement = async () => {
+  previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  await nextTick();
+  const focusableElements = getFocusableElements();
+  focusableElements[0]?.focus();
+  document.addEventListener('keydown', handleKeydown);
+};
+
+const deactivateFocusManagement = () => {
+  document.removeEventListener('keydown', handleKeydown);
+  if (previousActiveElement instanceof HTMLElement) {
+    previousActiveElement.focus();
+  }
+  previousActiveElement = null;
+};
 
 const close = () => {
+  deactivateFocusManagement();
   authStore.closeLoginModal();
   resetForm();
 };
@@ -209,6 +287,19 @@ const handleSubmit = async () => {
     loading.value = false;
   }
 };
+
+watch(isOpen, async (open) => {
+  if (open) {
+    await activateFocusManagement();
+    return;
+  }
+
+  deactivateFocusManagement();
+});
+
+onBeforeUnmount(() => {
+  deactivateFocusManagement();
+});
 </script>
 
 <style scoped>
