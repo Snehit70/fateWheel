@@ -98,12 +98,12 @@
               </div>
 
               <!-- Error Message -->
-              <div v-if="error" class="text-ruby text-sm text-center bg-ruby/10 py-2.5 rounded border border-ruby/20 font-display">
+              <div v-if="error" aria-live="polite" aria-atomic="true" class="text-ruby text-sm text-center bg-ruby/10 py-2.5 rounded border border-ruby/20 font-display">
                 {{ error }}
               </div>
 
               <!-- Success Message -->
-              <div v-if="successMessage" class="text-emerald text-sm text-center bg-emerald/10 py-2.5 rounded border border-emerald/20 font-display">
+              <div v-if="successMessage" aria-live="polite" aria-atomic="true" class="text-emerald text-sm text-center bg-emerald/10 py-2.5 rounded border border-emerald/20 font-display">
                 {{ successMessage }}
               </div>
 
@@ -240,8 +240,8 @@ const deactivateFocusManagement = () => {
   previousActiveElement = null;
 };
 
-const close = () => {
-  if (loading.value) {
+const close = ({ force = false } = {}) => {
+  if (loading.value && !force) {
     return;
   }
 
@@ -284,7 +284,7 @@ const handleSubmit = async () => {
         return;
       }
 
-      close();
+      close({ force: true });
     } else {
       await authStore.register(normalizedUsername, password.value);
 
