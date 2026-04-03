@@ -218,7 +218,7 @@ const handleKeydown = (event) => {
     return;
   }
 
-  if (activeElement === lastElement) {
+  if (activeElement === lastElement || !modalRef.value?.contains(activeElement)) {
     event.preventDefault();
     firstElement.focus();
   }
