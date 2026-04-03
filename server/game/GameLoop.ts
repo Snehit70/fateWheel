@@ -119,8 +119,8 @@ class GameLoop {
       return result;
     } catch (error) {
       if (isTransientTransactionError(error)) {
-        logger.warn('Mongo transactions unavailable, retrying write path without transaction');
-        return action(session);
+        logger.error('Mongo transactions unavailable for atomic game write', error);
+        throw new Error('MongoDB transactions are required for atomic game writes');
       }
       throw error;
     } finally {
@@ -245,6 +245,16 @@ class GameLoop {
       bets: this.bets,
       history: this.history,
     });
+  }
+
+  private getClientGameState() {
+    return {
+      state: this.state,
+      endTime: this.endTime,
+      bets: this.bets,
+      history: this.history,
+      result: this.state === GAME_STATES.RESULT ? this.result : null,
+    };
   }
 
   async generateRoundId(): Promise<string> {
@@ -385,21 +395,13 @@ class GameLoop {
       state: this.state,
       endTime: this.endTime,
       result: this.state === GAME_STATES.RESULT ? this.result : null,
-      targetResult: this.targetResult,
     });
 
     void this.publishStateChange();
   }
 
   broadcastState(): void {
-    socketService.emitToAll('gameState', {
-      state: this.state,
-      endTime: this.endTime,
-      bets: this.bets,
-      history: this.history,
-      result: this.state === GAME_STATES.RESULT ? this.result : null,
-      targetResult: this.targetResult,
-    });
+    socketService.emitToAll('gameState', this.getClientGameState());
 
     void this.syncStateToRedis();
     void this.publishStateChange();
@@ -625,6 +627,10 @@ class GameLoop {
         this.broadcastState();
       } else {
         this.stop();
+        await leader.release();
+        setTimeout(() => {
+          void this.init();
+        }, 2000);
       }
       this.processing = false;
     }

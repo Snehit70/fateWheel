@@ -244,7 +244,6 @@ const startServer = async (): Promise<void> => {
           bets: gameLoop.bets,
           history: gameLoop.history,
           result: gameLoop.result,
-          targetResult: gameLoop.targetResult,
         });
       });
 
@@ -362,7 +361,6 @@ io.on('connection', async (socket: GameSocket) => {
     bets: activeBets,
     history: gameLoop.history,
     result: gameLoop.result,
-    targetResult: gameLoop.targetResult,
   });
 
   socket.on('placeBet', async (betData: SanitizedBetData, callback: AckCallback) => {
@@ -465,7 +463,6 @@ io.on('connection', async (socket: GameSocket) => {
       bets: latestBets,
       history: gameLoop.history,
       result: gameLoop.result,
-      targetResult: gameLoop.targetResult,
       endTime: gameLoop.endTime,
     });
   });

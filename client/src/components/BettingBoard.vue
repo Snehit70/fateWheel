@@ -31,7 +31,8 @@
           <button
             @click="handlePlaceBet('color', COLORS.RED)"
             class="flex-1 btn-ruby rounded flex flex-col items-center justify-center relative overflow-hidden group"
-            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }"
+            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }"
+            :disabled="!isLoggedIn || isAdmin || isSpinning"
           >
             <span class="text-base font-display tracking-[0.2em]">RED</span>
             <span v-if="getUserBetOnTarget('color', 'red')" class="text-[10px] text-gold font-semibold mt-0.5">
@@ -48,7 +49,8 @@
               :key="num"
               @click="handlePlaceBet('number', num)"
               class="h-full rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-sm"
-              :class="[getNumberClass(num), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+               :class="[getNumberClass(num), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }]"
+               :disabled="!isLoggedIn || isAdmin || isSpinning"
             >
               <span class="font-medium">{{ num }}</span>
               <span v-if="getUserBetOnTarget('number', num) > 0" class="text-[8px] text-gold font-semibold">
@@ -103,7 +105,8 @@
           <button
             @click="handlePlaceBet('type', 'even')"
             class="rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-xs border"
-            :class="[getEvenOddClass('even'), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+            :class="[getEvenOddClass('even'), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }]"
+            :disabled="!isLoggedIn || isAdmin || isSpinning"
           >
             <span class="tracking-[0.15em] uppercase font-semibold">Even</span>
             <span v-if="getUserBetOnTarget('type', 'even') > 0" class="text-[9px] text-gold font-semibold">
@@ -115,7 +118,8 @@
           <button
             @click="handlePlaceBet('number', 0)"
             class="btn-emerald rounded flex flex-col items-center justify-center relative overflow-hidden group"
-            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }"
+            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }"
+            :disabled="!isLoggedIn || isAdmin || isSpinning"
           >
             <span class="text-xl font-display font-semibold">0</span>
             <span v-if="getUserBetOnTarget('number', 0) > 0" class="text-[9px] text-gold font-semibold">
@@ -128,7 +132,8 @@
           <button
             @click="handlePlaceBet('type', 'odd')"
             class="rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-xs border"
-            :class="[getEvenOddClass('odd'), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+            :class="[getEvenOddClass('odd'), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }]"
+            :disabled="!isLoggedIn || isAdmin || isSpinning"
           >
             <span class="tracking-[0.15em] uppercase font-semibold">Odd</span>
             <span v-if="getUserBetOnTarget('type', 'odd') > 0" class="text-[9px] text-gold font-semibold">
@@ -182,7 +187,8 @@
           <button
             @click="handlePlaceBet('color', COLORS.BLACK)"
             class="flex-1 btn-royal rounded flex flex-col items-center justify-center relative overflow-hidden group"
-            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }"
+            :class="{ 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }"
+            :disabled="!isLoggedIn || isAdmin || isSpinning"
           >
             <span class="text-base font-display tracking-[0.2em]">BLACK</span>
             <span v-if="getUserBetOnTarget('color', 'black')" class="text-[10px] text-gold font-semibold mt-0.5">
@@ -198,7 +204,8 @@
               :key="num"
               @click="handlePlaceBet('number', num)"
               class="h-full rounded flex flex-col items-center justify-center transition-all duration-300 font-display text-sm"
-              :class="[getNumberClass(num), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin }]"
+               :class="[getNumberClass(num), { 'opacity-60 cursor-not-allowed': !isLoggedIn || isAdmin || isSpinning }]"
+               :disabled="!isLoggedIn || isAdmin || isSpinning"
             >
               <span class="font-medium">{{ num }}</span>
               <span v-if="getUserBetOnTarget('number', num) > 0" class="text-[8px] text-gold font-semibold">
@@ -257,7 +264,8 @@ const isAdmin = computed(() => authStore.user && authStore.user.role === 'admin'
 const props = defineProps({
   bets: { type: Array, default: () => [] },
   lastResult: { type: Object, default: null },
-  isLoggedIn: { type: Boolean, default: false }
+  isLoggedIn: { type: Boolean, default: false },
+  isSpinning: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(["place-bet"]);
@@ -267,6 +275,7 @@ const handlePlaceBet = (type, value) => {
     authStore.openLoginModal();
     return;
   }
+  if (props.isSpinning) return;
   if (isAdmin.value) return;
   emit('place-bet', type, value);
 };
@@ -301,16 +310,9 @@ const getTabClass = (tab) => {
   }
   if (tab === 'black') {
     return isActive
-      ? `${base} bg-royal/30 text-cream border-purple-400/40 shadow-[0_0_15px_rgba(100,80,140,0.2)]`
+      ? `${base} bg-royal/30 text-cream border-royal/50 shadow-[0_0_15px_rgba(74,63,107,0.25)]`
       : `${base} border-transparent text-muted-foreground hover:bg-royal/10`;
   }
   return base;
 };
 </script>
-
-<style scoped>
-/* Card elegant styling is in global CSS */
-.card-elegant {
-  position: relative;
-}
-</style>

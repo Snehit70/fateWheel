@@ -85,6 +85,7 @@
           :bets="bets"
           :last-result="lastResult"
           :is-logged-in="!!authStore.user"
+          :is-spinning="isSpinning || isLocking || status === 'RESULT'"
           @place-bet="handlePlaceBet"
         />
       </div>

@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -155,10 +155,6 @@ const error = ref('');
 const successMessage = ref('');
 const loading = ref(false);
 const isSuccess = ref(false);
-
-watch(username, (newValue) => {
-  username.value = newValue.toLowerCase().trim();
-});
 
 const close = () => {
   authStore.closeLoginModal();
@@ -185,13 +181,14 @@ const handleSubmit = async () => {
   loading.value = true;
   error.value = '';
   successMessage.value = '';
+  const normalizedUsername = username.value.toLowerCase().trim();
 
   try {
     if (isLogin.value) {
-      await authStore.login(username.value, password.value.trim());
+      await authStore.login(normalizedUsername, password.value.trim());
       close();
     } else {
-      await authStore.register(username.value, password.value.trim());
+      await authStore.register(normalizedUsername, password.value.trim());
       isSuccess.value = true;
       successMessage.value = "Registration successful! You can now sign in.";
 
