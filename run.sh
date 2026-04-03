@@ -57,6 +57,21 @@ fi
 # Seed Admin User
 echo "Checking/Seeding Admin User..."
 cd server
+
+# Load .env variables, but preserve explicitly provided shell env values.
+existing_admin_username="${ADMIN_USERNAME-}"
+existing_admin_password="${ADMIN_PASSWORD-}"
+
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+ADMIN_USERNAME="${existing_admin_username:-${ADMIN_USERNAME-}}"
+ADMIN_PASSWORD="${existing_admin_password:-${ADMIN_PASSWORD-}}"
+
 if [ -z "$ADMIN_USERNAME" ] || [ -z "$ADMIN_PASSWORD" ]; then
   echo "Error: ADMIN_USERNAME and ADMIN_PASSWORD must be set."
   exit 1

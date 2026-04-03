@@ -48,6 +48,7 @@ export const getGameState = async (): Promise<GameStateSnapshot | null> => {
             currentRoundId: state.currentRoundId,
             roundNumber,
             result: state.result ? parseJson<WheelSegment>(state.result) : null,
+            targetResult: state.targetResult ? parseJson<WheelSegment>(state.targetResult) : null,
         };
     } catch (err) {
         logger.error('Redis getGameState error', err);
@@ -66,6 +67,7 @@ export const setGameState = async (state: GameStateSnapshot): Promise<boolean> =
             currentRoundId: state.currentRoundId || '',
             roundNumber: String(state.roundNumber),
             result: state.result ? JSON.stringify(state.result) : '',
+            targetResult: state.targetResult ? JSON.stringify(state.targetResult) : '',
         };
         await r.multi()
             .hSet(KEYS.STATE, data)

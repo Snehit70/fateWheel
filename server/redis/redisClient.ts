@@ -6,9 +6,16 @@ type RedisClient = ReturnType<typeof createClient>;
 let client: RedisClient | null = null;
 let isConnected = false;
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL;
+const hasConfiguredRedis = typeof REDIS_URL === 'string' && REDIS_URL.trim().length > 0;
 
 export const connect = async (): Promise<RedisClient | null> => {
+    if (!hasConfiguredRedis || !REDIS_URL) {
+        client = null;
+        isConnected = false;
+        return null;
+    }
+
     if (client && isConnected) return client;
 
     try {
@@ -41,7 +48,7 @@ export const connect = async (): Promise<RedisClient | null> => {
         logger.info('Redis connected successfully');
         return client;
     } catch (err) {
-        logger.warn('Redis connection failed, running in single-server mode', {
+        logger.warn('Redis connection failed, Redis-backed features remain disabled', {
             error: err instanceof Error ? err.message : String(err)
         });
         client = null;
@@ -53,6 +60,7 @@ export const connect = async (): Promise<RedisClient | null> => {
 export const getClient = (): RedisClient | null => client;
 
 export const isReady = (): boolean => isConnected && client !== null;
+export const isConfigured = (): boolean => hasConfiguredRedis;
 
 export const disconnect = async (): Promise<void> => {
     if (client) {

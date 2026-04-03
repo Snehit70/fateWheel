@@ -1,14 +1,14 @@
 import { EventEmitter } from 'events';
 
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 
 EventEmitter.defaultMaxListeners = 15;
 
-let mongoServer: MongoMemoryServer | null = null;
+let mongoServer: MongoMemoryReplSet | null = null;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   const uri = mongoServer.getUri();
 
   if (mongoose.connection.readyState !== 0) {

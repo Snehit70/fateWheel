@@ -1,7 +1,6 @@
 import { computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { getNumbersByColor } from '../constants/game';
-import { THEME } from '../constants/theme';
 
 export function useBettingBoard(props, emit) {
     const authStore = useAuthStore();
@@ -11,7 +10,6 @@ export function useBettingBoard(props, emit) {
         return bet ? bet.amount : 0;
     };
 
-    // Get current user's bet on a specific target (type + value)
     const getUserBetOnTarget = (type, value) => {
         const userId = authStore.userId;
         if (!userId) return 0;
@@ -46,14 +44,12 @@ export function useBettingBoard(props, emit) {
         return getBetsForColor(color).reduce((sum, b) => sum + b.amount, 0);
     };
 
-    // Count unique users who have bet in this color section
     const getUniqueUsersCountForColor = (color) => {
         const bets = getBetsForColor(color);
         const uniqueUserIds = new Set(bets.map(b => b.userId));
         return uniqueUserIds.size;
     };
 
-    // Aggregate bets by user - returns array of { userId, username, totalAmount }
     const getAggregatedBetsForColor = (color) => {
         const bets = getBetsForColor(color);
         const userMap = new Map();
@@ -85,13 +81,13 @@ export function useBettingBoard(props, emit) {
         if (!props.lastResult) return "border-border";
 
         if (props.lastResult.color === color) {
-            // Winner - return appropriate border and shadow classes based on color
+            // Winner - Art Deco gold highlight
             if (color === 'red') {
-                return `border-red-500 shadow-[0_0_40px_${THEME.colors.red.shadow}] scale-[1.02] z-10`;
+                return 'border-ruby-light shadow-[0_0_40px_rgba(196,30,42,0.4)] scale-[1.02] z-10';
             } else if (color === 'green') {
-                return `border-green-500 shadow-[0_0_40px_${THEME.colors.green.shadow}] scale-[1.02] z-10`;
+                return 'border-emerald shadow-[0_0_40px_rgba(46,139,87,0.4)] scale-[1.02] z-10';
             } else {
-                return `border-purple-500 shadow-[0_0_40px_${THEME.colors.black.shadow}] scale-[1.02] z-10`;
+                return 'border-royal/60 shadow-[0_0_40px_rgba(74,63,107,0.38)] scale-[1.02] z-10';
             }
         } else {
             // Loser
@@ -101,42 +97,49 @@ export function useBettingBoard(props, emit) {
 
     const getNumberClass = (num) => {
         if (!props.lastResult) {
-            // Default state - color based on number
-            if (num === 0) return "bg-[#00b300] hover:bg-[#009900] text-white border-[#008000]";
-            if (num >= 1 && num <= 7) return "bg-[#b91c1c] hover:bg-[#991b1b] text-white border-[#7f1d1d]";
-            if (num >= 8 && num <= 14) return "bg-[#2d1f3d] hover:bg-[#3d2a52] text-purple-200 border-[#4a3366]";
-            return "bg-secondary/50 hover:bg-secondary border-border";
+            // Default state - Art Deco jewel tones
+            if (num === 0) {
+                return "bg-gradient-to-br from-emerald to-emerald/80 hover:from-emerald hover:to-emerald/90 text-cream border-emerald/50";
+            }
+            if (num >= 1 && num <= 7) {
+                return "bg-gradient-to-br from-ruby to-ruby/80 hover:from-ruby-light hover:to-ruby text-cream border-ruby/50";
+            }
+            if (num >= 8 && num <= 14) {
+                return "bg-gradient-to-br from-royal to-royal/80 hover:from-royal/90 hover:to-[#120b1d] text-cream border-royal/50";
+            }
+            return "bg-surface/50 hover:bg-surface border-gold/10";
         }
 
         if (props.lastResult.number === num) {
-            return `bg-yellow-500 text-black border-yellow-500 shadow-[0_0_20px_${THEME.colors.gold.shadow}] scale-110 z-20`;
+            // Winner - Gold highlight
+            return 'bg-gradient-to-br from-gold to-gold-dark text-background border-gold shadow-[0_0_25px_rgba(212,175,55,0.5)] scale-110 z-20';
         } else {
             // Loser
-            return "bg-secondary/30 border-transparent opacity-40 hover:opacity-100 hover:bg-secondary/50 hover:border-border";
+            return "bg-surface/30 border-transparent opacity-40 hover:opacity-100 hover:bg-surface/50 hover:border-gold/10";
         }
     };
 
     const getEvenOddClass = (type) => {
         // Default state
-        const defaultClass = "bg-secondary/50 hover:bg-secondary hover:text-foreground hover:border-green-500";
+        const defaultClass = "bg-surface/50 border-gold/10 hover:bg-surface hover:text-cream hover:border-emerald/50";
 
         if (!props.lastResult) return defaultClass;
 
         const winningNumber = props.lastResult.number;
 
-        // Zero is neither even nor odd for betting purposes
+        // Zero is neither even nor odd
         if (winningNumber === 0) {
-            return "bg-secondary/30 border-transparent opacity-40 hover:opacity-100 hover:bg-secondary/50 hover:border-border";
+            return "bg-surface/30 border-transparent opacity-40 hover:opacity-100 hover:bg-surface/50 hover:border-gold/10";
         }
 
         const isEven = winningNumber % 2 === 0;
 
         if ((type === 'even' && isEven) || (type === 'odd' && !isEven)) {
-            // Winner - yellow highlight like winning numbers
-            return `bg-yellow-500 text-black border-yellow-500 shadow-[0_0_20px_${THEME.colors.gold.shadow}] scale-105`;
+            // Winner - Gold highlight
+            return 'bg-gradient-to-br from-gold to-gold-dark text-background border-gold shadow-[0_0_20px_rgba(212,175,55,0.4)] scale-105';
         } else {
             // Loser
-            return "bg-secondary/30 border-transparent opacity-40 hover:opacity-100 hover:bg-secondary/50 hover:border-border";
+            return "bg-surface/30 border-transparent opacity-40 hover:opacity-100 hover:bg-surface/50 hover:border-gold/10";
         }
     };
 

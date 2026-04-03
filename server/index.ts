@@ -232,6 +232,11 @@ const startServer = async (): Promise<void> => {
         }
 
         gameLoop.result = isWheelSegment(payload.result) ? payload.result : null;
+        gameLoop.targetResult = isWheelSegment(payload.targetResult)
+          ? payload.targetResult
+          : isWheelSegment(payload.result)
+            ? payload.result
+            : null;
 
         socketService.emitToLocal('gameState', {
           state: gameLoop.state,
@@ -239,7 +244,6 @@ const startServer = async (): Promise<void> => {
           bets: gameLoop.bets,
           history: gameLoop.history,
           result: gameLoop.result,
-          targetResult: isWheelSegment(payload.targetResult) ? payload.targetResult : null,
         });
       });
 
@@ -277,6 +281,10 @@ const startServer = async (): Promise<void> => {
   }
 
   const acquired = await leader.acquire();
+  leader.onDemoted(() => {
+    gameLoop.stop();
+  });
+
   if (acquired) {
     leader.startRenewal();
     logger.info('This instance is the LEADER - starting game loop');
