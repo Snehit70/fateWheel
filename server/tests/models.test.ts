@@ -194,6 +194,35 @@ describe('Bet Model', () => {
       expect(bet.type).toBe('type');
       expect(bet.value).toBe('even');
     });
+
+    it('should allow upsert validation when placing a bet', async () => {
+      const bet = await Bet.findOneAndUpdate(
+        {
+          user: testUser.id,
+          status: 'active',
+          roundId: 'round-upsert-123',
+          type: 'number',
+          value: 7,
+        },
+        {
+          $inc: { amount: 10 },
+          $setOnInsert: {
+            username: testUser.username,
+            user: testUser.id,
+            status: 'active',
+            roundId: 'round-upsert-123',
+            type: 'number',
+            value: 7,
+          },
+        },
+        { new: true, upsert: true, runValidators: true }
+      );
+
+      expect(bet).not.toBeNull();
+      expect(bet?.type).toBe('number');
+      expect(bet?.value).toBe(7);
+      expect(bet?.amount).toBe(10);
+    });
   });
 
   describe('Bet status transitions', () => {
