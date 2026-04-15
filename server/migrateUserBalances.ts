@@ -35,6 +35,7 @@ async function migrateUserBalances(): Promise<void> {
       balance: { $lt: MINIMUM_BALANCE },
       role: 'user',
     });
+    const userIdsToUpdate = usersToUpdate.map(user => user._id);
 
     console.log(`Found ${usersToUpdate.length} users with balance < ${MINIMUM_BALANCE}`);
 
@@ -59,11 +60,10 @@ async function migrateUserBalances(): Promise<void> {
     await BalanceBackup.insertMany(backups);
     console.log(`✓ Created ${backups.length} backup records`);
 
-    // Update all users to have minimum balance
+    // Update exactly the users we backed up so rollback scope stays aligned.
     const result = await User.updateMany(
       {
-        balance: { $lt: MINIMUM_BALANCE },
-        role: 'user',
+        _id: { $in: userIdsToUpdate },
       },
       {
         $set: { balance: MINIMUM_BALANCE },

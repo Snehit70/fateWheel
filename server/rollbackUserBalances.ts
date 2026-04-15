@@ -76,7 +76,7 @@ async function rollbackUserBalances(): Promise<void> {
 
     await mongoose.disconnect();
     console.log('\nRollback completed.');
-    process.exit(0);
+    process.exit(errorCount === 0 ? 0 : 1);
   } catch (error) {
     console.error('Error rolling back user balances:', error);
     try {
