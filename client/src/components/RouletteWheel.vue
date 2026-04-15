@@ -116,7 +116,7 @@
       <!-- Timer State -->
       <div v-if="status.includes('ROLLING IN')" class="text-center">
         <div class="text-4xl sm:text-5xl md:text-7xl font-display font-medium text-gold-gradient tracking-tight mb-1 drop-shadow-[0_0_30px_rgba(212,175,55,0.4)]">
-          {{ timeLeft.toFixed(2) }}
+          {{ timeLeft.toFixed(1) }}
         </div>
         <div class="text-muted-foreground text-[10px] sm:text-xs font-display tracking-[0.4em] uppercase opacity-70 hidden sm:block">Rolling In</div>
       </div>

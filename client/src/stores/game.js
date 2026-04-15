@@ -8,6 +8,7 @@ import { BET_LIMITS } from '../constants/game';
 const CLEAR_PENDING_TIMEOUT = 5000;
 const BET_CALLBACK_TIMEOUT = 10000;
 const SAFETY_BUFFER_MS = 1000;
+const COUNTDOWN_DISPLAY_STEP_MS = 100;
 
 export const useGameStore = defineStore('game', () => {
     const authStore = useAuthStore();
@@ -36,7 +37,8 @@ export const useGameStore = defineStore('game', () => {
 
     // Internal timing
     let endTime = 0;
-    let countdownInterval = null;
+    let countdownTimer = null;
+    let lastDisplayedCountdown = Number.POSITIVE_INFINITY;
 
     // --- Computed ---
     const totalBetAmount = computed(() => {
@@ -47,10 +49,79 @@ export const useGameStore = defineStore('game', () => {
             .reduce((sum, b) => sum + b.amount, 0);
     });
 
+    const stopCountdown = () => {
+        if (countdownTimer) {
+            clearTimeout(countdownTimer);
+            countdownTimer = null;
+        }
+        lastDisplayedCountdown = Number.POSITIVE_INFINITY;
+    };
+
+    const scheduleNextCountdownTick = () => {
+        if (countdownTimer) {
+            return;
+        }
+
+        const now = socket.getServerTime();
+        const adjustedMsLeft = Math.max(0, endTime - now - SAFETY_BUFFER_MS);
+        const remainder = adjustedMsLeft % COUNTDOWN_DISPLAY_STEP_MS;
+        const delay = adjustedMsLeft > 0
+            ? (remainder === 0 ? COUNTDOWN_DISPLAY_STEP_MS : remainder)
+            : COUNTDOWN_DISPLAY_STEP_MS;
+
+        countdownTimer = setTimeout(() => {
+            countdownTimer = null;
+            updateCountdown();
+            scheduleNextCountdownTick();
+        }, delay);
+    };
+
+    const updateCountdown = () => {
+        const now = socket.getServerTime();
+        const serverTimeLeftSeconds = (endTime - now) / 1000;
+        const adjustedSeconds = Math.max(0, serverTimeLeftSeconds - (SAFETY_BUFFER_MS / 1000));
+        const quantizedSeconds = Math.ceil(adjustedSeconds * 10) / 10;
+
+        if (lastDisplayedCountdown !== Number.POSITIVE_INFINITY && quantizedSeconds > lastDisplayedCountdown) {
+            timeLeft.value = lastDisplayedCountdown;
+        } else {
+            timeLeft.value = quantizedSeconds;
+            lastDisplayedCountdown = quantizedSeconds;
+        }
+
+        if (adjustedSeconds <= 0 && serverTimeLeftSeconds > 0) {
+            if (!isLocking.value) {
+                status.value = 'LOCKING BETS...';
+                isLocking.value = true;
+            }
+        } else if (adjustedSeconds > 0) {
+            isLocking.value = false;
+            if (status.value !== 'ROLLING IN') status.value = 'ROLLING IN';
+        }
+    };
+
+    const ensureCountdownRunning = () => {
+        if (countdownTimer) {
+            return;
+        }
+
+        updateCountdown();
+        scheduleNextCountdownTick();
+    };
+
     // --- Socket Event Handlers ---
     const handleGameUpdate = (data) => {
-        if (data.endTime) {
-            endTime = data.endTime;
+        if (typeof data.endTime === 'number') {
+            const nextEndTime = data.endTime;
+            const isNewRoundBoundary = endTime !== 0 && (nextEndTime - endTime) > 1000;
+            endTime = nextEndTime;
+            if (isNewRoundBoundary) {
+                lastDisplayedCountdown = Number.POSITIVE_INFINITY;
+                if (countdownTimer) {
+                    clearTimeout(countdownTimer);
+                    countdownTimer = null;
+                }
+            }
         }
 
         if (data.state === 'WAITING') {
@@ -61,33 +132,12 @@ export const useGameStore = defineStore('game', () => {
                 lastResult.value = null;
             }
 
-            if (!countdownInterval) {
-                countdownInterval = setInterval(() => {
-                    const now = socket.getServerTime();
-                    const serverTimeLeft = (endTime - now) / 1000;
-                    const displayTimeLeft = Math.max(0, serverTimeLeft - (SAFETY_BUFFER_MS / 1000));
-
-                    timeLeft.value = displayTimeLeft;
-
-                    if (displayTimeLeft <= 0 && serverTimeLeft > 0) {
-                        if (!isLocking.value) {
-                            status.value = 'LOCKING BETS...';
-                            isLocking.value = true;
-                        }
-                    } else if (displayTimeLeft > 0) {
-                        isLocking.value = false;
-                        if (status.value !== 'ROLLING IN') status.value = 'ROLLING IN';
-                    }
-                }, 500);
-            }
+            ensureCountdownRunning();
         } else if (data.state === 'SPINNING') {
             status.value = 'ROLLING...';
             isSpinning.value = true;
             isLocking.value = false;
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
+            stopCountdown();
         } else if (data.state === 'RESULT') {
             // Don't override animation state if wheel is still spinning
             if (isAnimating.value) return;
@@ -98,10 +148,7 @@ export const useGameStore = defineStore('game', () => {
             if (data.result) {
                 lastResult.value = data.result;
             }
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
+            stopCountdown();
         }
     };
 
@@ -165,10 +212,7 @@ export const useGameStore = defineStore('game', () => {
         socket.off('connect', onConnect);
         socket.off('disconnect', onDisconnect);
 
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
+        stopCountdown();
     }
 
     function onConnect() {
