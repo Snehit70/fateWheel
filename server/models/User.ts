@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema<UserAttrs>(
     },
     balance: {
       type: Number,
-      default: 0,
+      default: 1000,
       set: (value: number) => Math.floor(value),
     },
     role: {
