@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import AdminLog = require('../models/AdminLog');
 import Bet = require('../models/Bet');
 import GameResult = require('../models/GameResult');
+import MigrationState = require('../models/MigrationState');
 import Transaction = require('../models/Transaction');
 import User = require('../models/User');
 import './setup';
@@ -469,6 +470,36 @@ describe('AdminLog Model', () => {
         action,
         targetUserId: targetUser.id,
         targetUsername: targetUser.username,
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe('MigrationState Model', () => {
+  it('should create a durable migration marker', async () => {
+    const migrationState = await MigrationState.create({
+      migrationName: 'minimum-balance-1000',
+      completedAt: new Date('2026-04-15T00:00:00.000Z'),
+      affectedUsers: 12,
+    });
+
+    expect(migrationState.migrationName).toBe('minimum-balance-1000');
+    expect(migrationState.rolledBackAt).toBeNull();
+    expect(migrationState.affectedUsers).toBe(12);
+  });
+
+  it('should enforce unique migration names', async () => {
+    await MigrationState.create({
+      migrationName: 'minimum-balance-1000',
+      completedAt: new Date('2026-04-15T00:00:00.000Z'),
+      affectedUsers: 1,
+    });
+
+    await expect(
+      MigrationState.create({
+        migrationName: 'minimum-balance-1000',
+        completedAt: new Date('2026-04-15T00:05:00.000Z'),
+        affectedUsers: 2,
       })
     ).rejects.toThrow();
   });

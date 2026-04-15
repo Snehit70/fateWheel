@@ -16,6 +16,7 @@ This migration system ensures backward compatibility by:
 - `migrateUserBalances.ts` - Migration script
 - `rollbackUserBalances.ts` - Rollback script
 - `models/BalanceBackup.ts` - Backup data model
+- `models/MigrationState.ts` - Durable migration completion marker
 
 ## Running the Migration
 
@@ -42,10 +43,10 @@ MONGO_URL=mongodb://your-db-url npm run migrate:balances
 
 ### What It Does
 
-1. Checks if migration has already been run (prevents duplicate runs)
+1. Checks a durable migration marker to prevent duplicate runs even after backup cleanup
 2. Finds all users with `balance < 1000` and `role = 'user'`
 3. **Creates backup records** of original balances
-4. Updates users to have 1000 coin balance
+4. Updates users to have 1000 coin balance inside the same transaction snapshot
 5. Reports success with rollback instructions
 
 ### Example Output
@@ -104,14 +105,16 @@ Rollback completed.
 ## Safety Features
 
 ### Idempotency
-- Migration can only be run once
-- Attempting to re-run shows a warning and exits safely
-- Must rollback before re-running
+- Migration writes a durable completion marker in `migrationstates`
+- Attempting to re-run shows a warning and exits safely even if backups were cleaned up
+- Successful rollback marks the migration as rolled back so it can be rerun intentionally
 
 ### Data Integrity
 - All original balances are backed up before changes
 - Backup records stored in `balancebackups` collection
+- Migration completion state stored in `migrationstates` collection
 - Admin users are never affected (only `role = 'user'`)
+- Migration runs in a transaction so backup and balance updates stay in sync
 
 ### Rollback Protection
 - 5-second countdown before rollback starts
@@ -131,6 +134,19 @@ Rollback completed.
   newBalance: number,         // Balance after migration (1000)
   migrationName: string,      // "minimum-balance-1000"
   migrationDate: Date,        // When migration ran
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### MigrationState Collection
+
+```typescript
+{
+  migrationName: string,      // "minimum-balance-1000"
+  completedAt: Date,          // When migration last completed
+  rolledBackAt: Date | null,  // Set after successful rollback
+  affectedUsers: number,
   createdAt: Date,
   updatedAt: Date
 }
@@ -192,7 +208,7 @@ If you're confident the migration was successful and don't need the backup anymo
 db.balancebackups.deleteMany({ migrationName: 'minimum-balance-1000' })
 ```
 
-**Note:** This is normally done automatically during rollback, so manual cleanup is usually unnecessary.
+**Note:** This is normally done automatically during rollback, so manual cleanup is usually unnecessary. Manual backup cleanup does not remove the durable migration marker and does make automatic rollback unavailable later.
 
 ## Future Migrations
 

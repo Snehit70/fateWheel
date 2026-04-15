@@ -3,6 +3,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 
 import BalanceBackup from './models/BalanceBackup';
+import MigrationState from './models/MigrationState';
 import User from './models/User';
 
 const DEFAULT_MONGO_URL = 'mongodb://127.0.0.1:27017/fatewheel';
@@ -19,10 +20,20 @@ async function rollbackUserBalances(): Promise<void> {
     await mongoose.connect(mongoUrl);
     console.log('Connected to MongoDB');
 
+    const migrationState = await MigrationState.findOne({ migrationName: MIGRATION_NAME });
+
     // Find all backup records for this migration
     const backups = await BalanceBackup.find({ migrationName: MIGRATION_NAME });
 
     if (backups.length === 0) {
+      if (migrationState && !migrationState.rolledBackAt) {
+        console.log(`Migration '${MIGRATION_NAME}' is marked complete, but no backup records were found.`);
+        console.log('Automatic rollback is unavailable because the backup records are missing.');
+        await mongoose.disconnect();
+        process.exit(1);
+        return;
+      }
+
       console.log(`No backup records found for migration '${MIGRATION_NAME}'.`);
       console.log('Either the migration was never run, or it has already been rolled back.');
       await mongoose.disconnect();
@@ -41,30 +52,51 @@ async function rollbackUserBalances(): Promise<void> {
 
     let restoredCount = 0;
     let errorCount = 0;
+    const restoreLogs: string[] = [];
 
-    // Restore each user's balance
-    for (const backup of backups) {
-      try {
-        const result = await User.updateOne(
-          { _id: backup.userId },
-          { $set: { balance: backup.originalBalance } }
-        );
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        for (const backup of backups) {
+          const result = await User.updateOne(
+            { _id: backup.userId },
+            { $set: { balance: backup.originalBalance } },
+            { session }
+          );
 
-        if (result.modifiedCount > 0) {
-          restoredCount++;
-          console.log(`✓ Restored ${backup.username}: ${backup.newBalance} → ${backup.originalBalance}`);
-        } else {
-          console.log(`⊘ Skipped ${backup.username}: User not found or balance unchanged`);
+          if (result.matchedCount === 0) {
+            throw new Error(`Failed to restore ${backup.username}: user not found`);
+          }
+
+          if (result.modifiedCount > 0) {
+            restoredCount++;
+            restoreLogs.push(`✓ Restored ${backup.username}: ${backup.newBalance} → ${backup.originalBalance}`);
+          } else {
+            restoreLogs.push(`⊘ Skipped ${backup.username}: balance already ${backup.originalBalance}`);
+          }
         }
-      } catch (err) {
-        errorCount++;
-        console.error(`✗ Failed to restore ${backup.username}:`, err);
-      }
+
+        await BalanceBackup.deleteMany({ migrationName: MIGRATION_NAME }, { session });
+
+        if (migrationState) {
+          await MigrationState.updateOne(
+            { migrationName: MIGRATION_NAME },
+            { $set: { rolledBackAt: new Date() } },
+            { session }
+          );
+        }
+      });
+    } catch (err) {
+      errorCount++;
+      console.error('Rollback aborted:', err);
+    } finally {
+      await session.endSession();
     }
 
-    // Delete the backup records after successful rollback
     if (errorCount === 0) {
-      await BalanceBackup.deleteMany({ migrationName: MIGRATION_NAME });
+      for (const restoreLog of restoreLogs) {
+        console.log(restoreLog);
+      }
       console.log(`\n✓ Deleted ${backups.length} backup records`);
     } else {
       console.log(`\n⚠️  Keeping backup records due to ${errorCount} errors`);
