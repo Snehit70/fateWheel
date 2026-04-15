@@ -31,7 +31,7 @@ describe('User Model', () => {
       expect(user.role).toBe('user');
     });
 
-    it('should default balance to 0', async () => {
+    it('should default balance to 1000', async () => {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('Password123', salt);
 
@@ -41,7 +41,7 @@ describe('User Model', () => {
         role: 'user',
       });
 
-      expect(user.balance).toBe(0);
+      expect(user.balance).toBe(1000);
     });
 
     it('should default role to user', async () => {

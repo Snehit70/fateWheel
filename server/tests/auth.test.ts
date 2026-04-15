@@ -74,6 +74,19 @@ describe('Auth API', () => {
     expect(res.body).not.toHaveProperty('status');
   });
 
+  it('POST /api/auth/register - should give new users 1000 coins starting balance', async () => {
+    const newUser = {
+      username: 'balancetest',
+      password: 'TestPass123',
+    };
+
+    await request(app).post('/api/auth/register').send(newUser);
+    const loginRes = await request(app).post('/api/auth/login').send(newUser);
+
+    expect(loginRes.statusCode).toEqual(200);
+    expect(loginRes.body.user).toHaveProperty('balance', 1000);
+  });
+
   it('GET /api/auth/me - should fail without token', async () => {
     const res = await request(app).get('/api/auth/me');
 
