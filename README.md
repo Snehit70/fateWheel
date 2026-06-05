@@ -28,17 +28,9 @@ manage player balances, review rounds and logs, and withdraw net profit.
 
 ## Screenshots
 
-### Sign In
-
-![FateWheel sign in screen](photo_2026-06-05_14-45-59.jpg)
-
-### Game
-
-![FateWheel main betting screen](photo_2026-06-05_14-46-02.jpg)
-
-### Bet History
-
-![FateWheel bet history screen](photo_2026-06-05_14-46-04.jpg)
+| Sign In | Game | Bet History |
+| :---: | :---: | :---: |
+| <img src="photo_2026-06-05_14-45-59.jpg" alt="FateWheel sign in screen" width="220"> | <img src="photo_2026-06-05_14-46-02.jpg" alt="FateWheel main betting screen" width="220"> | <img src="photo_2026-06-05_14-46-04.jpg" alt="FateWheel bet history screen" width="220"> |
 
 ## Requirements
 
